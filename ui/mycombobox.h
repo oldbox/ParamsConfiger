@@ -19,6 +19,7 @@ public:
 signals:
     void currentTextChanged();
     void currentValueChanged();
+    void currentValueChanged(QString currentVal);
 private:
     QHash<QString, QString>* dropDownHashIn;
 };

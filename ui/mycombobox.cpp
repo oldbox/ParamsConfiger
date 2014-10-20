@@ -11,6 +11,7 @@ MyComboBox::MyComboBox(QHash<QString, QString> *dropDownListHash,QWidget *parent
       addItem(dropDownList.at(i));
   }
 
+  emit currentValueChanged(currentValue());
 }
 
 MyComboBox::MyComboBox(QStringList *dropDownList, QWidget *parent)
