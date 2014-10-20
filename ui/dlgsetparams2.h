@@ -39,6 +39,7 @@ public:
     ~dlgSetParams2();
 private slots:
     void mapperToProperModelAndRow(QModelIndex index);
+    void mapperToProperModelAndRow(QString index);
     
 private:
     Ui::dlgSetParams2 *ui;

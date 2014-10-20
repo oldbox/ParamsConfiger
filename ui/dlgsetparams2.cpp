@@ -87,6 +87,8 @@ void dlgSetParams2::initSomeInstance()
             item = new QStandardItem(QString::fromLocal8Bit(czValue));
             qlist.append(item);
 
+            memset(czValue, 0, sizeof(czValue));
+            if(!GetAfxConfig()->GetIni(czGroup, "ID", czValue)) {GetAfxConfig()->SetIni(czGroup, "ID", yqIDList->at(i).toLocal8Bit().data());};
             item = new QStandardItem(yqIDList->at(i));
             qlist.append(item);
 
@@ -162,13 +164,20 @@ void dlgSetParams2::addProperties()
     // -- 测试优先级
     QStringList testPriorityList;
     testPriorityList << "1" << "2" << "3" << "4" << "5";
+    // -- 测试方法
+    QHash<QString, QString>* testMethodsHash = new QHash<QString, QString>();
+    testMethodsHash->insert(L("电化学"), QString::number(ElectroChemistry));
+    testMethodsHash->insert(L("比色法"), QString::number(Colorimetric));
+    testMethodsHash->insert(L("原子荧光"), QString::number(AtomicFluorescence));
+    testMethodsHash->insert(L("多参数"), QString::number(MultipleParameter));
+    testMethodsHash->insert(L("二氧化硅"), QString::number(SiliconOxide));
 
     //  公共属性
     for(int i=1; i <= methodsCounts; i++)
     {
         generateEditor(L("参数代码"), L("ID"), i); //参数代码需固定为第一位，其他的可以随意
         generateEditor(L("参数名称"), L("Name"), i);
-        generateEditor(L("测试方法"), L("ProcessType"), i);
+        generateEditor(L("测试方法"), L("ProcessType"), testMethodsHash ,i);
         generateEditor(L("Modbus地址"), L("SlaveID"), i);
         generateEditor(L("小数位数"), L("DataDigits"), i);
         generateEditor(L("检出上限"), L("TopLimit"), i, L("mg/L"));
@@ -275,6 +284,44 @@ void dlgSetParams2::initConnect()
     QListView* paramsNameList = ui->paramNameGroupBox->findChild<QListView *>("paramsNameList");
     connect(paramsNameList, SIGNAL(clicked(QModelIndex)),
             this, SLOT(mapperToProperModelAndRow(QModelIndex)));
+
+    for (int i = 1; i <= methodsCounts; i++)
+    {
+        QString widgetName = QString("widgetForMethod%1").arg(i);
+        QWidget* widget = this->findChild<QWidget*>(widgetName);
+
+        QString editorName = QString("ProcessType");
+        MyComboBox* eidtor = widget->findChild<MyComboBox*>(editorName);
+
+        connect(eidtor, SIGNAL(currentValueChanged(QString)),
+                this, mapperToProperModelAndRow(QString);)
+    }
+
+}
+
+void dlgSetParams2::mapperToProperModelAndRow(QString processTypeStr)
+{
+    int processType = processTypeStr.toInt();
+    QString widgetName = QString("widgetForMethod%1").arg(processType);
+    QWidget* widget = this->findChild<QWidget*>(widgetName);
+    QDataWidgetMapper* mapper = mapperList->at(processType);
+    QStandardItemModel* model = modelList->at(processType);
+
+    // 获取czID
+
+    propertyListStackedWidgetGlobal->setCurrentWidget(widget);
+    QList<QStandardItem*> resultList;
+    resultList = model->findItems(czID, Qt::MatchExactly, 0);
+    if(resultList.isEmpty())
+    {
+
+    }
+    else
+    {
+        QStandardItem* item = resultList.at(0);
+        QModelIndex resultIndex = model->indexFromItem(item);
+        mapper->setCurrentModelIndex(resultIndex);
+    }
 }
 
 void dlgSetParams2::mapperToProperModelAndRow(QModelIndex index)
@@ -294,8 +341,10 @@ void dlgSetParams2::mapperToProperModelAndRow(QModelIndex index)
     QList<QStandardItem*> resultList;
     resultList = model->findItems(czID, Qt::MatchExactly, 0);
     if(resultList.isEmpty())
-//        appendOneRowToTheModel();
-        ;
+    {
+        QString czGroup = QString("%1_SET").arg(czID);
+        addOneRowToModel(czGroup.toLocal8Bit().data(), processType);
+    }
     else
     {
         QStandardItem* item = resultList.at(0);
