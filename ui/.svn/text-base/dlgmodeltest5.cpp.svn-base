@@ -1,0 +1,281 @@
+#include "dlgmodeltest5.h"
+#include "ui_dlgmodeltest5.h"
+
+dlgmodeltest5::dlgmodeltest5(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::dlgmodeltest5)
+{
+    ui->setupUi(this);
+    m_nRow = -1;
+    m_pMC = pMC;
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }   
+}
+
+dlgmodeltest5::~dlgmodeltest5()
+{
+    delete ui;
+}
+
+void dlgmodeltest5::on_btnStatus_clicked()
+{
+    if(false == judgeYQConnect()) return;
+
+    int16_t nStatus = 0;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+
+    if(pYQ->m_pProcess->pDriver->ReadModbus(CMD_ElectrCheck,40052,1,bBuff))
+    {
+        nStatus = MAKEWORD(bBuff[0],bBuff[1]);	//40052 模块的工作状态
+        if(0 == nStatus)
+        {
+             QMessageBox::information(NULL, "提示信息","空闲状态!");
+        }
+        else if(1 == nStatus)
+        {
+             QMessageBox::information(NULL, "提示信息","工作状态!");
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息","状态信息错误!");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息","通讯故障!");
+    }
+}
+
+void dlgmodeltest5::on_listWidget_clicked(const QModelIndex &index)
+{
+    m_nRow= index.row();
+    UpdateParamName();
+}
+void dlgmodeltest5::UpdateParamName()
+{
+    ui->labelname2->show();
+    ui->labelname3->show();
+    ui->labelname4->show();
+    ui->labelname5->show();
+    ui->labelname6->show();
+    ui->lineprm2->show();
+    ui->lineprm3->show();
+    ui->lineprm4->show();
+    ui->lineprm5->show();
+    ui->lineprm6->show();
+    if(0 == m_nRow)
+    {
+        ui->labelname1->setText("富集电压(mV)");
+        ui->labelname2->hide();
+        ui->labelname3->hide();
+        ui->labelname4->hide();
+        ui->labelname5->hide();
+        ui->labelname6->hide();
+        ui->lineprm2->hide();
+        ui->lineprm3->hide();
+        ui->lineprm4->hide();
+        ui->lineprm5->hide();
+        ui->lineprm6->hide();
+    }
+    else if(1 == m_nRow)
+    {
+        ui->labelname1->setText("平置电压(mV)");
+        ui->labelname2->hide();
+        ui->labelname3->hide();
+        ui->labelname4->hide();
+        ui->labelname5->hide();
+        ui->labelname6->hide();
+        ui->lineprm2->hide();
+        ui->lineprm3->hide();
+        ui->lineprm4->hide();
+        ui->lineprm5->hide();
+        ui->lineprm6->hide();
+    }
+    else if(2 == m_nRow)
+    {
+        ui->labelname1->setText("溶出起始电压(mV)");
+        ui->labelname2->setText("溶出终止电压(mV)");
+        ui->labelname3->setText("溶出电压增量(mV)");
+        ui->labelname4->setText("采样脉冲幅度(mV)");
+        ui->labelname5->setText("采样脉冲宽度(mS)");
+        ui->labelname6->setText("采样脉冲周期(mS)");
+    }
+    else if(3 == m_nRow)
+    {
+        ui->labelname1->setText("参考电阻(0内,1外)");
+        ui->labelname2->hide();
+        ui->labelname3->hide();
+        ui->labelname4->hide();
+        ui->labelname5->hide();
+        ui->labelname6->hide();
+        ui->lineprm2->hide();
+        ui->lineprm3->hide();
+        ui->lineprm4->hide();
+        ui->lineprm5->hide();
+        ui->lineprm6->hide();
+    }
+    else if(4 == m_nRow)
+    {
+        ui->labelname1->setText("16位数据");
+        ui->labelname2->hide();
+        ui->labelname3->hide();
+        ui->labelname4->hide();
+        ui->labelname5->hide();
+        ui->labelname6->hide();
+        ui->lineprm2->hide();
+        ui->lineprm3->hide();
+        ui->lineprm4->hide();
+        ui->lineprm5->hide();
+        ui->lineprm6->hide();
+    }
+    else if(5 == m_nRow)
+    {
+        ui->labelname1->setText("0断开,1连接");
+        ui->labelname2->hide();
+        ui->labelname3->hide();
+        ui->labelname4->hide();
+        ui->labelname5->hide();
+        ui->labelname6->hide();
+        ui->lineprm2->hide();
+        ui->lineprm3->hide();
+        ui->lineprm4->hide();
+        ui->lineprm5->hide();
+        ui->lineprm6->hide();
+    }
+    else if(6 == m_nRow)
+    {
+        ui->labelname1->setText("+2V校准值");
+        ui->labelname2->setText("0V校准值");
+        ui->labelname3->setText("-2V校准值");
+        ui->labelname4->hide();
+        ui->labelname5->hide();
+        ui->labelname6->hide();
+        ui->lineprm4->hide();
+        ui->lineprm5->hide();
+        ui->lineprm6->hide();
+    }
+    else if(7 == m_nRow)
+    {
+        ui->labelname1->setText("+2V ADC转换值");
+        ui->labelname2->setText("0V ADC转换值");
+        ui->labelname3->setText("-2V ADC转换值");
+        ui->labelname4->hide();
+        ui->labelname5->hide();
+        ui->labelname6->hide();
+        ui->lineprm4->hide();
+        ui->lineprm5->hide();
+        ui->lineprm6->hide();
+    }
+}
+
+void dlgmodeltest5::on_btnSend_clicked()
+{
+    if(-1 == m_nRow)
+    {
+        dlgRemindMessage *pRemind= new dlgRemindMessage(m_pMC,7);
+        pRemind->exec();
+        delete pRemind;
+        pRemind = NULL;
+    }
+    else if(0 == m_nRow)
+    {
+        SendCmd(70,1);
+    }
+    else if(1 == m_nRow)
+    {
+        SendCmd(71,1);
+    }
+    else if(2 == m_nRow)
+    {
+        SendCmd(72,6);
+    }
+    else if(3 == m_nRow)
+    {
+        SendCmd(73,1);
+    }
+    else if(4 == m_nRow)
+    {
+        SendCmd(74,1);
+    }
+    else if(5 == m_nRow)
+    {
+        SendCmd(75,1);
+    }
+    else if(6 == m_nRow)
+    {
+        SendCmd(76,3);
+    }
+    else if(7 == m_nRow)
+    {
+        SendCmd(77,3);
+    }
+    else
+    {
+        //do nothing
+    }
+}
+bool dlgmodeltest5::SendCmd(int16_t nCmd, int nNum)
+{
+    if(false == judgeYQConnect()) return false;
+
+    int16_t nParam = 0;
+    QLineEdit *pbs[16] = {ui->lineprm1, ui->lineprm2, ui->lineprm3, ui->lineprm4,
+                           ui->lineprm5, ui->lineprm6};
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+
+    bBuff[0] = HIBYTE(nCmd);
+    bBuff[1] = LOBYTE(nCmd);
+    for(int i=1;i<=nNum;i++)
+    {
+        QLineEdit *pb = pbs[i-1];
+        nParam = pb->text().toInt();
+        bBuff[2*i] = HIBYTE(nParam);
+        bBuff[2*i+1] = LOBYTE(nParam);
+        qDebug("nParam %d \n",nParam);
+        qDebug("bBuff[%d] %s \n",2*i,bBuff[2*i]);
+        qDebug("bBuff[%d] %s \n",2*i+1,bBuff[2*i]);
+    }
+    if (pYQ->m_pProcess->pDriver->WriteModbus(CMD_ElectrCheck,40001,nNum+1,bBuff))
+    {
+         QMessageBox::information(NULL, "提示信息","命令发送成功!");
+         return true;
+    }
+    else
+    {
+         QMessageBox::information(NULL, "提示信息","命令发送失败!");
+         return false;
+    }
+}
+
+//判断仪器是否正确连接
+bool dlgmodeltest5::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息", "仪器获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+

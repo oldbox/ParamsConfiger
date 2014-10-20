@@ -1,0 +1,56 @@
+#include "dlselmoreparam.h"
+#include "ui_dlselmoreparam.h"
+#include <QGridLayout>
+#include <QTextCodec>
+
+#include <QGroupBox>
+#include <QRadioButton>
+
+dlselmoreparam::dlselmoreparam(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlselmoreparam)
+{
+    ui->setupUi(this);
+
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    QRadioButton *rb1 = new QRadioButton("R1");
+    QRadioButton *rb2 = new QRadioButton("R2");
+    QRadioButton *rb3 = new QRadioButton("R3");
+    QRadioButton *rb4 = new QRadioButton("R4");
+
+    QGroupBox *gb = new QGroupBox("Radio Buttons");
+    QGridLayout *layout = new QGridLayout();
+    layout->addWidget(rb1, 0, 0, 1, 1);
+    layout->addWidget(rb2, 1, 0, 1, 1);
+    layout->addWidget(rb3, 0, 1, 1, 1);
+    layout->addWidget(rb4, 1, 1, 1, 1);
+    gb->setLayout(layout);
+
+    //QWidget *widget = new QWidget();
+    QVBoxLayout *mainLayout = new QVBoxLayout();
+    mainLayout->addWidget(gb);
+    ui->widget->setLayout(mainLayout);
+    ui->widget->layout()->setSizeConstraint(QLayout::SetFixedSize);
+    ui->widget->show();
+}
+
+dlselmoreparam::~dlselmoreparam()
+{
+    delete ui;
+}
+
+void dlselmoreparam::on_butClose_clicked()
+{
+    this->close();
+}
+
+void dlselmoreparam::on_butSave_clicked()
+{
+
+    emit NotifySelParam("");
+}

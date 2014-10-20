@@ -1,0 +1,14 @@
+#include "comdebug.h"
+#include "ui_comdebug.h"
+
+COMDebug::COMDebug(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::COMDebug)
+{
+    ui->setupUi(this);
+}
+
+COMDebug::~COMDebug()
+{
+    delete ui;
+}

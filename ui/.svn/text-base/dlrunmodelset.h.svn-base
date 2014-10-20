@@ -1,0 +1,72 @@
+#ifndef DLRUNMODELSET_H
+#define DLRUNMODELSET_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include <qmap.h>
+#include <QLineEdit>
+#include "../core/cconfig.h"
+#include <QListView>
+#include "dlghelpinfo.h"
+#include "dlgmodifysystime.h"
+#include <QMouseEvent>
+#include "dlgnetsetting.h"
+
+
+namespace Ui {
+class dlrunmodelset;
+}
+
+class dlrunmodelset : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlrunmodelset(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlrunmodelset();
+
+signals:
+   void EmityParWinClolse();
+
+private slots:
+    void changeRunMode();  
+    void on_butSave_clicked();
+
+    void on_Btndelete_clicked();
+
+    void on_Btnadd_clicked();
+
+    void on_btnSelectTime_clicked();
+
+    void on_btnClose_clicked();
+
+    void on_btnStdAbsorbTime_clicked();
+
+    void on_btnBlankAbsorbTime_clicked();
+
+    void on_btnHcAbsorbTime_clicked();
+
+    void on_BoxAutoMaintain_clicked(bool checked);
+
+    void on_btnMaintainTime_clicked();
+
+    void on_chkStdAbsorb_clicked(bool checked);
+
+    void on_chkBlankAbsorb_clicked(bool checked);
+
+    void on_chkHcAbsorb_clicked(bool checked);
+
+private:
+    void mousePressEvent(QMouseEvent *);
+    bool CompareSaveOrNot(); 
+    Ui::dlrunmodelset *ui;
+    CMainCtrl* m_pMC;
+    void Init();
+    QMap<int,int> qmHourTime;   
+    int m_nListTime[24];
+    int m_nCount;
+    int m_nClick;
+    int m_iYQType;
+};
+
+#endif // DLRUNMODELSET_H

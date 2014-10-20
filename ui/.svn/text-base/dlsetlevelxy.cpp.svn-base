@@ -1,0 +1,225 @@
+#include "dlsetlevelxy.h"
+#include "ui_dlsetlevelxy.h"
+#include "../core/paramdict.h"
+#include <QMessageBox>
+#include <QTextCodec>
+
+dlSetLevelXY::dlSetLevelXY(const char* czID,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlSetLevelXY)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    memset(m_czID,0,64);
+    strcpy(m_czID,czID);
+    this->ParamProcessPicShow(m_czID);
+    this->SetTabStyle();
+    this->GetYwpName(czID);
+}
+
+dlSetLevelXY::~dlSetLevelXY()
+{
+    delete ui;
+}
+
+void dlSetLevelXY::SetTabStyle()
+{
+    //隐藏表头
+    ui->tabWidParam->horizontalHeader()->setVisible(false);
+    ui->tabWidParam->verticalHeader()->setVisible(false);
+    ui->tabWidParam->setShowGrid(false); //设置不显示格子线
+    ui->tabWidParam->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一行
+    ui->tabWidParam->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tabWidParam->setColumnCount(1);
+    ui->tabWidParam->setRowCount(9);
+    QHeaderView *pTableHeaderView = ui->tabWidParam->horizontalHeader();
+    if (pTableHeaderView)
+    {
+        pTableHeaderView->setDefaultAlignment (Qt::AlignVCenter); //居中
+        pTableHeaderView->setTextElideMode (Qt::ElideRight); //...效果
+        pTableHeaderView->setStretchLastSection (true); //尾不留空白
+    }
+
+    if(ui->tabWidParam->rowCount() > 0)
+        ui->tabWidParam->setCurrentCell(0,0);
+}
+
+void dlSetLevelXY::ParamProcessPicShow(const char *czID)
+{
+    QString sPathFile;
+    sPathFile.sprintf("border-image: url(:/res/processpic/4/bs_%s.png);",czID);
+    ui->fraProcPic->setStyleSheet(sPathFile);
+}
+
+void dlSetLevelXY::GetYwpName(const char *czID)
+{
+    char czGroup[64];
+    char czItem[64];
+    char czItemXY[64];
+    char czValue[64];
+    memset(czGroup,0,64);
+    sprintf(czGroup,"%s_YWPSET",czID);
+    int iRow = 0;
+    //液位瓶
+    QFrame* qfraYwp[9] = {ui->fraPz_1,ui->fraPz_2,ui->fraPz_3,ui->fraPz_4,ui->fraPz_5,ui->fraPz_6,ui->fraPz_7,ui->fraPz_8,ui->fraPz_9};
+    //液位瓶标识
+    QLabel* qlabYwpID[9] = {ui->lblYwp_1,ui->lblYwp_2,ui->lblYwp_3,ui->lblYwp_4,ui->lblYwp_5,ui->lblYwp_6,ui->lblYwp_7,ui->lblYwp_8,ui->lblYwp_9};
+    //取试剂瓶对应文字说明
+    QLabel* qlab[9] = {ui->lblB1,ui->lblB2,ui->lblB3,ui->lblB4,ui->lblB5,ui->lblB6,ui->lblB7,ui->lblB8,ui->lblB9};
+    for(int i = 1;i <= 9;i++)
+    {
+        memset(czItem,0,64);
+        sprintf(czItem,"YQYTJar_%d",i);
+        memset(czValue,0,64);
+        if(GetAfxConfig()->GetIni(czGroup,czItem,czValue))
+        {
+            QString sValue = QString(czValue);
+            QString sID = QString(czValue);
+            if(sValue.indexOf("_") >= 0)
+            {
+                sValue.remove(0,sValue.indexOf("_") + 1);
+                sID.remove(sID.indexOf("_"),sID.length());
+            }
+            if(sID.length() > 0 && sValue.length() > 0)
+            {
+                qlab[i-1]->setText(sID + ":" + sValue);
+                qlabYwpID[i-1]->setText(sID);
+                qlab[i-1]->show();
+                qlabYwpID[i-1]->show();
+                qfraYwp[i-1]->show();
+
+                ui->tabWidParam->setItem(i-1,0, new QTableWidgetItem(sValue));
+                iRow++;
+
+                //获取瓶子坐标
+                memset(czItemXY,0,64);
+                sprintf(czItemXY,"YQYTJarXY_%d",i);
+                memset(czValue,0,64);
+                if(GetAfxConfig()->GetIni(czGroup,czItemXY,czValue))
+                {
+                    QString sXY = QString(czValue);
+                    int i_X,i_Y;
+                    if(sXY.indexOf("_") >= 0)
+                    {
+                        QStringList slXY = sXY.split("_");
+                        if(slXY.at(0) != NULL && slXY.at(0).length() > 0)
+                            i_X = slXY.at(0).toInt();
+                        if(slXY.at(1) != NULL && slXY.at(1).length() > 0)
+                            i_Y = slXY.at(1).toInt();
+                        QRect rect(i_X, i_Y, 25, 45);
+                        qfraYwp[i-1]->setGeometry(rect);
+                    }
+                }
+            }
+        }
+        else
+        {
+            qlab[i-1]->hide();
+            qfraYwp[i-1]->hide();
+            qlabYwpID[i-1]->hide();
+        }
+    }
+    ui->tabWidParam->setRowCount(iRow);
+}
+
+void dlSetLevelXY::SetYwpGisXY(int iGisType)
+{
+    QString sYwpName;
+    if(ui->tabWidParam->currentItem() != NULL)
+    {
+        sYwpName = ui->tabWidParam->currentItem()->text().trimmed();
+    }
+    //液位瓶
+    int iOffsetVal = ui->litOffsetVal->text().toInt();
+    QFrame* qfraYwp[9] = {ui->fraPz_1,ui->fraPz_2,ui->fraPz_3,ui->fraPz_4,ui->fraPz_5,ui->fraPz_6,ui->fraPz_7,ui->fraPz_8,ui->fraPz_9};
+    QLabel* qlab[9] = {ui->lblB1,ui->lblB2,ui->lblB3,ui->lblB4,ui->lblB5,ui->lblB6,ui->lblB7,ui->lblB8,ui->lblB9};
+    for(int i=0;i<9;i++)
+    {
+        if(qlab[i]->text().contains(sYwpName))
+        {
+            if(1 == iGisType)
+            {
+                m_iYwpX = qfraYwp[i]->pos().x() - iOffsetVal;
+                m_iYwpY = qfraYwp[i]->pos().y();
+            }
+            else if(3 == iGisType)
+            {
+                m_iYwpX = qfraYwp[i]->pos().x() + iOffsetVal;
+                m_iYwpY = qfraYwp[i]->pos().y();
+            }
+            else if(2 == iGisType)
+            {
+                m_iYwpX = qfraYwp[i]->pos().x();
+                m_iYwpY = qfraYwp[i]->pos().y() - iOffsetVal;
+            }
+            else if(4 == iGisType)
+            {
+                m_iYwpX = qfraYwp[i]->pos().x();
+                m_iYwpY = qfraYwp[i]->pos().y() + iOffsetVal;
+            }
+
+            QRect rect(m_iYwpX, m_iYwpY, 25, 45);
+            qfraYwp[i]->setGeometry(rect);
+            break;
+        }
+    }
+}
+
+//向左
+void dlSetLevelXY::on_butLeft_clicked()
+{
+    this->SetYwpGisXY(1);
+}
+
+void dlSetLevelXY::on_butRight_clicked()
+{
+    this->SetYwpGisXY(3);
+}
+
+void dlSetLevelXY::on_butTop_clicked()
+{
+    this->SetYwpGisXY(2);
+}
+
+void dlSetLevelXY::on_butDown_clicked()
+{
+    this->SetYwpGisXY(4);
+}
+
+void dlSetLevelXY::on_butClose_clicked()
+{
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    this->close();
+}
+
+void dlSetLevelXY::SaveInfo(const char *czID)
+{
+    char czGroup[64];
+    char czItem[64];
+    char czValue[64];
+    memset(czGroup,0,64);
+    sprintf(czGroup,"%s_YWPSET",czID);
+    QFrame* qfraYwp[9] = {ui->fraPz_1,ui->fraPz_2,ui->fraPz_3,ui->fraPz_4,ui->fraPz_5,ui->fraPz_6,ui->fraPz_7,ui->fraPz_8,ui->fraPz_9};
+    QLabel* qlab[9] = {ui->lblB1,ui->lblB2,ui->lblB3,ui->lblB4,ui->lblB5,ui->lblB6,ui->lblB7,ui->lblB8,ui->lblB9};
+    for(int i = 1;i <= 9;i++)
+    {
+        sprintf(czItem,"YQYTJarXY_%d",i);
+        GetAfxConfig()->DelItem(czGroup,czItem);
+        if(!qfraYwp[i-1]->isHidden())
+        {
+            memset(czValue,0,64);
+            sprintf(czValue,"%d_%d",qfraYwp[i-1]->pos().x(),qfraYwp[i-1]->pos().y());
+            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+        }
+    }
+}
+
+void dlSetLevelXY::on_butSave_clicked()
+{
+    this->SaveInfo(m_czID);
+    QMessageBox::information(NULL, "提示信息", "保存成功!");
+}

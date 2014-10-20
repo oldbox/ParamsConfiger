@@ -1,0 +1,33 @@
+#ifndef GASMAINTAINREMIND_H
+#define GASMAINTAINREMIND_H
+
+#include <QDialog>
+#include "mainwindowbase.h"
+#include "core/cprocess2.h"
+#include "bsallmodeltest.h"
+#include <QMovie>
+
+namespace Ui {
+class gasMaintainRemind;
+}
+
+class gasMaintainRemind : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit gasMaintainRemind(CMainCtrl* pMC,QWidget *parent = 0);
+    ~gasMaintainRemind();
+    
+private slots:
+    void on_btnClose_clicked();
+
+    void OnEnterMaintaion();
+
+private:
+    Ui::gasMaintainRemind *ui;
+    CMainCtrl* m_pMc;
+    QMovie *WordMovie;
+};
+
+#endif // GASMAINTAINREMIND_H

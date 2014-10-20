@@ -1,0 +1,25 @@
+#ifndef DLGMODELTEST4_H
+#define DLGMODELTEST4_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class dlgmodeltest4;
+}
+
+class dlgmodeltest4 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest4(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest4();
+    
+private:
+    Ui::dlgmodeltest4 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+};
+
+#endif // DLGMODELTEST4_H

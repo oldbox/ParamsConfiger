@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>dlgSetParams2</class>
+ <widget class="QDialog" name="dlgSetParams2">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>460</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QGroupBox" name="paramNameGroupBox">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>20</y>
+     <width>181</width>
+     <height>391</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>参数名称</string>
+   </property>
+  </widget>
+  <widget class="QGroupBox" name="paramsPropetiesGroupBox">
+   <property name="geometry">
+    <rect>
+     <x>290</x>
+     <y>20</y>
+     <width>321</width>
+     <height>381</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>参数属性</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

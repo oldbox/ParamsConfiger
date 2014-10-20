@@ -1,0 +1,29 @@
+#ifndef DLCONSUMELIST_H
+#define DLCONSUMELIST_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class dlconsumelist;
+}
+
+class dlconsumelist : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlconsumelist(const char* cID,QWidget *parent = 0);
+    ~dlconsumelist();
+    
+private slots:
+    void on_butClose_clicked();
+
+private:
+    Ui::dlconsumelist *ui;
+    CDBBusiness* m_pDB;
+    void Init();
+    void GetConsumeData(const char* cID);
+};
+
+#endif // DLCONSUMELIST_H

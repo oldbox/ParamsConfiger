@@ -1,0 +1,176 @@
+#include "dlgmodifysystime.h"
+#include "ui_dlgmodifysystime.h"
+
+//nKind为1时表示修改系统
+dlgmodifysystime::dlgmodifysystime(int nKind,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgmodifysystime)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    QString qsTime = QDateTime::currentDateTime().toString("yyyy-MM-dd:hh:mm:ss");
+    qDebug("qsTime:%s",qsTime.toLatin1().data());
+    QStringList qsTimeList = qsTime.split(":");
+    ui->lineEditDay->setText(qsTimeList.at(0));
+    ui->lineEditHour->setText(qsTimeList.at(1));
+    ui->lineEditMinute->setText(qsTimeList.at(2));
+    ui->lineEditSecond->setText("00");
+    ui->calendarTime->hide();
+    m_nKind = nKind;
+    m_bFlag = false;
+}
+
+dlgmodifysystime::~dlgmodifysystime()
+{
+    delete ui;
+}
+
+void dlgmodifysystime::on_btnOK_clicked()
+{
+    QString qsSetTime = "rtc.exe -s ";
+    qsSetTime.append("\"");//添加分号“
+    QString qsTimeContent = ui->lineEditDay->text();
+    qsTimeContent.append(" ");
+    qsTimeContent.append(ui->lineEditHour->text());
+    qsTimeContent.append(":");
+    qsTimeContent.append(ui->lineEditMinute->text());
+    qsTimeContent.append(":");
+    qsTimeContent.append(ui->lineEditSecond->text());
+    qsSetTime.append(qsTimeContent);
+    qsSetTime.append("\"");
+
+
+    if(1 == m_nKind)
+    {
+        qDebug("settime:%s",qsSetTime.toLatin1().data());
+        system(qsSetTime.toLatin1().data());
+        sleep(1);
+        QMessageBox::information(NULL, "提示信息","时间修改成功!");
+    }
+    else
+    {
+        m_qsTime = qsTimeContent;
+        this->close();
+    }
+
+}
+
+void dlgmodifysystime::on_btnHourUp_clicked()
+{
+    int nHour = ui->lineEditHour->text().toInt();
+    nHour++;
+    if(24 == nHour)
+    {
+        nHour = 0;
+    }
+    QString qsHour = "";
+    if(nHour<10)
+    {
+        qsHour = "0";
+    }
+    qsHour.append(QString::number(nHour));
+    ui->lineEditHour->setText(qsHour);
+}
+
+void dlgmodifysystime::on_btnHourDown_clicked()
+{
+    int nHour = ui->lineEditHour->text().toInt();
+    nHour--;
+    if(nHour < 0)
+    {
+        nHour = 23;
+    }
+    QString qsHour = "";
+    if(nHour<10)
+    {
+        qsHour = "0";
+    }
+    qsHour.append(QString::number(nHour));
+    ui->lineEditHour->setText(qsHour);
+}
+
+void dlgmodifysystime::on_btnMinuteDown_clicked()
+{
+    int nMinute = ui->lineEditMinute->text().toInt();
+    nMinute--;
+    if(nMinute < 0)
+    {
+        nMinute = 59;
+    }
+    QString qsMinute = "";
+    if(nMinute<10)
+    {
+        qsMinute = "0";
+    }
+    qsMinute.append(QString::number(nMinute));
+    ui->lineEditMinute->setText(qsMinute);
+}
+
+void dlgmodifysystime::on_btnMinuteUp_clicked()
+{
+    int nMinute = ui->lineEditMinute->text().toInt();
+    nMinute++;
+    if(60 == nMinute)
+    {
+        nMinute = 0;
+    }
+    QString qsMinute = "";
+    if(nMinute<10)
+    {
+        qsMinute = "0";
+    }
+    qsMinute.append(QString::number(nMinute));
+    ui->lineEditMinute->setText(qsMinute);
+}
+
+void dlgmodifysystime::on_btnSecondUp_clicked()
+{
+    int nSecond = ui->lineEditSecond->text().toInt();
+    nSecond++;
+    if(60 == nSecond)
+    {
+        nSecond = 0;
+    }
+    QString qsSecond = "";
+    if(nSecond<10)
+    {
+        qsSecond = "0";
+    }
+    qsSecond.append(QString::number(nSecond));
+    ui->lineEditSecond->setText(qsSecond);
+}
+
+void dlgmodifysystime::on_btnSecondDown_clicked()
+{
+    int nSecond = ui->lineEditSecond->text().toInt();
+    nSecond--;
+    if(nSecond < 0)
+    {
+       nSecond = 59;
+    }
+    QString qsSecond = "";
+    if(nSecond<10)
+    {
+        qsSecond = "0";
+    }
+    qsSecond.append(QString::number(nSecond));
+    ui->lineEditSecond->setText(qsSecond);
+}
+
+void dlgmodifysystime::on_btnDate_clicked()
+{
+    ui->calendarTime->show();
+}
+
+void dlgmodifysystime::on_calendarTime_clicked(const QDate &date)
+{
+    ui->lineEditDay->setText(date.toString("yyyy-MM-dd"));
+    ui->calendarTime->hide();
+}
+
+void dlgmodifysystime::on_btnClose_clicked()
+{
+    m_bFlag = true;
+    this->close();
+}

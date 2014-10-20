@@ -1,0 +1,31 @@
+#ifndef DLGMAINTAINREMIND_H
+#define DLGMAINTAINREMIND_H
+
+#include <QDialog>
+#include <dlgdamoremaind.h>
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class dlgmaintainremind;
+}
+
+class dlgmaintainremind : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmaintainremind(CMainCtrl* pMC,int nType,QWidget *parent = 0);
+    ~dlgmaintainremind();
+    
+private slots:
+    void on_btnmaintain_clicked();
+
+    void on_btnclear_clicked();
+
+private:
+    Ui::dlgmaintainremind *ui;
+    CMainCtrl* m_pMC;
+    int m_nType;
+};
+
+#endif // DLGMAINTAINREMIND_H

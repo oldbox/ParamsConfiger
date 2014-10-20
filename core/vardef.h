@@ -1,0 +1,585 @@
+#ifndef VARDEF_H
+#define VARDEF_H
+
+#include <vector>
+#include <string.h>
+#include <QString>
+#include <QDate>
+#include <QVector>
+
+//#define DBNAME "yq.db"
+#define ININAME "config.ini"
+
+#define NETGROUP "NETGROUP"
+#define GBIP "GBIP"
+#define GBPORT "GBPORT"
+#define GBMN "GBMN"
+#define GBPW "GBPW"
+using namespace std;
+
+//曲线类型
+enum emCurveType4
+{
+    CurveID1 = 1,   //曲线1
+    CurveID2 = 2,   //曲线2
+    CurveID3 = 3,   //曲线3
+    CurveID4 = 4,   //曲线4
+    CurveID5 = 5,   //曲线5
+    CurveID6 = -1,  //自动校准
+    CurveID7 = -2   //空白校准
+};
+
+//仪器类型
+enum emYQType
+{
+    YQ1 = 1,
+    YQ2 = 2,
+    YQ3 = 3,
+    YQ4 = 4,
+    YQ5 = 5,
+    YQ6 = 6,
+    YQ7 = 7,
+    YQ8 = 8,
+    YQ9 = 9,
+    YQ10 = 10,
+    YQ11 = 11,
+    YQ12 = 12,
+    YQ13 = 13,
+    YQ14 = 14,
+    YQ15 = 15
+};
+
+//排放单位
+enum emEmissUnit
+{
+    Unit_WK = 0,   //微克
+    Unit_HK = 1    //毫克
+};
+//峰信息
+struct struPeak
+{
+    struPeak(){nId=nMidPos=nLeftPos=nRightPos=-1;fRT = fLeftT=fRightT=fWidth=fLeftBaseLine=fRigtBaseLine=fHight=fArea=0;bCalcTag=false;}
+    int nId;//峰编号
+    int nMidPos;//峰对应的点
+    double fRT;//峰保留时间
+    int nLeftPos;//峰左边点
+    double fLeftT;//保留时间左边
+    int nRightPos;//峰右边点
+    double fRightT;//保留时间右边
+
+    double fWidth;//峰宽
+    double fLeftBaseLine;//左边基线
+    double fRigtBaseLine;//右边基线
+
+    double fHight;//峰高
+    double fArea;//峰面积
+    bool bCalcTag;//标识此峰是否为已知物质
+};
+//比色法曲线信息-设置曲线时用
+struct BsCurveDotInfo4
+{
+    BsCurveDotInfo4(){iCurveID = 0;memset(czID,0,16);iCalcMode=0;iPointID = 0;fChroma = 0.0;fAbsorbency = 0.0;}//初使化，计算模式在该功能中不代表任何意思，用0表示，暂时预留
+    int iCurveID;//曲线编号
+    char czID[16];//力合参数代码（FK)
+    int iCalcMode;//计算模式
+    int iPointID;//曲线点标识
+    float fChroma;//浓度
+    float fAbsorbency;//吸光度
+};
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+//曲线信息,用于参与计算测试结果的，包括电化学、烟气、有机物
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+//曲线信息---电化学
+struct stuCurveEchem
+{
+    stuCurveEchem(){PeakSearchDown=PeakSearchUp=BaseWaveLength=0;SouceStandValue=BlankChroma=0.0;}
+
+    int PeakSearchDown;     //寻峰下限
+    int PeakSearchUp;       //寻峰上限
+    float SouceStandValue;  //标样浓度,加标浓度
+    float BlankChroma;      //空白浓度
+    int BaseWaveLength;     //光谱仪使用的基线波长,电化学可以不管
+};
+//曲线信息---烟气
+struct stuCurveGas
+{
+    stuCurveGas(){IntegrationTime=0.0;IntegrationNum=ModulusA=ModulusB=0;}
+    float IntegrationTime;  //气体积分时间
+    int IntegrationNum;     //气体积分次数
+    int ModulusA;           //气体反演系数a
+    int ModulusB;           //气体反演系数b
+};
+//曲线信息---有机物
+struct stuCurveVoc
+{
+    stuCurveVoc(){RemainTime = 0.0;WinFactor=Minimum=MinArea=0.0;Kind=MinPW=MaxPW=0;}
+    double RemainTime;
+    float WinFactor;
+    int Kind;
+    int MinPW;
+    int MaxPW;
+    float Minimum;
+    float MinArea;
+};
+//曲线信息---公共
+struct struCurveInfo
+{
+    struCurveInfo(){CurveID = 0;memset(czID,0,16);CalcMode=0;R = 0.0;K = 0.0;B = 0.0;BlankAbsorb = 0.0;
+                        CheckChroma = 0.0;StdAbsorb = 0.0;MinValue = 0.0;MaxValue = 0.0;SampleAdjust=1;}
+    char czID[16];
+    int CurveID;                    //曲线编号
+    int CalcMode;                   //计算模式
+    QDateTime DataTime;             //标定曲线的时间
+    float R;                        //曲线R
+    float K;                        //曲线K
+    float B;                        //曲线B值
+    float BlankAbsorb;              //空白吸光度
+    float CheckChroma;              //标样浓度
+    float StdAbsorb;                //标样吸光度
+    float MinValue;                 //曲线范围之最小值
+    float MaxValue;                 //曲线范围之最大值
+    float SampleAdjust;             //标样校准系数,测试值校准系数
+
+    stuCurveEchem m_EchemCurve;     //电化学
+    stuCurveGas m_GasCurve;         //烟气
+    stuCurveVoc m_VocCurve;         //有机物特征
+};
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//曲线信息 结束
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+//水样数据以及相关数据,包括电化学、比色法、有机物峰信息
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+//水样数据以及相关数据----电化学关联数据
+struct struEchemDataInfo
+{
+    struEchemDataInfo(){fHeight1=fHeight2=fLinearSlope=fLeftBase=fRighBase=0.0;memset(czMaintain,0,64);}
+    double fHeight1;//h的值（水样的峰高）(详细信息)
+    double fHeight2;//H的值（标样的峰高）(详细信息)
+    float fLinearSlope;//线性扫描斜率
+    char czMaintain[64];//电极维护
+    float fLeftBase;//左寻峰点(详细信息)
+    float fRighBase;//右寻峰点(详细信息)
+
+};
+
+//水样数据以及相关数据----比色法关联数据
+struct struBsDataInfo
+{
+    struBsDataInfo(){BaseValue = 0.0;BaseValue = 0.0;SampleValue = 0.0;Absorbency = 0.0;R = 0.0;
+                     K = 0.0;B = 0.0;BlankAbsorb = 0.0;StdAbsorb = 0.0;CurveID = 0;}
+    int CurveID;   //曲线ID
+    float BaseValue;//基线值
+    float SampleValue;//样品值
+    float Absorbency;//吸光度
+    float R;//曲线R
+    float K;//曲线K
+    float B;//曲线B值
+    float BlankAbsorb;//空白吸光度
+    float StdAbsorb;//标样吸光度
+};
+struct struVocDataInfo
+{
+    struVocDataInfo(){RemainTime = 0.0;PeakHight = 0.0;R = 0.0; K = 0.0;B = 0.0;}
+    float RemainTime;//保留时间
+    float PeakHight;//峰高
+    float Area;//峰面积
+    float R;//曲线R
+    float K;//曲线K
+    float B;//曲线B值
+    struPeak m_peak;
+};
+struct struWaterData
+{
+    struWaterData(){memset(czID,0,16);memset(cDataID,0,16);fResult=0;fHeatValue=0.0;nHeatTime=0;TestKind=0;nCalWay=0;}
+    QDateTime TestTime;//水样测试时间
+    char czID[16];//力合参数代码（FK)
+    float fResult;//测试结果
+    float fCheckResult;//标样测试结果
+
+    char cDataID[16];//数据标识ID
+    float fHeatValue;//消解温度(详细信息)
+    int   nHeatTime;//消解时间(详细信息)
+    int   TestKind;//测试类型
+    float CheckChroma;      //核查标样浓度,方便保存数据，外部更新标样值时需要更新此值
+    float SampleAdjust;               //计算结果后乘数
+    int   nCalWay;//计算方式 1峰高 2峰面积(详细信息)
+    //电化学
+    struEchemDataInfo m_EchemDataInfo;
+    //有机物信息
+    struVocDataInfo m_vocDataInfo;//结果关联的峰数据
+    //比色法信息
+    struBsDataInfo m_BsDataInfo;//结果关联数据
+};
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//水样数据以及相关数据 结束
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+//仪器属性
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+struct SYQPARAM
+{
+    SYQPARAM(){memset(czID,0,16);iProcessType=0;memset(czName,0,64);SlaveID=0;
+              DataDigits=0;Max=0;Min=0;
+              UnitType=0;InTypeID=0;downlimit=uplimit=0;Max=Min=0;TopLimit = 0.0;LowerLimit = 0.0;}
+    char czID[16];          //参数代码 -- A
+    short int iProcessType; //流程类型，0表示无流程 -- A  1
+    char czName[64];        //参数名称 -- A
+    int InTypeID;           //内部代码，例如:取参数Z02后面的02
+    int SlaveID;            //输出的Modbus地址
+    int DataDigits;         //数据精度即小数位数
+    float downlimit;        //超标用
+    float uplimit;          //超标用
+//    int CalcWay;            //计算方式
+//    float CheckChroma;      //核查标样浓度
+    float Max;              //浓度数据超上限
+    float Min;              //浓度数据超下限
+    int UnitType;           //单位类型，0表示ug/L, 1表示mg/L, 1表示ppm，2表示mg/m3
+    float TopLimit;         //检出上限
+    float LowerLimit;       //检出下限
+    int Priority;           //测试优先级
+
+};
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//仪器属性 结束
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+struct stuProc
+{
+    stuProc(){Serial=0;PID=0;memset(cProcName,0,64);CostTime=30;ModelAddress=0;ParaCount=0;Cmd=0;
+              arrParaValue[0] = arrParaValue[1] = arrParaValue[2] = arrParaValue[3] =arrParaValue[4] = arrParaValue[5] = LogTag = 0;arrParaNote[0] = arrParaNote[1] = arrParaNote[2] = arrParaNote[3] = arrParaNote[4] = arrParaNote[5] = "参数";
+              nNumber=ModelCode=0;}
+    int Serial;//序号
+    int PID;//流程PID
+    int Cmd;//下位机模块内部类型
+    char cProcName[64];
+    int CostTime;
+    int ModelAddress;
+
+    int ParaCount;//参数个数
+    int arrParaValue[6];
+    QString arrParaNote[6];
+    int LogTag;//是否作为日志记录
+    int ModelCode;//模块代码,用于记录当前执行流程的代码,是从下位机读回来的值,用于记录错误日志用
+    int nNumber;//总体编号0开始
+};
+enum emCMDModule
+{
+    CMD_Relay = 0x01,              //继电器控制模块	1
+    CMD_TempControl = 0x02,        //温度控制模	2
+    CMD_Linkage = 0x03,            //联动模块	3
+    CMD_TotMerPrepose = 0x04,      //总汞前置模块	4
+    CMD_ElectrCheck = 0x05,        //电化学检测模块	5
+    CMD_LightLight = 0x06,              //光源光敏模块	6
+    //CMD_Add7 = 7,             //预留	7
+    CMD_VOCSignal = 0x08,          //有机物信号模块	8
+    CMD_VOCCoordinate = 0x09,      //有机物协调模块	9
+    CMD_VOCTempGrin = 0x0A,       //有机物温度模块	10
+    CMD_PumpMotorDrive = 0x0B,    //泵与电机驱动板	11
+    CMD_MerSignalCheck = 0x0C,    //汞信号检测模块	12
+    CMD_AirPumpDrive = 0x0D,       //气泵驱动模块	13
+    CMD_SMOKEGAS = 0x0E,          //烟气主控制模块 14
+    CMD_ECDCHECK = 0x0F,          //ECD检测模块 15
+    CMD_FLUORESCENCE = 0x10       //原子荧光控制模块 16
+};
+
+
+enum emCmdWord	//测试的项目名称
+{
+    CMD_STOPTEST = 0x0000,//中止测试
+    CMD_TEST=0x0001,//启动测试
+    CMD_CURVECALIBRATION = 0x0002,//标定工作曲线
+    CMD_BANKADJUST = 0x0003,//空白校准
+    CMD_SAMPLEADJUST = 0x0004,//标样校准
+    CMD_WASH=0x0005,//管路清洗
+    CMD_INIT=0x0007,//初始化
+    CMD_ELECMAINTAIN=0x0008,//电极维护
+    CMD_LINESCAN=0x0009,//线性扫描
+    CMD_SAMPLETEST = 0x000A,//标样核查
+    CMD_EXIT = 0x000B,//退出系统
+    CMD_MAINTAIN = 0x000C,//模块维护
+    CMD_WAIT=0x000D	//空闲
+};
+enum emDCFType
+{
+    DCF1 = 1,
+    DCF2 = 2,
+    DCF3 = 3,
+    DCF4 = 4,
+    DCF5 = 5,
+    DCF6 = 6,
+    DCF7 = 7,
+    DCF8 = 8,
+    DCF9 = 9,
+    DCF10 = 10,
+    DCF11 = 11,
+    DCF12 = 12,
+    DCF13 = 13,
+    DCF14 = 14,
+    DCF15 = 15,
+    DCF16 = 16
+};
+enum emFaultType
+{
+    TYPE_NO = 0x00,//无类型
+    TYPE_DISTILLED= 0x01,//缺蒸馏水
+    TYPE_TESTWATER = 0x02,//缺水样
+    TYPE_COATING = 0x03,//缺镀膜液
+    TYPE_ELECTROLYTE = 0x04,//缺电解液
+    TYPE_DIGESTION = 0x05,//缺消解液
+    TYPE_TEMPERATURE = 0x06,//温度故障
+    TYPE_PUMP = 0x07,//注射泵故障
+    TYPE_ADC = 0x08,//ADC
+    TYPE_DAC = 0x09,//DAC
+    TYPE_ELECTRODE = 0x0A,//电极故障
+    TYPE_SAMPLE = 0x0B//缺标样
+};
+enum emProcessCode
+{
+    CODE_WAIT = 0x00,//等侍
+    CODE_TESTSAMPLE= 0x01,//取样入消解池
+    CODE_GETDIGESTION = 0x02,//取消解液
+    CODE_UVDIGESTION = 0x03,//紫外消解
+    CODE_INTOPOOL = 0x04,//取消解后的样入检测池
+    CODE_GETELECT = 0x05,//取电解液
+    CODE_ENRICHMENT = 0x06,//开始富集
+    CODE_STATIC = 0x07,//开始静置
+    CODE_STRIPPING = 0x08,//开始溶出
+    CODE_ADDENRICHMENT = 0x09,//加标富集
+    CODE_ADDSTATIC = 0x0A,//加标静置
+    CODE_ADDSTRIPPING = 0x0B,//加标溶出
+    CODE_CLEAR = 0x0C,//开始清洗
+    CODE_CLEARPOOL = 0x0D,//清洗检测池
+    CODE_CLEARDIGESTIONPOOL = 0x0E//清洗消解池
+};
+enum STATUS
+{
+    CMD_OK = 0,
+    CMD_TIMEOUT = 1,
+    CMD_END = 2
+};
+enum LOG_KIND
+{
+    LOG_SYS = 0,//系统
+    LOG_YQ = 1,//仪器或者具体参数名
+    LOG_WH = 2//维护
+};
+enum LOG_LEVEL
+{
+    LOG_NOMAL = 0,//正常
+    LOG_WARNING = 1, //警告
+    LOG_ALARM = 2,//报警
+    LOG_FAULT = 3//错误
+};
+//反馈到主界面的状态信息
+enum MSG_STATUS
+{
+    MSG_WORK = 1,//工作状态
+    MSG_CMD = 2,
+    MSG_PROCFILE = 3 //流程文件状态
+};
+enum MCUSTATUS
+{
+    MCU_IDEL = 0,//空闲
+    MCU_BUSY = 1,//忙碌的；占线
+    MCU_FAULT = 2,//缺试剂或仪器故障
+    SPEC_FAULT = 251,//读光谱仪信号失败
+    SYS_FIRFAULT = 252,//点火失败
+    SYS_ABORT = 253,//系统手工中止
+    SYS_TIMEOUT=254,//系统超时
+    MCU_TIMEOUT = 255
+};
+//流程执行返回结果
+enum PRO_RESULT
+{
+    PRO_OK = 0,//正常结束
+    PRO_ABORT = 1,//手工中止流程
+    PRO_CMDOUT = 2,//发送命令超时
+    PROC_READOUT = 3,//读状态时超时
+    PROC_ERROR = 4//流程执行，下位机返回错误中止
+};
+//计算模式
+enum ComputeMode
+{
+    WaveLen = 0,//波长
+    PeakHeight = 1,//峰高
+    PeakArea = 2,//峰面积
+    BothWaveLen = 3//双波长
+};
+//温度类型
+enum TEMPKIND
+{
+    PJJINIT_TEMP = 0,//捕集阱初始温度,半挥发性有机物则叫吸富柱温度
+    MXZINIT_TEMP = 1,//毛细柱
+    BOXINIT_TEMP = 2,//箱体
+    FIDINIT_TEMP = 3,//FID初始温度,半挥发性有机物则叫ECD
+    JYP_TEMP = 4,//进样瓶温度
+    YQ_TEMP = 5,//仪器温度
+    BAK1_TEMP = 6,//备用1
+    BAK2_TEMP = 7,//备用2
+    MXZ_UPLIMIT = 8,//毛细柱限值
+    PJJJX_TEMP = 9,//捕集井解析温度
+    PJJHK_TEMP = 10 //捕集井烘烤温度
+};
+//用于VOC传输实时到UI，内容可扩展
+struct stuRealData
+{
+    stuRealData(){fPjjTemp=fFidTemp=fMxzTemp=fBoxTemp=fJypTemp=fYqTemp=fBak1Temp=fBak2Temp=fnitrpress=fairpress=0;nStatus=TemptModel=TemptModel_2=0;}
+    float fPjjTemp;//捕集井温度值
+    float fFidTemp;//FID检测器温度值
+    float fMxzTemp;//毛细柱温度值
+    float fBoxTemp;//箱体温度值
+    float fJypTemp;//进样瓶温度
+    float fYqTemp;//仪器温度
+    float fBak1Temp;//备用1
+    float fBak2Temp;//备用2
+    float fnitrpress;//氮气压力
+    float fairpress;//空气压力
+    float fCSPress;//吹扫压力
+    int nStatus;//协调模块状态
+    int16_t nFireTag;//点火信息:0未点火 1已点火
+    int16_t TemptModel;//温度模块状态
+    int16_t TemptModel_2;//温度模块2状态
+};
+
+//气体分析仪状态信息
+struct struGasStatusData
+{
+    float fLightTemp;//光源温度
+    float fSpecTemp;//光谱仪温度
+    float fOnboardTemp;//板载温度
+    float fHeatingTemp;//制热块温度
+    float fGasIn;//气室入口温度
+    float fGasOut;//气室出口温度
+    float fBoxTemp;//机箱温度值
+    float fFlow;//流速电压值
+    float fOxygen;//氧传感器的氧含量
+};
+struct struGasVector
+{
+    QVector <double> m_vtnLamdba,m_vtnScope;
+    int SpecType;
+};
+
+//比色法实时温度
+struct struBsLinear4
+{
+    struBsLinear4(){fDataValue = 0.0;}
+    QDateTime qDataTime;//测试时间
+    float fDataValue;//温enum度enum值
+};
+//原子荧光分析仪信号与时间
+struct struAFSVector
+{
+    QVector<double> m_vtnWaterSignal,m_vtnWaterTime;
+};
+//电化学信号与电压
+struct struEchemVector
+{
+    QVector<double> m_vtnWaterSignal,m_vtnSampleSignal,m_vtnWaterVoltage,m_vtnSampleVoltage;
+};
+//耗材列表
+struct struConsume
+{
+    struConsume(){memset(cID,0,16);memset(ParentID,0,16);memset(Name,0,64);}
+
+    char cID[16];
+    char ParentID[16];
+    char Name[64];
+};
+//耗材状态
+struct struConsumeInfo
+{
+    struConsumeInfo(){memset(cID,0,16);memset(Name,0,64);ProcessType = 0;
+    MaxValue = 0.0;RealValue = 0.0;WaringValue = 0.0;AlarmValue = 0.0;FaultValue = 0.0;iEditType = -1;QualityDay = 0;iEmployUnit = 0;}
+
+    char cID[16];
+    char Name[64];
+    int ProcessType;
+    float MaxValue;
+    float RealValue;
+    float WaringValue;
+    float AlarmValue;
+    float FaultValue;
+    int iEditType;
+    int QualityDay;
+    QDateTime ModifyTime;
+    int iEmployUnit;
+};
+//耗材更换记录
+struct struConsumeUpdate
+{
+    struConsumeUpdate(){ConsID = 0;memset(cID,0,16);AddVolume = 0;}
+    int ConsID;
+    char cID[16];
+    float AddVolume;
+    QDateTime UpdateTime;
+};
+enum enumPix
+{
+    PIXELNO_3694 = 3694,
+    PIXELNO_2048 = 2048,
+    PIXELNO_952 = 952
+};
+enum signalKind
+{
+    DarkSignal = 0,
+    RefSignal = 1,
+    TestSignal = 2,
+    Absorb = 3
+};
+struct stuMainCtrl
+{
+    stuMainCtrl(){RunMod=MaintainMod=AutoStdAbsorb=AutoBlankAbsorb=AutoSampLetest=TestType=0;
+                 }
+    int RunMod;//运行模式
+    QDateTime NextTestTime;           //气体反演系数b
+    int TestCYC;
+
+    int TestType;
+    int MaintainMod;//电极自动维护模式 1自动维护
+    QDateTime MaintainTime;
+    int MaintainCYC;
+
+    int AutoStdAbsorb;//自动标样校准
+    QDateTime AutoStdAbsorbTime;
+    int StdAbsorbCyc;
+
+    int AutoBlankAbsorb;//自动空白校准
+    QDateTime AutoBlankAbsorbTime;
+    int BlankAbsorbCyc;
+
+    int AutoSampLetest;//自动核查校准
+    QDateTime AutoSampLetestTime;
+    int SampLetestCyc;
+};
+struct yqPanel
+{
+   yqPanel(){
+       CodeID = "未知";
+       CodeName = "未知";
+       Status = "未知";
+       dValue = 0.0;
+       bTag = false;
+    }
+   QString CodeID;          //参数代码
+   QString CodeName;        //参数名称
+   QString Status;
+   double dValue;
+   bool bTag;
+};
+#define COMCOUNT 5      //串口个数
+#define YQMAXCOUNT 32   //仪器个数
+#define YQSTATUSCOUNT 9 //气体分析仪状态个数
+#define MAXSIZE 255
+#endif // VARDEF_H

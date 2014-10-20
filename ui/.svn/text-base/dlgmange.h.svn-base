@@ -1,0 +1,45 @@
+#ifndef DLGMANGE_H
+#define DLGMANGE_H
+
+#include <QDialog>
+#include <dlgmaintainremind.h>
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class dlgMange;
+}
+
+class dlgMange : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgMange(CMainCtrl* pMC,int nType,QWidget *parent = 0);
+    ~dlgMange();
+    
+private slots:
+    void on_btnCancel_clicked();
+
+    void on_btnWaterTest_clicked();
+
+    void on_btnInit_clicked();
+
+    void on_btnclear_clicked();
+
+    void on_btnsampletest_clicked();
+
+    void on_btnsamplecompare_clicked();
+
+    void on_btnwatercompare_clicked();
+
+    void on_btnstoptest_clicked();
+
+signals:
+    void NotifyMangeMenu(emCmdWord);
+private:
+    Ui::dlgMange *ui;
+    CMainCtrl* m_pMC;
+    int m_iYQType;
+};
+
+#endif // DLGMANGE_H

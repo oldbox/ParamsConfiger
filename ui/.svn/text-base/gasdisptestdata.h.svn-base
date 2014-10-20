@@ -1,0 +1,77 @@
+#ifndef GASDISPTESTDATA_H
+#define GASDISPTESTDATA_H
+
+#include <QDialog>
+#include <QTimer>
+#include "mainwindowbase.h"
+#include "dlgabout.h"
+#include "../core/myplot.h"
+#include "dlguserlogin.h"
+#include "gasadjust.h"
+#include "dlgcomtest.h"
+#include <QMovie>
+#include "gasadminimenu.h"
+#include "gasquerymanage.h"
+
+namespace Ui {
+class gasdisptestdata;
+}
+
+class gasdisptestdata : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit gasdisptestdata(CMainCtrl* pMC,QWidget *parent = 0);
+    ~gasdisptestdata();
+
+    CYQ* pYQ;
+signals:
+    void comStateChanged(int);
+
+public slots:
+    void OnStatusValue(struGasStatusData* data);
+    //仪器测试値变化
+    void OnGasResult(float,float,float,float);
+
+private slots:
+    void CurrentTimeUpdate();
+    
+private slots:
+    void on_btnQuery_clicked();
+
+    void on_BtnAbout_clicked();
+
+    void on_BtnSetting_clicked();
+
+    void on_btnenter_clicked();
+
+    void on_BtnMaintain_clicked();
+
+    void on_btnAdjust_clicked();
+
+    void on_radioChroma_clicked();
+
+    void on_radioCurve_clicked();
+
+    void on_btnAlarm_clicked();
+
+private:
+    void init();
+    void ShowModuleFault();
+    void ShowPage3();
+
+    Ui::gasdisptestdata *ui;
+    QTimer *CalcTimer;
+    CMainCtrl* m_pMC;
+    int m_nCurrYqUIPos;
+    MyPlot *plot;
+    QVector <double> m_vResultZA0,m_vResultZA1,m_vResultZB2,m_vResultZB4,m_vResultAll;
+    QVector <double> m_vTime;
+    bool m_bFlag;
+    dlguserlogin *dlglogin;
+    int m_nLoginTime;
+    bool m_bAlarm;
+};
+
+#endif // GASDISPTESTDATA_H

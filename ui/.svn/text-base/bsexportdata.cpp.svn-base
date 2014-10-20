@@ -1,0 +1,332 @@
+#include "bsexportdata.h"
+#include "ui_bsexportdata.h"
+#include <QDir>
+#include <iostream>
+#include <QTextCodec>
+#include <qstring.h>
+#include <qfile.h>
+#include <qtextstream.h>
+#include <qtextcodec.h>
+#include "dlgremindmessage.h"
+#include <QMessageBox>
+
+using namespace std;
+
+bsExportData::bsExportData(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::bsExportData)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    this->resize(QSize(640,480));
+    m_pMC = pMC;
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    this->setWindowTitle("导出数据");
+    ui->labCopySpec->setVisible(false);
+    this->Init();
+
+    char filename[512];memset(filename,0,512);
+    sprintf(czDBFile,"%s/%s",DB_ROOT_PATH,"yqdata/yq.db");
+    memset(m_DBName,0,MAX_DBNAME);
+    memcpy(m_DBName,czDBFile,MAX_DBNAME);
+    pDB = new sqlite_db(m_DBName);
+}
+
+bsExportData::~bsExportData()
+{
+    delete pDB;
+    delete ui;
+}
+
+void bsExportData::Init()
+{
+    ui->tabWidDBList->horizontalHeader()->setVisible(true);
+    ui->tabWidDBList->verticalHeader()->setVisible(true);
+    ui->tabWidDBList->setShowGrid(true); //设置显示格子线
+    ui->tabWidDBList->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一行
+    ui->tabWidDBList->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tabWidDBList->horizontalHeader()->setClickable(false); //设置表头不可点击（默认点击后进行排序）
+    ui->tabWidDBList->horizontalHeader()->setStretchLastSection(true); //设置充满表宽度
+    ui->tabWidDBList->setStyleSheet("selection-background-color:lightblue;"); //设置选中背景色
+    ui->tabWidDBList->setColumnCount(1);
+    QHeaderView *pTableHeaderView = ui->tabWidDBList->horizontalHeader();
+    if (pTableHeaderView)
+    {
+        pTableHeaderView->setDefaultAlignment (Qt::AlignVCenter); //居中
+        pTableHeaderView->setTextElideMode (Qt::ElideMiddle); //...效果
+        pTableHeaderView->setStretchLastSection (true); //尾不留空白
+    }
+    ui->tabWidDBList->setHorizontalHeader(pTableHeaderView);
+    QStringList qHeaderName;
+    ui->tabWidDBList->horizontalHeader()->setFixedHeight(25);  //修改表头合适的高度
+    QString qsColName = "数据库名称";
+    qHeaderName << qsColName;
+    ui->tabWidDBList->horizontalHeader()->resizeSection(0,60);
+    ui->tabWidDBList->setHorizontalHeaderLabels(qHeaderName);
+
+    memset(czChildPath,0,256);
+    char czName[256];memset(czName,0,256);
+    sprintf(czChildPath,"%d",4);
+    memset(czDBFile,0,256);
+
+    if(czChildPath)
+    {
+        sprintf(czDBFile,"%s/%s/%s",DB_ROOT_PATH,czChildPath,czName);
+    }
+    else
+    {
+        sprintf(czDBFile,"%s/%s",DB_ROOT_PATH,czName); 
+    }
+
+    QDir dir;
+    dir.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
+    dir.setSorting(QDir::Size | QDir::Reversed);
+    dir.setPath(czDBFile);
+    QFileInfoList list = dir.entryInfoList();
+    ui->tabWidDBList->setRowCount(list.size());
+    for (int i = 0; i < list.size(); ++i)
+    {
+        QFileInfo fileInfo = list.at(i);
+        ui->tabWidDBList->setItem(i,0,new QTableWidgetItem(fileInfo.fileName()));
+        qve_AllFile.push_back(fileInfo.fileName());
+//        cout << qPrintable(QString("%1 %2").arg(fileInfo.size(),10).arg(fileInfo.fileName()));
+//        cout << endl;
+    }
+
+
+}
+
+void bsExportData::on_butExportData_clicked()
+{
+    //单个数据
+    if(!ui->chkAllData->isChecked())
+    {
+        bool isFocus = ui->tabWidDBList->isItemSelected(ui->tabWidDBList->currentItem());
+        if(isFocus)
+        {
+            int iCurRow = ui->tabWidDBList->currentIndex().row(); //选中行
+            QStringList qlFileList = ui->tabWidDBList->currentItem()->text().split(".");
+            QString qsDBName = ui->tabWidDBList->currentItem()->text();
+            char czDBName[128];memset(czDBName,0,128);
+            strcpy(czDBName,qsDBName.toLatin1().data()); //这里要获取到文件名称
+            m_pDB = new CDBBusiness(czChildPath,czDBName);
+            QString qsTxtFilePath = QString(czDBFile) + qlFileList[0] + ".txt";
+            QString qsTxtFileName =  qlFileList[0] + ".txt";
+            QFile file(qsTxtFilePath);
+            QTextStream stream(&file);
+
+            sqlite_data datalist;
+            bool isResult = false;
+            bool isBaseResult = false;
+            bool isSampResult = false;
+            char czBasTime[20];memset(czBasTime,0,20);
+            char czSamTime[20];memset(czSamTime,0,20);
+            isResult = m_pDB->GetBsBaseLineVal(datalist);
+            if(isResult)
+            {
+                if(!datalist.IsEmpty())
+                {
+                    if(13 == atoi(datalist.GetData(1,1)))
+                    {
+                        strcpy(czBasTime,datalist.GetData(1,2));
+                    }
+                    else if(11 == atoi(datalist.GetData(1,1)))
+                    {
+                        strcpy(czSamTime,datalist.GetData(1,2));
+                    }
+                }
+            }
+            datalist.Free();
+            if(ui->chkBaseLineVal->isChecked())
+            {
+                isBaseResult = m_pDB->GetBsBaseLineVal(datalist);
+                if(isBaseResult)
+                {
+                    if(!datalist.IsEmpty())
+                    {
+                        stream << "JX:Value TestTime:" << qlFileList[0].toLatin1().data() << "\r\n";
+                        stream << "JX Space Time:" << atoi(czBasTime)<< "\r\n";
+
+                        for(int j=1;j<=datalist.RowCount();j++)
+                        {
+                             stream << atoi(datalist.GetData(j,3))<< "\r\n";
+                        }
+                    }
+                    else
+                    {
+                        stream << "JX: No JX data in the database" << "\r\n";
+                    }
+                }
+                datalist.Free();
+            }
+            if(ui->chkSampleVal->isChecked())
+            {
+                isSampResult = m_pDB->GetBsSampleVal(datalist);
+                if(isSampResult)
+                {
+                    if(!datalist.IsEmpty())
+                    {
+                        stream << "YP:Value TestTime:" << qlFileList[0].toLatin1().data() << "\r\n";
+                        stream << "YP Space Time:" << atoi(czSamTime)<< "\r\n";
+
+                        for(int j=1;j<=datalist.RowCount();j++)
+                        {
+                             stream << atoi(datalist.GetData(j,3))<< "\r\n";
+                        }
+                    }
+                    else
+                    {
+                        stream << "YP: No YP data in the database" << "\r\n";
+                    }
+                }
+               datalist.Free();
+            }
+
+            if(m_pDB)
+            {
+                delete m_pDB;
+                m_pDB = NULL;
+            }
+
+            QFile mmc("/dev/mmcblk0p1");
+            QFile mmu("/dev/sda1");
+            QString qsUPath = "/home/data/temp";
+            if(mmc.exists()||mmu.exists())
+            {
+                if(file.open(QIODevice::WriteOnly | QIODevice::Text))
+                {
+                    file.close();
+                    QDir *createfile = new QDir;
+                    if(!createfile->exists(qsUPath))
+                    {
+                        createfile->mkdir(qsUPath);
+                    }
+                    delete createfile;
+                    bool isCResult = false;
+                    char czUOnPath[256];memset(czUOnPath,0,256);
+                    char czUOffPath[256];memset(czUOffPath,0,256);
+                    if(mmc.exists())
+                    {
+                        strcpy(czUOnPath,"mount /dev/mmcblk0p1 ");
+                        strcpy(czUOffPath,"umount /dev/mmcblk0p1");
+                    }
+                    if(mmu.exists())
+                    {
+                        strcpy(czUOnPath,"mount /dev/sda1 ");
+                        strcpy(czUOffPath,"umount /dev/sda1");
+                    }
+                    strcat(czUOnPath,qsUPath.toLatin1().data());
+                    system(czUOnPath);
+                    isCResult = copyFileToPath(qsTxtFilePath,qsUPath + "/" + qsTxtFileName);
+                    system(czUOffPath);
+                    // delete file
+                    char cDelFilePath[256];memset(cDelFilePath,0,256);
+                    strcpy(cDelFilePath,"rm ");
+                    strcat(cDelFilePath,qsTxtFilePath.toLatin1().data());
+                    system(cDelFilePath);
+
+    //                cout << cDelFilePath << endl;
+
+                    if(isCResult)
+                      QMessageBox::information(NULL, "提示信息","导出数据成功！");
+                    else
+                      QMessageBox::information(NULL, "提示信息","导出数据失败！");
+                }
+            }
+            else
+            {
+                dlgRemindMessage *pMessage = new dlgRemindMessage(m_pMC,4);
+                pMessage->exec();
+                delete pMessage;
+                pMessage = NULL;
+            }
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息","请选择要导出数据的文件!");
+        }
+    }
+    else //所有数据
+    {
+
+    }
+}
+
+//拷贝文件
+bool bsExportData::copyFileToPath(QString sourceDir ,QString toDir)
+{
+   // cout << sourceDir.toLatin1().data() << "\n" << toDir.toLatin1().data() << endl;
+    toDir.replace("\\","/");
+    if (sourceDir == toDir){
+        return true;
+    }
+    if (!QFile::exists(sourceDir)){
+        return false;
+    }
+    QDir *createfile = new QDir;
+
+    if(createfile->exists(toDir))
+        createfile->remove(toDir);
+
+    delete createfile;
+    if(!QFile::copy(sourceDir, toDir))
+    {
+        return false;
+    }
+    return true;
+}
+
+void bsExportData::on_butClose_clicked()
+{
+    this->close();
+} 
+
+void bsExportData::on_chkAllData_clicked(bool checked)
+{
+    if(checked == true)
+    {
+        ui->labCopySpec->setVisible(true);
+    }
+    else
+    {
+        ui->labCopySpec->setVisible(false);
+    }
+}
+
+void bsExportData::on_butExportData_2_clicked()
+{
+    bool bRet = true;
+    char czSql[256];
+    QString dt;
+    float fValue;
+    fValue = 0.0001;
+    QString dt1,dt2;
+    dt1 = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+    for(int i = 0;i<10000;i++)
+    {
+        dt = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        memset(czSql,0,256);
+        sprintf(czSql,"insert into t_bsdatainfo(DataTime,TestKind,YQID,BaseValue,SampleValue,Absorbency,R,K,B,BlankAbsorb,CurveID)values('%s',0,'Z12',13005,4141,0.497,0.9996,0.4381,0.0018,0.0292,1)",dt.toLatin1().data());
+        bRet &= pDB->ExecSQL(czSql);
+
+        //cout << czSql << endl;
+
+        memset(czSql,0,256);
+        sprintf(czSql,"insert into t_8051(DataTime,YQID,DataValue,DataTag)values('%s','Z12',%f,'C')",dt.toLatin1().data(),fValue);
+        bRet &= pDB->ExecSQL(czSql);
+        fValue += 0.0001;
+
+        cout << i << endl;
+        sleep(1);
+        //cout << czSql << endl;
+
+        //sleep(1);
+    }
+    dt2 = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+
+    cout << "dt1:" << dt1.toLatin1().data() << endl;
+    cout << "dt2:" << dt2.toLatin1().data() << endl;
+}

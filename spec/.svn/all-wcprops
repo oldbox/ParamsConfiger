@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 38
+/svn/linux_yq/!svn/ver/1515/trunk/spec
+END
+libusb.h
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/linux_yq/!svn/ver/1075/trunk/spec/libusb.h
+END
+spectrumdevice.h
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/linux_yq/!svn/ver/1268/trunk/spec/spectrumdevice.h
+END
+bwtekUSB.h
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/linux_yq/!svn/ver/1075/trunk/spec/bwtekUSB.h
+END
+spectrumdevice.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/linux_yq/!svn/ver/1515/trunk/spec/spectrumdevice.cpp
+END

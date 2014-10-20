@@ -1,0 +1,634 @@
+#include "dlgmaintainmap.h"
+#include "ui_dlgmaintainmap.h"
+
+dlgmaintainmap::dlgmaintainmap(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::dlgmaintainmap)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMC = pMC;
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    for(int j = 0;j < 17;j++)
+    {
+        m_bOnOff[j] = true;
+    }
+    m_bStir = true;
+    m_bLight = true;
+    m_bAirPumps = true;
+    Init();
+}
+
+dlgmaintainmap::~dlgmaintainmap()
+{
+    delete ui;
+}
+
+void dlgmaintainmap::Init()
+{
+}
+void dlgmaintainmap::on_btnDCF3_clicked()
+{
+    if(dealSendCtrlCmd(3))
+    {
+        if(!m_bOnOff[3])
+        {
+            ui->btnDCF3->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF3->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF4_clicked()
+{
+    if(dealSendCtrlCmd(4))
+    {
+        if(!m_bOnOff[4])
+        {
+            ui->btnDCF4->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF4->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF8_clicked()
+{
+    if(dealSendCtrlCmd(8))
+    {
+        if(!m_bOnOff[8])
+        {
+            ui->btnDCF8->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF8->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF1_clicked()
+{
+    if(dealSendCtrlCmd(1))
+    {
+        if(!m_bOnOff[1])
+        {
+            ui->btnDCF1->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF1->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF7_clicked()
+{
+    if(dealSendCtrlCmd(7))
+    {
+        if(!m_bOnOff[7])
+        {
+            ui->btnDCF7->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF7->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF6_clicked()
+{
+    if(dealSendCtrlCmd(6))
+    {
+        if(!m_bOnOff[6])
+        {
+            ui->btnDCF6->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF6->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF13_clicked()
+{
+    if(dealSendCtrlCmd(13))
+    {
+        if(!m_bOnOff[13])
+        {
+            ui->btnDCF13->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF13->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF12_clicked()
+{
+    if(dealSendCtrlCmd(12))
+    {
+        if(!m_bOnOff[12])
+        {
+            ui->btnDCF12->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF12->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF11_clicked()
+{
+    if(dealSendCtrlCmd(11))
+    {
+        if(!m_bOnOff[11])
+        {
+            ui->btnDCF11->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF11->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF10_clicked()
+{
+    if(dealSendCtrlCmd(10))
+    {
+        if(!m_bOnOff[10])
+        {
+            ui->btnDCF10->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF10->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF9_clicked()
+{
+    if(dealSendCtrlCmd(9))
+    {
+        if(!m_bOnOff[9])
+        {
+            ui->btnDCF9->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF9->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+
+void dlgmaintainmap::on_btnDCF2_clicked()
+{
+    if(dealSendCtrlCmd(2))
+    {
+        if(!m_bOnOff[2])
+        {
+            ui->btnDCF2->setIcon(QIcon(":/res/green.png"));
+        }
+        else
+        {
+            ui->btnDCF2->setIcon(QIcon(":/res/red.png"));
+        }
+    }
+}
+bool dlgmaintainmap::dealSendCtrlCmd(int nDCF)
+{
+    if(false == judgeYQConnect()) return false;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Linkage,42, nDCF, m_bOnOff[nDCF]))
+    {
+        m_bOnOff[nDCF] = (!m_bOnOff[nDCF]);
+        return true;
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("通讯故障，请检查!"));
+        return false;
+    }
+}
+//判断仪器是否正确连接
+//返回:
+//  --> false 失败
+//  --> true  成功
+bool dlgmaintainmap::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        PlsSelectMdl(QString::fromUtf8("仪器信息获取失败!"));
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+//警告信息窗口
+void dlgmaintainmap::PlsSelectMdl(QString context)
+{   
+    QMessageBox::information(NULL, "提示信息",context,QMessageBox::Ok);
+}
+
+void dlgmaintainmap::on_btnlevel1_clicked()
+{
+    int16_t wPrm1 = 0;//源电磁阀
+    int nCount = 0;
+    for(int i = 0;i<17;i++)
+    {
+        if(!m_bOnOff[i])
+        {
+            wPrm1 = i;
+            nCount++;
+        }
+    }
+    if((nCount>=2)||(0 == wPrm1))
+    {
+       dlgRemindMessage *pMessage = new dlgRemindMessage(m_pMC,3);
+       pMessage->exec();
+       delete pMessage;
+       pMessage = NULL;
+       return;
+    }
+    if(dealLevelCmd(wPrm1,1))
+    {
+        ui->btnLevel->setIcon(QIcon(":/res/Level1Run.bmp"));
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("通讯故障，请检查!"));
+    }
+
+}
+void dlgmaintainmap::on_btnlevel2_clicked()
+{
+    int16_t wPrm1 = 0;//源电磁阀
+    int nCount = 0;
+    for(int i = 0;i<17;i++)
+    {
+        if(!m_bOnOff[i])
+        {
+            wPrm1 = i;
+            nCount++;
+        }
+    }
+    if((nCount>=2)||(0 == wPrm1))
+    {
+       dlgRemindMessage *pMessage = new dlgRemindMessage(m_pMC,3);
+       pMessage->exec();
+       delete pMessage;
+       pMessage = NULL;
+       return;
+    }
+    if(dealLevelCmd(wPrm1,2))
+    {
+        ui->btnLevel->setIcon(QIcon(":/res/Level2Run.bmp"));
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("通讯故障，请检查!"));
+    }
+}
+void dlgmaintainmap::on_btnlevel3_clicked()
+{
+    int16_t wPrm1 = 0;//源电磁阀
+    int nCount = 0;
+    for(int i = 0;i<17;i++)
+    {
+        if(!m_bOnOff[i])
+        {
+            wPrm1 = i;
+            nCount++;
+        }
+    }
+    if((nCount>=2)||(0 == wPrm1))
+    {
+       dlgRemindMessage *pMessage = new dlgRemindMessage(m_pMC,3);
+       pMessage->exec();
+       delete pMessage;
+       pMessage = NULL;
+       return;
+    }
+    if(dealLevelCmd(wPrm1,3))
+    {
+        ui->btnLevel->setIcon(QIcon(":/res/Level3Run.bmp"));
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("通讯故障，请检查!"));
+    }
+}
+void dlgmaintainmap::on_btnwaste_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    int16_t wPrm0 = 47;//命令
+    int16_t wPrm1 = 11;//源电磁阀
+    int16_t wPrm2 = 6;//目标电磁阀
+    int16_t wPrm3 = 1;//执行次数
+    int16_t wPrm4 = 0;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    bBuff[4] = HIBYTE(wPrm2);
+    bBuff[5] = LOBYTE(wPrm2);
+    bBuff[6] = HIBYTE(wPrm3);
+    bBuff[7] = LOBYTE(wPrm3);
+    bBuff[8] = HIBYTE(wPrm4);
+    bBuff[9] = LOBYTE(wPrm4);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(3,40001,6+1,bBuff))
+    {
+        //do nothing
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("通讯故障，请检查!"));
+    }
+}
+
+bool dlgmaintainmap::dealLevelCmd(int16_t wPrm1,int16_t wPrm2)
+{
+    if(false == judgeYQConnect()) return false;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 40;//命令
+    int16_t wPrm3 = 6;//废液阀
+    int16_t wPrm4 = 1;//速度
+    int16_t wPrm5 = 0;
+    int16_t wPrm6 = 0;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    bBuff[4] = HIBYTE(wPrm2);
+    bBuff[5] = LOBYTE(wPrm2);
+    bBuff[6] = HIBYTE(wPrm3);
+    bBuff[7] = LOBYTE(wPrm3);
+    bBuff[8] = HIBYTE(wPrm4);
+    bBuff[9] = LOBYTE(wPrm4);
+    bBuff[10] = HIBYTE(wPrm5);
+    bBuff[11] = LOBYTE(wPrm5);
+    bBuff[12] = HIBYTE(wPrm6);
+    bBuff[13] = LOBYTE(wPrm6);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(3,40001,6+1,bBuff))
+        return true;
+    else
+        return false;
+}
+
+
+void dlgmaintainmap::on_btnpushempty_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    int16_t wPrm0 = 44;//命令
+    int16_t wPrm1 = 6;//源电磁阀
+    int16_t wPrm2 = 1;//执行次数
+    int16_t wPrm3 = 0;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    bBuff[4] = HIBYTE(wPrm2);
+    bBuff[5] = LOBYTE(wPrm2);
+    bBuff[6] = HIBYTE(wPrm3);
+    bBuff[7] = LOBYTE(wPrm3);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(3,40001,6+1,bBuff))
+    {
+
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("通讯故障，请检查!"));
+    }
+}
+
+void dlgmaintainmap::on_btnStir_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(1,10,2,m_bStir))
+    {
+        m_bStir = !m_bStir;
+        if(!m_bStir)
+        {
+            ui->btnStir->setIcon(QIcon(":/res/Run_new.bmp"));
+        }
+        else
+        {
+
+            ui->btnStir->setIcon(QIcon(":/res/StirStop_new.bmp"));
+        }
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("通讯故障，请检查!"));
+    }
+}
+
+void dlgmaintainmap::on_btnLight_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(1,10,3,m_bLight))
+    {
+        m_bLight = !m_bLight;
+        if(!m_bLight)
+        {
+            ui->btnLight->setIcon(QIcon(":/res/Run_light.png"));
+        }
+        else
+        {
+
+            ui->btnLight->setIcon(QIcon(":/res/Stop_light.png"));
+        }
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("通讯故障，请检查!"));
+    }
+}
+void dlgmaintainmap::DealWithBroadcast()
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    int nAddress = 0;
+    int nName = 0;
+
+    //发送广播
+    if(pYQ->m_pProcess->pDriver->ModuleScanning(bBuff))
+    {
+        for (int i = 0;i < NUM_MODULE; i++)
+        {
+            nAddress = bBuff[i*9+4];
+            nName = bBuff[i*9+6];
+            switch(nName)
+            {
+            case 1:
+                m_moduleAddrs[i] = nAddress ;
+                m_moduleNames[i] = "继电器模块";
+//                ui->btnMdlName_1->setText(m_moduleNames[i]);
+//                ui->btnMdlName_1->setEnabled(true);
+                break;
+            case 2:
+                m_moduleAddrs[i] = nAddress ;
+                m_moduleNames[i] = "温度控制模块";
+//                ui->btnMdlName_2->setText(m_moduleNames[i]);
+//                ui->btnMdlName_2->setEnabled(true);
+                break;
+            case 3:
+                m_moduleAddrs[i] = nAddress ;
+                m_moduleNames[i] = "联动模块";
+//                ui->btnMdlName_3->setText(m_moduleNames[i]);
+//                ui->btnMdlName_3->setEnabled(true);
+                break;
+            case 4:
+                m_moduleAddrs[i] = nAddress ;
+                m_moduleNames[i] = "总汞前置模块";
+                break;
+            case 5:
+                m_moduleAddrs[i] = nAddress ;
+                m_moduleNames[i] = "电化学检测模块";
+//                ui->btnMdlName_5->setText(m_moduleNames[i]);
+//                ui->btnMdlName_5->setEnabled(true);
+                break;
+            case 6:
+                m_moduleAddrs[i] = nAddress ;
+                m_moduleNames[i] = "吹扫捕集模块";
+                break;
+            case 7:
+                m_moduleAddrs[i] = nAddress ;
+                m_moduleNames[i] = "继电器模块";
+                break;
+            case 8:
+                m_moduleAddrs[i] = nAddress ;
+                m_moduleNames[i] = "有机物信号板";
+                break;
+            case 9:
+                m_moduleAddrs[i] = nAddress ;
+                m_moduleNames[i] = "有机物协调模块";
+                break;
+            }
+        }
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("模块扫描失败!"));
+        return;
+    }
+}
+void dlgmaintainmap::on_btnpumps_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(1,10,4,m_bAirPumps))
+    {
+        m_bAirPumps = !m_bAirPumps;
+        if(!m_bAirPumps)
+        {
+            ui->btnpumps->setIcon(QIcon(":/res/Run_pumps.png"));
+        }
+        else
+        {
+
+            ui->btnpumps->setIcon(QIcon(":/res/Stop_pumps.png"));
+        }
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("通讯故障，请检查!"));
+    }
+}
+//风扇继电器K1
+void dlgmaintainmap::on_btnfan_clicked()
+{   
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(1,10,1,m_bAirPumps))
+    {
+        m_bAirPumps = !m_bAirPumps;
+        if(!m_bAirPumps)
+        {
+            ui->btnpumps->setIcon(QIcon(":/res/Run_fan.png"));
+        }
+        else
+        {
+
+            ui->btnpumps->setIcon(QIcon(":/res/Stop_fan.png"));
+        }
+    }
+    else
+    {
+        PlsSelectMdl(QString::fromUtf8("通讯故障，请检查!"));
+    }
+}
+
+void dlgmaintainmap::on_btnDCF5_clicked()
+{
+    if(dealSendCtrlCmd(5))
+    {
+        if(!m_bOnOff[5])
+        {
+            ui->btnDCF5->setIcon(QIcon(":/res/greenclose.bmp"));
+        }
+        else
+        {
+            ui->btnDCF5->setIcon(QIcon(":/res/redclose.bmp"));
+        }
+    }
+}
+void dlgmaintainmap::GetModuleVersion(int moduleAddr)
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+
+    char str[16];
+    char czVersion[64];
+    memset(czVersion,0,64);
+    if(pYQ->m_pProcess->pDriver->ReadModbus(moduleAddr,40047,4,bBuff))
+    {
+        for(int i=0;i<6;i++)
+        {
+            memset(str,0,16);
+            sprintf(str,"%02x",bBuff[i]);
+            strcat(czVersion,str);
+        }
+    }
+    else
+    {
+        qDebug("read modbus fail 1111 /n");
+    }
+}
+
+

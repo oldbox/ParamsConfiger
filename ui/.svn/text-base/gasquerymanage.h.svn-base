@@ -1,0 +1,33 @@
+#ifndef GASQUERYMANAGE_H
+#define GASQUERYMANAGE_H
+
+#include <QDialog>
+#include "gasdataquery.h"
+#include "gasstatusquery.h"
+#include "gasconfigurequery.h"
+
+namespace Ui {
+class gasQueryManage;
+}
+
+class gasQueryManage : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit gasQueryManage(CMainCtrl* pMC,QWidget *parent = 0);
+    ~gasQueryManage();
+    
+private slots:
+    void on_BtnChromaQuery_clicked();
+
+    void on_BtnLogQuery_clicked();
+
+    void on_BtnSetIOQuery_clicked();
+
+private:
+    Ui::gasQueryManage *ui;
+    CMainCtrl *m_pMC;
+};
+
+#endif // GASQUERYMANAGE_H

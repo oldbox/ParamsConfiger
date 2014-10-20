@@ -1,0 +1,172 @@
+#include "dlgspectrum.h"
+#include "ui_dlgspectrum.h"
+#include <QTextCodec>
+#include "../core/myplot.h"
+#include "dlgbwtekinfo.h"
+#include <QDesktopWidget>
+dlgSpectrum::dlgSpectrum(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgSpectrum)
+{
+    m_pMC = pMC;
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    m_nCurveID = 0;
+    m_pYQ = NULL;
+    m_bOnOff = false;
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i] && m_pMC->pYQs->pYQ[i]->GetProcessType() == 6)
+        {
+            m_pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    m_plot = new MyPlot(10,ui->widget);
+
+    m_zoomer = new QwtPlotZoomer( m_plot->canvas() );
+    //m_zoomer->setMinSize(40);
+    m_zoomer->setZoomBase(true);
+    m_zoomer->setRubberBandPen( QColor( Qt::black ) );
+    m_zoomer->setTrackerPen( QColor( Qt::black ) );
+    m_zoomer->setMousePattern( QwtEventPattern::MouseSelect2,
+        Qt::RightButton, Qt::ControlModifier );
+    m_zoomer->setMousePattern( QwtEventPattern::MouseSelect3,
+        Qt::RightButton );
+
+    QString qsValue;
+    for(int i = 5;i < 500;i = i+5)
+    {
+       qsValue.setNum(i);
+       ui->cmbInterTime->addItem(qsValue);
+    }
+    char tmp[64];memset(tmp,0,64);
+    GetAfxConfig()->GetIni("Spectrum","IntegrationTime",tmp);
+    ui->cmbInterTime->setItemText(0,tmp);
+}
+
+dlgSpectrum::~dlgSpectrum()
+{
+    delete ui;
+    delete m_zoomer;
+    delete m_plot;
+}
+
+void dlgSpectrum::on_pbtReadData_clicked()
+{
+    ui->lblNotice->setText("");
+    if(m_pYQ && m_pYQ->m_pProcess && m_pYQ->m_pProcess->m_pSpectrum)
+    {
+        m_pYQ->m_pProcess->m_pSpectrum->SetIntegrationTime(ui->cmbInterTime->currentText().toInt());
+        if(m_pYQ->m_pProcess->m_pSpectrum->ReadSpectrumData(DarkSignal) == 0)
+        {
+            if(m_nCurveID == 0)
+            {
+                m_plot->RemoveCurve();
+                m_plot->AddCurve("光谱1",m_pYQ->m_pProcess->m_pSpectrum->m_vtfWaveLen,m_pYQ->m_pProcess->m_pSpectrum->m_vtnSignal,Qt::blue);
+                m_nCurveID++;
+            }else if(m_nCurveID == 1)
+            {
+                m_plot->AddCurve("光谱2",m_pYQ->m_pProcess->m_pSpectrum->m_vtfWaveLen,m_pYQ->m_pProcess->m_pSpectrum->m_vtnSignal,Qt::green);
+                m_nCurveID++;
+            }else if(m_nCurveID == 2)
+            {
+                m_plot->AddCurve("光谱3",m_pYQ->m_pProcess->m_pSpectrum->m_vtfWaveLen,m_pYQ->m_pProcess->m_pSpectrum->m_vtnSignal,Qt::blue);
+                m_nCurveID++;
+            }else if(m_nCurveID == 3)
+            {
+                m_plot->AddCurve("光谱4",m_pYQ->m_pProcess->m_pSpectrum->m_vtfWaveLen,m_pYQ->m_pProcess->m_pSpectrum->m_vtnSignal,Qt::cyan);
+                m_nCurveID++;
+            }else if(m_nCurveID == 4)
+            {
+                m_plot->AddCurve("光谱5",m_pYQ->m_pProcess->m_pSpectrum->m_vtfWaveLen,m_pYQ->m_pProcess->m_pSpectrum->m_vtnSignal,Qt::blue);
+                m_nCurveID++;
+            }else if(m_nCurveID == 5)
+            {
+                m_plot->AddCurve("光谱6",m_pYQ->m_pProcess->m_pSpectrum->m_vtfWaveLen,m_pYQ->m_pProcess->m_pSpectrum->m_vtnSignal,Qt::magenta);
+                m_nCurveID++;
+            }else if(m_nCurveID == 6)
+            {
+                m_plot->AddCurve("光谱7",m_pYQ->m_pProcess->m_pSpectrum->m_vtfWaveLen,m_pYQ->m_pProcess->m_pSpectrum->m_vtnSignal,Qt::darkRed);
+                m_nCurveID++;
+            }else if(m_nCurveID == 7)
+            {
+                m_plot->AddCurve("光谱8",m_pYQ->m_pProcess->m_pSpectrum->m_vtfWaveLen,m_pYQ->m_pProcess->m_pSpectrum->m_vtnSignal,Qt::darkGreen);
+                m_nCurveID++;
+            }else if(m_nCurveID == 8)
+            {
+                m_plot->AddCurve("光谱9",m_pYQ->m_pProcess->m_pSpectrum->m_vtfWaveLen,m_pYQ->m_pProcess->m_pSpectrum->m_vtnSignal,Qt::darkBlue);
+                m_nCurveID++;
+            }else if(m_nCurveID == 9)
+            {
+                m_plot->AddCurve("光谱10",m_pYQ->m_pProcess->m_pSpectrum->m_vtfWaveLen,m_pYQ->m_pProcess->m_pSpectrum->m_vtnSignal,Qt::red);
+                m_nCurveID = 0;
+            }
+            ui->lblNotice->setText("提示:读取光谱数据成功!");
+        }
+        else
+        {
+            ui->lblNotice->setText("提示:读取光谱数据失败!");
+        }
+    }
+}
+
+void dlgSpectrum::on_pbtReadSpectrum_clicked()
+{
+    if(m_pYQ && m_pYQ->m_pProcess && m_pYQ->m_pProcess->m_pSpectrum)
+    {
+        if(m_pYQ->m_pProcess->m_pSpectrum->ReadCoefsFromRom())
+        {
+            ui->lblNotice->setText("提示:读取光谱信息成功!");
+            dlgBwtekInfo dlg;
+            dlg.move((qApp->desktop()->width() - dlg.width())/2,(qApp->desktop()->height() - dlg.height())/2);
+            dlg.exec();
+        }
+        else
+            ui->lblNotice->setText("提示:读取光谱信息失败!");
+    }
+}
+
+void dlgSpectrum::on_pbtClose_clicked()
+{
+    this->close();
+}
+
+void dlgSpectrum::on_pbtSave_clicked()
+{
+    char czValue[64];memset(czValue,0,64);
+    sprintf(czValue,"%d", ui->cmbInterTime->currentText().toInt());
+    GetAfxConfig()->SetIni("Spectrum","IntegrationTime",czValue);
+
+}
+
+void dlgSpectrum::on_pbtOpenLight_clicked()
+{
+    if(m_pYQ && m_pYQ->m_pProcess && m_pYQ->m_pProcess->m_pSpectrum)
+    {
+        m_pYQ->m_pProcess->m_pSpectrum->ReadCoefsFromRom();
+        if(m_pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,3,!m_bOnOff))
+        {
+            m_bOnOff = !m_bOnOff;
+        }
+        else
+        {
+            ui->lblNotice->setText("提示:控制光源失败,请检测模块!");
+        }
+        if(m_bOnOff)
+            ui->pbtOpenLight->setText("关闭光源");
+        else
+            ui->pbtOpenLight->setText("打开光源");
+    }
+    else
+    {
+         ui->lblNotice->setText("提示:仪器未初始化,操作失败!");
+    }
+}

@@ -1,0 +1,630 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>voc_dlgCurveMange</class>
+ <widget class="QDialog" name="voc_dlgCurveMange">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>480</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget#voc_dlgCurveMange{border-image: url(:/res/background.png);}</string>
+  </property>
+  <widget class="QTableWidget" name="tableWidget_name">
+   <property name="geometry">
+    <rect>
+     <x>15</x>
+     <y>13</y>
+     <width>271</width>
+     <height>451</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+   <property name="lineWidth">
+    <number>1</number>
+   </property>
+   <property name="dragEnabled">
+    <bool>false</bool>
+   </property>
+   <property name="alternatingRowColors">
+    <bool>false</bool>
+   </property>
+   <property name="gridStyle">
+    <enum>Qt::DotLine</enum>
+   </property>
+   <property name="sortingEnabled">
+    <bool>true</bool>
+   </property>
+   <property name="columnCount">
+    <number>0</number>
+   </property>
+  </widget>
+  <widget class="QTableWidget" name="tableWidget_Dots">
+   <property name="geometry">
+    <rect>
+     <x>295</x>
+     <y>6</y>
+     <width>151</width>
+     <height>191</height>
+    </rect>
+   </property>
+   <property name="verticalScrollMode">
+    <enum>QAbstractItemView::ScrollPerItem</enum>
+   </property>
+  </widget>
+  <widget class="QWidget" name="widget_curve" native="true">
+   <property name="geometry">
+    <rect>
+     <x>300</x>
+     <y>272</y>
+     <width>331</width>
+     <height>161</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="Line" name="line">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>7</y>
+     <width>20</width>
+     <height>461</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Vertical</enum>
+   </property>
+  </widget>
+  <widget class="Line" name="line_2">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>0</y>
+     <width>281</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="Line" name="line_4">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>460</y>
+     <width>281</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="Line" name="line_5">
+   <property name="geometry">
+    <rect>
+     <x>280</x>
+     <y>7</y>
+     <width>20</width>
+     <height>461</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Vertical</enum>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_curve">
+   <property name="geometry">
+    <rect>
+     <x>380</x>
+     <y>235</y>
+     <width>251</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>300</x>
+     <y>252</y>
+     <width>71</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>相关系数:</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_R">
+   <property name="geometry">
+    <rect>
+     <x>370</x>
+     <y>250</y>
+     <width>111</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>300</x>
+     <y>234</y>
+     <width>71</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>曲线方程:</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pbtCurve">
+   <property name="geometry">
+    <rect>
+     <x>420</x>
+     <y>440</y>
+     <width>85</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>色谱图</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="chk_noicepoint">
+   <property name="geometry">
+    <rect>
+     <x>456</x>
+     <y>202</y>
+     <width>101</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QCheckBox::indicator{width:24px;height:24px;}
+QCheckBox::indicator:checked{image:url(:/res/yes.png);}
+QCheckBox::indicator:unchecked{image:url(:/res/no.png);}</string>
+   </property>
+   <property name="text">
+    <string>去噪声点</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit_noicePoint">
+   <property name="geometry">
+    <rect>
+     <x>556</x>
+     <y>199</y>
+     <width>69</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pbtClose">
+   <property name="geometry">
+    <rect>
+     <x>520</x>
+     <y>441</y>
+     <width>85</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>退出</string>
+   </property>
+  </widget>
+  <widget class="QFrame" name="frame">
+   <property name="geometry">
+    <rect>
+     <x>296</x>
+     <y>198</y>
+     <width>151</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::Box</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>5</x>
+      <y>6</y>
+      <width>71</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>参数类型</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="chkKind">
+    <property name="geometry">
+     <rect>
+      <x>77</x>
+      <y>4</y>
+      <width>71</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QCheckBox::indicator{width:24px;height:24px;}
+QCheckBox::indicator:checked{image:url(:/res/yes.png);}
+QCheckBox::indicator:unchecked{image:url(:/res/no.png);}</string>
+    </property>
+    <property name="text">
+     <string>内标</string>
+    </property>
+   </widget>
+   <widget class="QFrame" name="frame_5">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>151</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(214, 232, 255);</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+   </widget>
+   <zorder>frame_5</zorder>
+   <zorder>label</zorder>
+   <zorder>chkKind</zorder>
+  </widget>
+  <widget class="QPushButton" name="pbtAdjust">
+   <property name="geometry">
+    <rect>
+     <x>320</x>
+     <y>440</y>
+     <width>85</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>内标校准</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_MinArea">
+   <property name="geometry">
+    <rect>
+     <x>453</x>
+     <y>120</y>
+     <width>114</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>最小面积(uV*s)</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_WinFactor">
+   <property name="geometry">
+    <rect>
+     <x>453</x>
+     <y>12</y>
+     <width>90</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>相对窗宽(%)</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit_MaxPW">
+   <property name="geometry">
+    <rect>
+     <x>558</x>
+     <y>65</y>
+     <width>69</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_ModifyB">
+   <property name="geometry">
+    <rect>
+     <x>453</x>
+     <y>174</y>
+     <width>111</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>重叠峰K值</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit_ModifyB">
+   <property name="geometry">
+    <rect>
+     <x>558</x>
+     <y>171</y>
+     <width>69</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit_MinArea">
+   <property name="geometry">
+    <rect>
+     <x>558</x>
+     <y>118</y>
+     <width>69</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_Miniumum">
+   <property name="geometry">
+    <rect>
+     <x>453</x>
+     <y>93</y>
+     <width>96</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>最小峰高(uV)</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_MaxPW">
+   <property name="geometry">
+    <rect>
+     <x>453</x>
+     <y>66</y>
+     <width>111</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>最大峰宽(分钟)</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_MinPW">
+   <property name="geometry">
+    <rect>
+     <x>453</x>
+     <y>39</y>
+     <width>111</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>最小峰宽(分钟):</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit_Miniumum">
+   <property name="geometry">
+    <rect>
+     <x>558</x>
+     <y>91</y>
+     <width>69</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit_Baseline">
+   <property name="geometry">
+    <rect>
+     <x>558</x>
+     <y>145</y>
+     <width>69</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_Baseline">
+   <property name="geometry">
+    <rect>
+     <x>453</x>
+     <y>147</y>
+     <width>98</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>漂移(uV/min)</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit_WinFactor">
+   <property name="geometry">
+    <rect>
+     <x>558</x>
+     <y>12</y>
+     <width>69</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit_MinPW">
+   <property name="geometry">
+    <rect>
+     <x>558</x>
+     <y>39</y>
+     <width>69</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QFrame" name="frame_4">
+   <property name="geometry">
+    <rect>
+     <x>451</x>
+     <y>8</y>
+     <width>181</width>
+     <height>221</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(214, 232, 255);</string>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::StyledPanel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+  </widget>
+  <widget class="QFrame" name="frame_6">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>281</width>
+     <height>461</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(214, 232, 255);</string>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::StyledPanel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+   <zorder>widget_curve</zorder>
+  </widget>
+  <zorder>frame_6</zorder>
+  <zorder>frame_4</zorder>
+  <zorder>tableWidget_name</zorder>
+  <zorder>tableWidget_Dots</zorder>
+  <zorder>widget_curve</zorder>
+  <zorder>line</zorder>
+  <zorder>line_2</zorder>
+  <zorder>line_4</zorder>
+  <zorder>line_5</zorder>
+  <zorder>label_curve</zorder>
+  <zorder>label_3</zorder>
+  <zorder>label_R</zorder>
+  <zorder>label_2</zorder>
+  <zorder>pbtCurve</zorder>
+  <zorder>chk_noicepoint</zorder>
+  <zorder>lineEdit_noicePoint</zorder>
+  <zorder>pbtClose</zorder>
+  <zorder>frame</zorder>
+  <zorder>pbtAdjust</zorder>
+  <zorder>label_MinArea</zorder>
+  <zorder>label_WinFactor</zorder>
+  <zorder>lineEdit_MaxPW</zorder>
+  <zorder>label_ModifyB</zorder>
+  <zorder>lineEdit_ModifyB</zorder>
+  <zorder>lineEdit_MinArea</zorder>
+  <zorder>label_Miniumum</zorder>
+  <zorder>label_MaxPW</zorder>
+  <zorder>label_MinPW</zorder>
+  <zorder>lineEdit_Miniumum</zorder>
+  <zorder>lineEdit_Baseline</zorder>
+  <zorder>label_Baseline</zorder>
+  <zorder>lineEdit_WinFactor</zorder>
+  <zorder>lineEdit_MinPW</zorder>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

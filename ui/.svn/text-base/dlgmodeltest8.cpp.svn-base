@@ -1,0 +1,14 @@
+#include "dlgmodeltest8.h"
+#include "ui_dlgmodeltest8.h"
+
+dlgmodeltest8::dlgmodeltest8(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::dlgmodeltest8)
+{
+    ui->setupUi(this);
+}
+
+dlgmodeltest8::~dlgmodeltest8()
+{
+    delete ui;
+}

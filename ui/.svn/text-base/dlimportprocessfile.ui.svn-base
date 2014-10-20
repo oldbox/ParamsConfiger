@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>dlImportProcessFile</class>
+ <widget class="QDialog" name="dlImportProcessFile">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>480</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog#dlImportProcessFile{border-image: url(:/res/background.png);}</string>
+  </property>
+  <widget class="QTreeView" name="tvFileList">
+   <property name="geometry">
+    <rect>
+     <x>5</x>
+     <y>5</y>
+     <width>631</width>
+     <height>341</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="butImport">
+   <property name="geometry">
+    <rect>
+     <x>430</x>
+     <y>410</y>
+     <width>85</width>
+     <height>40</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>文泉驿正黑</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>导入</string>
+   </property>
+   <property name="shortcut">
+    <string/>
+   </property>
+   <property name="autoDefault">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="litFileName">
+   <property name="geometry">
+    <rect>
+     <x>74</x>
+     <y>358</y>
+     <width>441</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="labFileName">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>369</y>
+     <width>61</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>文泉驿正黑</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>文件名(N):</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="butClose">
+   <property name="geometry">
+    <rect>
+     <x>523</x>
+     <y>410</y>
+     <width>80</width>
+     <height>40</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>文泉驿正黑</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>关闭</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="butExprot">
+   <property name="geometry">
+    <rect>
+     <x>520</x>
+     <y>354</y>
+     <width>85</width>
+     <height>40</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>文泉驿正黑</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>导出</string>
+   </property>
+   <property name="shortcut">
+    <string/>
+   </property>
+   <property name="autoDefault">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <zorder>butImport</zorder>
+  <zorder>litFileName</zorder>
+  <zorder>labFileName</zorder>
+  <zorder>tvFileList</zorder>
+  <zorder>butClose</zorder>
+  <zorder>butExprot</zorder>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

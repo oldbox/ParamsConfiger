@@ -1,0 +1,38 @@
+#ifndef DLDISPDATACURVE_H
+#define DLDISPDATACURVE_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class dldispdatacurve;
+}
+
+class MyPlot;
+class QwtPlotZoomer;
+
+class dldispdatacurve : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dldispdatacurve(CMainCtrl* pMC,int nType,QString qLegName,const QVector<double> &xData,const QVector<double> &yData,QWidget *parent = 0);
+    ~dldispdatacurve();
+    void GasDisplayCurve(QString qsName,const QVector<double> &xData,const QVector<double> &yData);
+    
+private slots:
+    void on_butClose_clicked();
+
+    void on_btnReturn_clicked();
+
+private:
+    void CaclMaxMinValue(const QVector<double> &xData,const QVector<double> &yData);
+    Ui::dldispdatacurve *ui;
+    CMainCtrl* m_pMC;
+    MyPlot *m_plot;
+    QVector<double> m_vtX,m_vtY;
+    QString m_qsHeaderName;
+    QwtPlotZoomer* zoomer;
+};
+
+#endif // DLDISPDATACURVE_H

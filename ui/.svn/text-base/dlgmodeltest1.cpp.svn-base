@@ -1,0 +1,208 @@
+#include "dlgmodeltest1.h"
+#include "ui_dlgmodeltest1.h"
+
+dlgmodeltest1::dlgmodeltest1(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::dlgmodeltest1)
+{
+    ui->setupUi(this);
+
+    m_pMC = pMC;
+    for(int k = 0;k < 10;k++)
+    {
+        m_nStatus[k] = 0;
+    }
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+}
+
+dlgmodeltest1::~dlgmodeltest1()
+{
+    delete ui;
+}
+
+void dlgmodeltest1::on_chkSingleCtrl_1_stateChanged(int arg1)
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,1,arg1))
+    {
+        ReadStatus();
+    }
+
+}
+void dlgmodeltest1::on_chkSingleCtrl_3_stateChanged(int arg1)
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,3,arg1))
+    {
+        ReadStatus();
+    }
+
+}
+void dlgmodeltest1::on_chkSingleCtrl_2_stateChanged(int arg1)
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,2,arg1))
+    {
+        ReadStatus();
+    }
+}
+
+void dlgmodeltest1::on_chkSingleCtrl_4_stateChanged(int arg1)
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,4,arg1))
+    {
+        ReadStatus();
+    }
+}
+
+void dlgmodeltest1::on_chkSingleCtrl_5_stateChanged(int arg1)
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,5,arg1))
+    {
+        ReadStatus();
+    }
+}
+
+void dlgmodeltest1::on_chkSingleCtrl_6_stateChanged(int arg1)
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,6,arg1))
+    {
+        ReadStatus();
+    }
+}
+
+void dlgmodeltest1::on_chkSingleCtrl_7_stateChanged(int arg1)
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,7,arg1))
+    {
+        ReadStatus();
+    }
+}
+
+void dlgmodeltest1::on_chkSingleCtrl_8_stateChanged(int arg1)
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,8,arg1))
+    {
+        ReadStatus();
+    }
+}
+
+void dlgmodeltest1::on_chkSingleCtrl_9_stateChanged(int arg1)
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,9,arg1))
+    {
+        ReadStatus();
+    }
+}
+
+void dlgmodeltest1::on_chkSingleCtrl_10_stateChanged(int arg1)
+{
+    if(false == judgeYQConnect()) return;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Relay,10,10,arg1))
+    {
+        ReadStatus();
+    }
+}
+bool dlgmodeltest1::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息", "仪器获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+void dlgmodeltest1::on_btnStatus_clicked()
+{
+    ReadStatus();
+}
+void dlgmodeltest1::ReadStatus()
+{
+    if(false == judgeYQConnect()) return;
+    int16_t nStatus = 0;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    usleep(50000);
+    if(pYQ->m_pProcess->pDriver->ReadModbus(CMD_Relay,40052,2,bBuff))
+    {
+        //获取电磁阀状态，16位当为1时相应的电磁阀打开，0时为关闭
+        m_nStatus[0] = bBuff[3] & 0x01; // 最低位
+        m_nStatus[1] = ( bBuff[3] & 0x02) >> 1;
+        m_nStatus[2] = ( bBuff[3] & 0x04) >> 2;
+        m_nStatus[3] = ( bBuff[3] & 0x08) >> 3;
+        m_nStatus[4] = ( bBuff[3] & 0x10) >> 4;
+        m_nStatus[5] = ( bBuff[3] & 0x20) >> 5;
+        m_nStatus[6] = ( bBuff[3] & 0x40) >> 6;
+        m_nStatus[7] = ( bBuff[3] & 0x80) >> 7;
+        m_nStatus[8] = bBuff[2] & 0x01; // 最低位
+        m_nStatus[9] = ( bBuff[2] & 0x02) >> 1;
+        m_nStatus[10] = ( bBuff[2] & 0x04) >> 2;
+
+        QPushButton *pbs[10] = {ui->btnled_1, ui->btnled_2, ui->btnled_3, ui->btnled_4,
+                               ui->btnled_5, ui->btnled_6, ui->btnled_7, ui->btnled_8,
+                               ui->btnled_9, ui->btnled_10};
+//        QCheckBox *pCheckBox[10] = {ui->chkSingleCtrl_1, ui->chkSingleCtrl_2, ui->chkSingleCtrl_3, ui->chkSingleCtrl_4,
+//                               ui->chkSingleCtrl_5, ui->chkSingleCtrl_6, ui->chkSingleCtrl_7, ui->chkSingleCtrl_8,
+//                               ui->chkSingleCtrl_9, ui->chkSingleCtrl_10};
+        for(int i=0;i<10;i++)
+        {
+            QPushButton *pb = pbs[i];
+//            QCheckBox *pBox = pCheckBox[i];
+            if(m_nStatus[i])
+            {
+                pb->setIcon(QIcon(":/res/green.png"));
+//                pBox->setChecked(true);
+            }
+            else
+            {
+                pb->setIcon(QIcon(":/res/gray.png"));
+//                pBox->setChecked(false);
+            }
+        }
+
+        nStatus = MAKEWORD(bBuff[0],bBuff[1]);	//40052 模块的工作状态
+        if(0 == nStatus)
+        {
+            ui->labelStatus->setText("模块状态:空闲");
+        }
+        else if(1 == nStatus)
+        {
+             ui->labelStatus->setText("模块状态:工作");
+        }
+        else
+        {
+            ui->labelStatus->setText("模块状态:信息错误");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息","读状态通讯故障!");
+    }
+}

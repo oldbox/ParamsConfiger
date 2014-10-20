@@ -1,0 +1,102 @@
+#include "dlgcomtest.h"
+#include "ui_dlgcomtest.h"
+
+DlgComTest::DlgComTest(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::DlgComTest),
+    stateStartStop(true),
+    curComx(0)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    qRegisterMetaType<QTextCursor>("QTextCursor");
+    this->setWindowFlags(Qt::FramelessWindowHint);//去除标题栏
+}
+
+DlgComTest::~DlgComTest()
+{
+    //必须与回调的地方同步，所以加锁
+//    m_pMC->ComLock();
+//    m_pMC->SetOnComData(NULL,NULL);
+//    m_pMC->UnComLock();
+    delete ui;
+}
+
+/*
+ * 界面中显示串口发送/接收数据
+ * --> bRead: false 表示发送数据, true 表示接收数据
+ * --> czData : 数据缓存地址
+ * --> iLen : 数据的长度
+ * --> Comx : 串口号
+ * ------Example: "2013-10-26 15:29:00 接收数据: FFFFFFFF 03 ..."
+ */
+void DlgComTest::SetContent(bool bRead, void *czData, int iLen, int Comx)
+{
+    if(curComx == Comx)
+    {
+        QString content;
+        unsigned char* czTmp = (unsigned char*)czData;
+        content += QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss ");
+        if(bRead)
+        {
+            content += QString::fromUtf8("接收数据: ");
+        }
+        else
+        {
+            content += QString::fromUtf8("发送数据: ");
+        }
+        char temp[10]; memset(temp, 0, 10);
+//        cout<<endl<<"=======begin=========";
+        for(int i=0;i<iLen;i++)
+        {
+            sprintf(temp, "%02X ", czTmp[i]);
+//            cout<<"["<<i<<"]"<<temp;
+            content += temp;
+        }
+//        cout<<endl<<"=======end=========";
+        content += '\n';
+        if(stateStartStop)
+            ui->textEdit->append(content);
+    }
+    else
+    {
+        //cout << "comport hasn't' data display!" << endl;
+    }
+}
+
+// 停止/继续控制
+void DlgComTest::on_btnConinue_clicked()
+{
+    if(stateStartStop)
+    {
+        stateStartStop = false;
+        ui->btnConinue->setText(QString::fromUtf8("继续"));
+    }
+    else
+    {
+        stateStartStop = true;
+        ui->btnConinue->setText(QString::fromUtf8("停止"));
+    }
+}
+
+// 清除串口显示的数据
+void DlgComTest::on_btnClear_clicked()
+{
+    ui->textEdit->clear();
+}
+
+void DlgComTest::ShowData(int ComX)
+{
+    stateStartStop = true;
+    ui->btnConinue->setText(QString::fromUtf8("停止"));
+    hide();
+    ui->textEdit->clear();
+    show();
+    curComx = ComX;
+}
+
+void DlgComTest::on_btnClose_clicked()
+{
+    curComx = 0;
+    this->hide();
+}

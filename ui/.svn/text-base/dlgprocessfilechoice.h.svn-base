@@ -1,0 +1,52 @@
+#ifndef DLGPROCESSFILECHOICE_H
+#define DLGPROCESSFILECHOICE_H
+
+#include <QDialog>
+#include "../core/cconfig.h"
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class dlgProcessfileChoice;
+}
+
+class dlgProcessfileChoice : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgProcessfileChoice(QWidget *parent = 0);
+    ~dlgProcessfileChoice();
+
+signals:
+   void EmityParWinClolse();
+
+private slots:
+    void on_btnscan_1_clicked();
+
+    void on_btnscan_0_clicked();
+
+    void on_btnscan_2_clicked();
+
+    void on_btnscan_3_clicked();
+
+    void on_btnscan_4_clicked();
+
+    void on_btnscan_5_clicked();
+
+    void on_btnscan_6_clicked();
+
+    void on_btnscan_7_clicked();
+
+    void on_btnscan_8_clicked();
+
+    void on_btnClose_clicked();
+
+    void on_btnSave_clicked();
+
+private:
+    void Init();
+    void GetProcessFileName(int nIndex);
+    Ui::dlgProcessfileChoice *ui;
+};
+
+#endif // DLGPROCESSFILECHOICE_H

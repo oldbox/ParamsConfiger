@@ -1,0 +1,74 @@
+#include "dlconsumelist.h"
+#include "ui_dlconsumelist.h"
+
+dlconsumelist::dlconsumelist(const char* cID,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlconsumelist)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pDB = new CDBBusiness("yqdata","yq.db");
+    this->Init();
+    this->GetConsumeData(cID);
+}
+
+dlconsumelist::~dlconsumelist()
+{
+    delete m_pDB;
+    delete ui;
+}
+
+void dlconsumelist::Init()
+{
+    QStringList qslColHea;
+    qslColHea.clear();
+   // qslColHea.insert(0,"编号");
+    qslColHea.insert(0,"ID");
+    qslColHea.insert(1,"耗材名称");
+    qslColHea.insert(2,"加入量");
+    qslColHea.insert(3,"更新时间");
+
+    ui->tabConsumeList->setColumnCount(qslColHea.length());
+    ui->tabConsumeList->setRowCount(0);
+    ui->tabConsumeList->setHorizontalHeaderLabels(qslColHea);
+    ui->tabConsumeList->setColumnWidth(0,60);
+    ui->tabConsumeList->setColumnWidth(1,80);
+    ui->tabConsumeList->setColumnWidth(2,100);
+    ui->tabConsumeList->setColumnWidth(3,80);
+    ui->tabConsumeList->setColumnWidth(4,140);
+    ui->tabConsumeList->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+    ui->tabConsumeList->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tabConsumeList->horizontalHeader()->setStretchLastSection(true);//尾不留空白
+    ui->tabConsumeList->rowHeight(8);
+}
+
+void dlconsumelist::GetConsumeData(const char* cID)
+{
+    if(strlen(cID) > 0)
+    {
+        sqlite_data datalist;
+        bool isResult = m_pDB->GetConsumeUpdate(cID,datalist);
+        if(isResult)
+        {
+            if(!datalist.IsEmpty())
+            {
+                ui->tabConsumeList->setRowCount(datalist.RowCount());
+
+                for(int i = 1;i <= datalist.RowCount();i++)
+                {
+                    //ui->tabConsumeList->setItem(i-1,0, new QTableWidgetItem(QString(datalist.GetData(i,1))));
+                    ui->tabConsumeList->setItem(i-1,0, new QTableWidgetItem(QString(datalist.GetData(i,2))));
+                    ui->tabConsumeList->setItem(i-1,1, new QTableWidgetItem(QString(datalist.GetData(i,3))));
+                    ui->tabConsumeList->setItem(i-1,2, new QTableWidgetItem(QString(datalist.GetData(i,4))));
+                    ui->tabConsumeList->setItem(i-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+                }
+            }
+        }
+        datalist.Free();
+    }
+}
+
+void dlconsumelist::on_butClose_clicked()
+{
+    this->close();
+}

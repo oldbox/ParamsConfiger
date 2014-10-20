@@ -1,0 +1,47 @@
+#include "dlghelpinfo.h"
+#include "ui_dlghelpinfo.h"
+
+dlghelpinfo::dlghelpinfo(int nType,QDialog *parent) :
+    QDialog(parent),
+    ui(new Ui::dlghelpinfo)
+{
+    ui->setupUi(this);
+    if(1 == nType)
+    {
+        ui->textMaintain->setHidden(true);
+        ui->textParamSet->setHidden(true);
+        ui->textIOSet->setHidden(true);
+        ui->textSystemSet->setHidden(true);
+    }
+    else if(2 == nType)
+    {
+        ui->textMaintain->setHidden(true);
+        ui->textDataQuery->setHidden(true);
+        ui->textIOSet->setHidden(true);
+        ui->textSystemSet->setHidden(true);
+    }
+    else if(3 == nType)
+    {
+        ui->textMaintain->setHidden(true);
+        ui->textDataQuery->setHidden(true);
+        ui->textIOSet->setHidden(true);
+        ui->textParamSet->setHidden(true);
+    }else if(4 == nType)
+    {
+        ui->textMaintain->setHidden(true);
+        ui->textDataQuery->setHidden(true);
+        ui->textSystemSet->setHidden(true);
+        ui->textParamSet->setHidden(true);
+    }else if(5 == nType)
+    {
+        ui->textIOSet->setHidden(true);
+        ui->textDataQuery->setHidden(true);
+        ui->textSystemSet->setHidden(true);
+        ui->textParamSet->setHidden(true);
+    }
+}
+
+dlghelpinfo::~dlghelpinfo()
+{
+    delete ui;
+}

@@ -1,0 +1,1633 @@
+#include "bssetcurve.h"
+#include "ui_bssetcurve.h"
+#include <QTextCodec>
+#include <QMessageBox>
+#include "../ui/bscomm.h"
+#include "bssetautoadjust.h"
+#include <math.h>
+#include <QRegExp>
+#include "../ui/dlgremindmessage.h"
+#include <QMouseEvent>
+
+bssetcurve::bssetcurve(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    m_nType(1),
+    ui(new Ui::bssetcurve)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    m_bIsTesting = false;
+    m_nClick = 0;
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    this->resize(QSize(640,480));
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    connect(m_pMC->pYQs,SIGNAL(NotifyWorkStatus(int,int,const char*)),this,SLOT(OnWorkStatus(int,int,const char*)));
+    connect(m_pMC->pYQs,SIGNAL(NotifyTotalNumber(int,int)),this,SLOT(OnTotalNumber(int,int)));
+    connect(m_pMC->pYQs,SIGNAL(NotifyBsReadValue(int,double,QDateTime)),this,SLOT(OnShowCurve(int,double,QDateTime)),Qt::QueuedConnection);
+    connect(m_pMC->pYQs,SIGNAL(NotifyYQBusy(int,bool)),this,SLOT(OnYQBusy(int,bool)));
+    connect(m_pMC->pYQs,SIGNAL(NotifyTempValue(float)),this,SLOT(OnTempValue(float)));
+    connect(m_pMC->pYQs,SIGNAL(NotifyProcFileStatus(int,bool)),this,SLOT(OnProcFileStatus(int,bool)));
+    connect(m_pMC->pYQs,SIGNAL(NotifyDebugInfo(int,const char*)),this,SLOT(OnDebugInfo(int,const char*)));
+
+    m_pDB = new CDBBusiness("yqdata","yq.db");
+    int nType = GetAfxYQType();
+    this->GetCodeDataList(nType);
+    this->GetCurveName();
+
+    ui->litChroma1->setFocus();
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    ui->label_procName->setText("");
+    ui->progressBar->setMaximum(100); //进度条
+
+    this->GetCodeUnit(ui->cbxCodeName->itemData(ui->cbxCodeName->currentIndex()).toString());
+
+     m_bIsTesting = false;
+     m_iPointCount = 0;
+     this->SetControlBgColor(ui->butStopTest,false);
+     ui->butStopTest->setEnabled(false);
+     if(ui->litMinValue->text().trimmed().length() > 0)
+        ui->litMinValue->setEnabled(false);
+     if(ui->litMaxValue->text().trimmed().length() > 0)
+     ui->litMaxValue->setEnabled(false);
+     ui->butMinMaxSave->hide();
+     m_nType = GetAfxYQType();
+     //原子荧光去掉基线值，样品值信息，将吸光度改成峰高峰面积
+     if(5 == m_nType)
+     {
+         int nCalcMode = 1;
+         ui->lblBaselineVal->hide();
+         ui->lcdBaselineVal->hide();
+         ui->lblSampleVal->hide();
+         ui->lcdSampleVal->hide();
+         ui->lblTempValue->hide();
+         ui->lcdTempValue->hide();
+         ui->lbl_mResult_2->hide();
+         ui->lblCalcWay->hide();
+         ui->cbxCalcWay->hide();
+
+         SYQPARAM sYQ;
+         for(int i = 0;i < m_pMC->pYQs->GetYQCount();i++)
+         {
+             m_pMC->pYQs->pYQ[i]->GetYQParam(sYQ);
+             if(!strcmp(sYQ.czID,"Z06"))
+             {
+                 nCalcMode = m_pMC->pYQs->pYQ[i]->m_CurveInfo.CalcMode;
+                 break;
+             }
+         }
+         if(1 == nCalcMode)
+         {
+             ui->lblAbsorbency->setText("峰高");
+             ui->lblAbsorbency1->setText("峰高");
+             ui->lblAbsorbency2->setText("峰高");
+             ui->lblAbsorbency3->setText("峰高");
+             ui->lblAbsorbency4->setText("峰高");
+             ui->lblAbsorbency5->setText("峰高");
+             ui->lblStdAbsorb->setText("峰高");
+             ui->lblBlankAbsorb->setText("峰高");
+         }
+         else
+         {
+             ui->lblAbsorbency->setText("峰面积");
+             ui->lblAbsorbency1->setText("峰面积");
+             ui->lblAbsorbency2->setText("峰面积");
+             ui->lblAbsorbency3->setText("峰面积");
+             ui->lblAbsorbency4->setText("峰面积");
+             ui->lblAbsorbency5->setText("峰面积");
+             ui->lblStdAbsorb->setText("峰面积");
+             ui->lblBlankAbsorb->setText("峰面积");
+         }
+     }
+     else if(4 == m_nType)
+     {
+         ui->lblCalcWay->hide();
+         ui->cbxCalcWay->hide();
+     }
+     else if(6 == m_nType)
+     {
+         ui->lblCalcWay->show();
+         ui->cbxCalcWay->show();
+         ui->cbxCalcWay->clear();
+         QString sText,sValue;
+         sText = "波长";
+         sValue = "0";
+         ui->cbxCalcWay->addItem(sText,sValue);
+         sText = "峰高";
+         sValue = "1";
+         ui->cbxCalcWay->addItem(sText,sValue);
+         sText = "峰面积";
+         sValue = "2";
+         ui->cbxCalcWay->addItem(sText,sValue);
+         sText = "双波长";
+         sValue = "3";
+         ui->cbxCalcWay->addItem(sText,sValue);
+
+         SYQPARAM sYQ;
+         for(int i = 0;i < m_pMC->pYQs->GetYQCount();i++)
+         {
+             m_pMC->pYQs->pYQ[i]->GetYQParam(sYQ);
+             char czGroup[64];memset(czGroup,0,64);
+             sprintf(czGroup,"%s_SET",sYQ.czID);
+
+             char czItem[64];memset(czItem,0,64);
+             char czValue[64];memset(czValue,0,64);
+             strcpy(czItem,"CalcWay");
+             GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+             if(strlen(czValue) > 0)
+             {
+                 ui->cbxCalcWay->setCurrentIndex(ui->cbxCalcWay->findData(atoi(czValue)));
+                 break;
+             }
+         }
+
+         ui->cbxCalcWay->setEnabled(false);
+     }
+
+     this->Init();
+     this->SetColtrolEnable(CConfig::GetAfxUserType());
+}
+
+bssetcurve::~bssetcurve()
+{
+    delete m_pDB;
+    delete ui;
+}
+
+void bssetcurve::SetColtrolEnable(int iAfxUserType)
+{
+    if(2 == iAfxUserType)
+    {
+        ui->butMinMaxSave->setEnabled(false);
+        ui->butSetErrorRange->setEnabled(false);
+        ui->butStdAbsorb->setEnabled(false);
+        ui->butSaveStdAbsorb->setEnabled(false);
+        ui->butBlankAbsorb->setEnabled(false);
+        ui->butSaveBlankAbsorb->setEnabled(false);
+        ui->butCalibration1->setEnabled(false);
+        ui->butCalibration2->setEnabled(false);
+        ui->butCalibration3->setEnabled(false);
+        ui->butCalibration4->setEnabled(false);
+        ui->butCalibration5->setEnabled(false);
+        ui->butSaveStandard1->setEnabled(false);
+        ui->butSaveStandard2->setEnabled(false);
+        ui->butSaveStandard3->setEnabled(false);
+        ui->butSaveStandard4->setEnabled(false);
+        ui->butSaveStandard5->setEnabled(false);
+        ui->butSetWorkCurve->setEnabled(false);
+        ui->butStopTest->setEnabled(false);
+        ui->chkRangeAutoChange->setEnabled(false);
+
+        this->SetControlBgColor(ui->butMinMaxSave,false);
+        this->SetControlBgColor(ui->butSetErrorRange,false);
+        this->SetControlBgColor(ui->butStdAbsorb,false);
+        this->SetControlBgColor(ui->butSaveStdAbsorb,false);
+        this->SetControlBgColor(ui->butBlankAbsorb,false);
+        this->SetControlBgColor(ui->butSaveBlankAbsorb,false);
+        this->SetControlBgColor(ui->butCalibration1,false);
+        this->SetControlBgColor(ui->butCalibration2,false);
+        this->SetControlBgColor(ui->butCalibration3,false);
+        this->SetControlBgColor(ui->butCalibration4,false);
+        this->SetControlBgColor(ui->butCalibration5,false);
+        this->SetControlBgColor(ui->butSaveStandard1,false);
+        this->SetControlBgColor(ui->butSaveStandard2,false);
+        this->SetControlBgColor(ui->butSaveStandard3,false);
+        this->SetControlBgColor(ui->butSaveStandard4,false);
+        this->SetControlBgColor(ui->butSaveStandard5,false);
+        this->SetControlBgColor(ui->butSetWorkCurve,false);
+        this->SetControlBgColor(ui->butStopTest,false);
+    }
+    else if(3 == iAfxUserType)
+    {
+        ui->butMinMaxSave->setEnabled(true);
+        ui->butSetErrorRange->setEnabled(true);
+        ui->butStdAbsorb->setEnabled(true);
+        ui->butSaveStdAbsorb->setEnabled(true);
+        ui->butBlankAbsorb->setEnabled(true);
+        ui->butSaveBlankAbsorb->setEnabled(true);
+        ui->butCalibration1->setEnabled(true);
+        ui->butCalibration2->setEnabled(true);
+        ui->butCalibration3->setEnabled(true);
+        ui->butCalibration4->setEnabled(true);
+        ui->butCalibration5->setEnabled(true);
+        ui->butSaveStandard1->setEnabled(true);
+        ui->butSaveStandard2->setEnabled(true);
+        ui->butSaveStandard3->setEnabled(true);
+        ui->butSaveStandard4->setEnabled(true);
+        ui->butSaveStandard5->setEnabled(true);
+        ui->butSetWorkCurve->setEnabled(true);
+        ui->butStopTest->setEnabled(true);
+        ui->chkRangeAutoChange->setEnabled(true);
+
+        this->SetControlBgColor(ui->butMinMaxSave,true);
+        this->SetControlBgColor(ui->butSetErrorRange,true);
+        this->SetControlBgColor(ui->butStdAbsorb,true);
+        this->SetControlBgColor(ui->butSaveStdAbsorb,true);
+        this->SetControlBgColor(ui->butBlankAbsorb,true);
+        this->SetControlBgColor(ui->butSaveBlankAbsorb,true);
+        this->SetControlBgColor(ui->butCalibration1,true);
+        this->SetControlBgColor(ui->butCalibration2,true);
+        this->SetControlBgColor(ui->butCalibration3,true);
+        this->SetControlBgColor(ui->butCalibration4,true);
+        this->SetControlBgColor(ui->butCalibration5,true);
+        this->SetControlBgColor(ui->butSaveStandard1,true);
+        this->SetControlBgColor(ui->butSaveStandard2,true);
+        this->SetControlBgColor(ui->butSaveStandard3,true);
+        this->SetControlBgColor(ui->butSaveStandard4,true);
+        this->SetControlBgColor(ui->butSaveStandard5,true);
+        this->SetControlBgColor(ui->butSetWorkCurve,true);
+        this->SetControlBgColor(ui->butStopTest,true);
+    }
+}
+
+void bssetcurve::Init()
+{
+    char czGroup[64];
+    char czItem[64];
+    memset(czGroup,0,64);
+    strcpy(czGroup,"AutoAdjust_SET");
+    memset(czItem,0,64);
+    strcpy(czItem,"StandardErrRange");
+    char czValue[64];
+    memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni(czGroup,czItem,czValue))
+    {
+        ui->litStandardErrRange->setText(QString(czValue));
+    }
+
+    memset(czItem,0,64);
+    strcpy(czItem,"RangeAutoChangeSet");
+    memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni(czGroup,czItem,czValue))
+    {
+        if(!strcmp(czValue,"1"))
+        {
+            ui->chkRangeAutoChange->setChecked(true);
+        }
+        else
+        {
+            ui->chkRangeAutoChange->setChecked(false);
+        }
+    }
+}
+
+void bssetcurve::mousePressEvent(QMouseEvent * mouseEvent)
+{
+    int x = mouseEvent->pos().x();
+    int y = mouseEvent->pos().y();
+
+
+    if ((x < 50)&&(y > 440))
+    {
+        m_nClick++;
+        if(m_nClick >4)
+        {
+            m_nClick = 0;
+            ui->litMinValue->setEnabled(true);
+            ui->litMaxValue->setEnabled(true);
+            ui->butMinMaxSave->show();
+        }
+    }
+}
+
+//加热温度时实时显示温度的值
+void bssetcurve::OnTempValue(float fTempValue)
+{
+    ui->lcdTempValue->display(fTempValue);
+}
+
+void bssetcurve::SetControlBgColor(QPushButton* qBut, bool isFlag)
+{
+    if(isFlag)
+    {
+        qBut->setStyleSheet("background-color:rgb(25,75,138);border:2px groove gray;border-radius:10px;padding:2px 4px;color: rgb(255, 255, 255);");
+    }
+    else
+    {
+        qBut->setStyleSheet("background-color:rgb(123,163,255);border:2px groove gray;border-radius:10px;padding:2px 4px;color: rgb(255, 255, 255);");
+    }
+}
+//显示负数时有负号
+void bssetcurve::ShowFormulae(struCurveInfo model)
+{
+    QString qsTemp;
+    qsTemp.sprintf("量程:%.0f %s %.4f",model.MinValue,model.MaxValue >= 0 ? "-" : "" ,model.MaxValue);
+    ui->lblCountRange->setText(qsTemp);
+
+    QString qsName;
+    // Y = K(X - b) + B + (已知标样浓度 - 测试出来的标样浓度）
+    if(model.CheckChroma != 0)//有标样浓度
+    {
+        float fErrSampChroma = model.CheckChroma - (model.K * (model.StdAbsorb - model.BlankAbsorb) + model.B);
+        fErrSampChroma = ui->litStdConc->text().toFloat() - fErrSampChroma;
+        qsName.sprintf("直线方程:Y=%.4f(X%s%.4f)%s%.4f%s%.4f",model.K,model.BlankAbsorb >= 0 ? "-" : "+",qFabs(model.BlankAbsorb),model.B >= 0 ? "+" : "-",qFabs(model.B),fErrSampChroma >= 0 ? "+" : "-",qFabs(fErrSampChroma));
+    }
+    else
+    {
+        qsName.sprintf("直线方程:Y=%.4f(X%s%.4f)%s%.4f",model.K,model.BlankAbsorb >= 0 ? "-" : "+",qFabs(model.BlankAbsorb),model.B >= 0 ? "+" : "-",qFabs(model.B));
+    }
+    ui->lblEquation->setText(qsName);
+    qsName.clear();
+    qsName.sprintf("相关系数: R = %.4f",model.R);
+    ui->lblQuotiety->setText(qsName);
+    qsName.clear();
+    qsName.sprintf("标定时间：%s",model.DataTime.toString("yyyy-MM-dd hh:mm:ss").toLatin1().data());
+    ui->lblDataTime->setText(qsName);
+}
+
+//开启/关闭（自动校准设置）
+//void bssetcurve::SetAutoAdjust(bool isFlag)
+//{
+//    //ui->butSetAutoAdjust->setEnabled(isFlag);
+//    ui->lblStdConc->setEnabled(isFlag);
+//    ui->litStdConc->setEnabled(isFlag);
+//    ui->lblStdAbsorb->setEnabled(isFlag);
+//    ui->litStdAbsorb->setEnabled(isFlag);
+//    ui->lblBlankAbsorb->setEnabled(isFlag);
+//    ui->litBlankAbsorb->setEnabled(isFlag);
+//    ui->lblBlankChroma->setEnabled(isFlag);
+//    ui->litBlankChroma->setEnabled(isFlag);
+//    ui->butStdAbsorb->setEnabled(isFlag);
+//    ui->butSaveStdAbsorb->setEnabled(isFlag);
+//    ui->butBlankAbsorb->setEnabled(isFlag);
+//    ui->butSaveBlankAbsorb->setEnabled(isFlag);
+
+//    //this->SetControlBgColor(ui->butSetAutoAdjust,isFlag);
+//    this->SetControlBgColor(ui->butStdAbsorb,isFlag);
+//    this->SetControlBgColor(ui->butSaveStdAbsorb,isFlag);
+//    this->SetControlBgColor(ui->butBlankAbsorb,isFlag);
+//    this->SetControlBgColor(ui->butSaveBlankAbsorb,isFlag);
+
+//}
+
+void bssetcurve::OnDebugInfo(int iProcessType, const char *info)
+{
+    //QString all=QString("<font color=blue>%1</font><br>%2<br>").arg(aTime).arg(sendStr);
+    QString content;
+    //if(isFlag)
+        content += QString("<font color='blue'>%1 %2</font>").arg(QDateTime::currentDateTime().toString("MM-dd hh:mm")).arg(info);
+   // else
+       // content += QString("<font color='red'>%1 %2</font>").arg(QDateTime::currentDateTime().toString("MM-dd hh:mm")).arg(info);
+    ui->txtMsgInfo->append(content);
+}
+
+//初使化参数单位
+void bssetcurve::GetCodeUnit(QString sYQID)
+{
+    char czGroup[64];memset(czGroup,0,64);
+    sprintf(czGroup,"%s_SET",sYQID.toLatin1().data());
+    char czItem[64];memset(czItem,0,64);
+    char czValue[64];memset(czValue,0,64);
+    strcpy(czItem,"UnitType");
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    QString qsUnitVal;
+    if(strlen(czValue) > 0)
+    {
+        if(!strcmp(czValue,"1"))
+            qsUnitVal = "(mg/L)";
+        else if(!strcmp(czValue,"0"))
+            qsUnitVal = "(μg/L)";
+
+    }
+    ui->lblUnit1->setText(qsUnitVal);
+    ui->lblUnit2->setText(qsUnitVal);
+    ui->lblUnit3->setText(qsUnitVal);
+    ui->lblUnit4->setText(qsUnitVal);
+    ui->lblUnit5->setText(qsUnitVal);
+    ui->lblUnit6->setText(qsUnitVal);
+    ui->lblUnit7->setText(qsUnitVal);
+    ui->lblUnit8->setText(qsUnitVal);
+}
+
+//获取曲线名称（1-5）
+void bssetcurve::GetCurveName()
+{
+    for(int i=1;i<=5;i++)
+    {
+        QString sText = "曲线" + QString::number(i);
+        QString sValue = QString::number(i);
+        ui->cbxCurveName->addItem(sText,sValue);
+    }
+    char czCurveID[2];memset(czCurveID,0,2);
+    char cItem[64];memset(cItem,0,64);
+    sprintf(cItem,"WorkCurveID_%s",ui->cbxCodeName->itemData(ui->cbxCodeName->currentIndex()).toString().toLatin1().data());
+    GetAfxConfig()->GetIni("SYSSET",cItem,czCurveID);
+    if(strlen(czCurveID) > 0)
+        ui->cbxCurveName->setCurrentIndex(ui->cbxCurveName->findData(atoi(czCurveID)));
+}
+
+//界面显示基线值、样品值，计算吸光度
+//iDataType为0时，表示显示原子荧光峰高或峰面积
+void bssetcurve::OnShowCurve(int iDataType,double dBaseSampleValue,QDateTime qTestTime)
+{
+    if(13 == iDataType)
+    {
+        dBaseSignalVal = dBaseSampleValue;
+        ui->lcdBaselineVal->display(QString("%1").arg(dBaseSignalVal));
+    }
+    else if(11 == iDataType)
+    {
+        dSampleSignalVal = dBaseSampleValue;
+        ui->lcdSampleVal->display(QString("%1").arg(dSampleSignalVal));
+
+        if(dBaseSignalVal > 0 && dSampleSignalVal > 0)
+        {
+            double dAbsorbancy = log10(dBaseSignalVal / dSampleSignalVal);
+            ui->lcdAbsorbency->display(QString::number(dAbsorbancy,'f',4));
+
+            if(m_CmdWord == CMD_SAMPLEADJUST) //标样校准
+            {
+                ui->litStdAbsorb->setText(QString::number(dAbsorbancy,'f',4));
+            }
+            else if(m_CmdWord == CMD_BANKADJUST) //空白校准
+            {
+                ui->litBlankAbsorb->setText(QString::number(dAbsorbancy,'f',4));//空白[吸光度]
+            }
+            else if(m_CmdWord == CMD_CURVECALIBRATION)//标定工作曲线
+            {
+                if(1 == m_iPointID)
+                {
+                    ui->litAbsorbency1->setText(QString::number(dAbsorbancy,'f',4));
+                    ui->butCalibration1->setEnabled(true);
+                }
+                else if(2 == m_iPointID)
+                {
+                    ui->litAbsorbency2->setText(QString::number(dAbsorbancy,'f',4));
+                    ui->butCalibration2->setEnabled(true);
+                }
+                else if(3 == m_iPointID)
+                {
+                    ui->litAbsorbency3->setText(QString::number(dAbsorbancy,'f',4));
+                    ui->butCalibration3->setEnabled(true);
+                }
+                else if(4 == m_iPointID)
+                {
+                    ui->litAbsorbency4->setText(QString::number(dAbsorbancy,'f',4));
+                    ui->butCalibration4->setEnabled(true);
+                }
+                else if(5 == m_iPointID)
+                {
+                    ui->litAbsorbency5->setText(QString::number(dAbsorbancy,'f',4));
+                    ui->butCalibration5->setEnabled(true);
+                }
+            }
+
+            m_bIsTesting = false;
+        }
+    }
+    else if(0 == iDataType)
+    {
+        ui->lcdAbsorbency->display(QString::number(dBaseSampleValue,'f',2));
+        if(m_CmdWord == CMD_SAMPLEADJUST) //标样校准
+        {
+            ui->litStdAbsorb->setText(QString::number(dBaseSampleValue,'f',2));
+        }
+        else if(m_CmdWord == CMD_BANKADJUST) //空白校准
+        {
+            ui->litBlankAbsorb->setText(QString::number(dBaseSampleValue,'f',2));//空白[吸光度]
+        }
+        else if(m_CmdWord == CMD_CURVECALIBRATION)//标定工作曲线
+        {
+            if(1 == m_iPointID)
+            {
+                ui->litAbsorbency1->setText(QString::number(dBaseSampleValue,'f',2));
+                ui->butCalibration1->setEnabled(true);
+            }
+            else if(2 == m_iPointID)
+            {
+                ui->litAbsorbency2->setText(QString::number(dBaseSampleValue,'f',2));
+                ui->butCalibration2->setEnabled(true);
+            }
+            else if(3 == m_iPointID)
+            {
+                ui->litAbsorbency3->setText(QString::number(dBaseSampleValue,'f',2));
+                ui->butCalibration3->setEnabled(true);
+            }
+            else if(4 == m_iPointID)
+            {
+                ui->litAbsorbency4->setText(QString::number(dBaseSampleValue,'f',2));
+                ui->butCalibration4->setEnabled(true);
+            }
+            else if(5 == m_iPointID)
+            {
+                ui->litAbsorbency5->setText(QString::number(dBaseSampleValue,'f',2));
+                ui->butCalibration5->setEnabled(true);
+            }
+        }
+    }
+}
+
+//显示流程文件是否正常
+void bssetcurve::OnProcFileStatus(int iProcessType,bool bProcFile)
+{
+    if(bProcFile)
+    {
+        this->OnDebugInfo(4,"流程文件正常");
+    }
+    else
+    {
+        this->OnDebugInfo(4,"流程文件异常");
+    }
+}
+
+//界面回调仪器是否空闲
+void bssetcurve::OnYQBusy(int iProcessType, bool bBusy)
+{
+
+    if(!bBusy)
+    {
+        ui->progressBar->setValue(0);
+        ui->label_procName->setText("");
+        m_bIsTesting = false;
+
+        this->SetControlBgColor(ui->butStopTest,false);
+        ui->butStopTest->setEnabled(false);
+        if(m_CmdWord == CMD_CURVECALIBRATION)
+        {
+            if(m_iPointID == 1)
+            {
+                 ui->butCalibration1->setEnabled(true);
+                 this->SetControlBgColor(ui->butCalibration1,true);
+            }
+            else if(m_iPointID == 2)
+            {
+                 ui->butCalibration2->setEnabled(true);
+                 this->SetControlBgColor(ui->butCalibration2,true);
+            }
+            else if(m_iPointID == 3)
+            {
+                ui->butCalibration3->setEnabled(true);
+                 this->SetControlBgColor(ui->butCalibration3,true);
+            }
+            else if(m_iPointID == 4)
+            {
+                 ui->butCalibration4->setEnabled(true);
+                 this->SetControlBgColor(ui->butCalibration4,true);
+            }
+            else if(m_iPointID == 5)
+            {
+                 ui->butCalibration5->setEnabled(true);
+                 this->SetControlBgColor(ui->butCalibration5,true);
+            }
+        }
+        else if(m_CmdWord == CMD_SAMPLEADJUST)
+        {
+            ui->butStdAbsorb->setEnabled(true);
+            this->SetControlBgColor(ui->butStdAbsorb,true);
+        }
+        else if(m_CmdWord == CMD_BANKADJUST)
+        {
+            ui->butBlankAbsorb->setEnabled(true);
+            this->SetControlBgColor(ui->butBlankAbsorb,true);
+        }
+
+    }
+}
+
+//进度条显示
+void bssetcurve::OnTotalNumber(int iProcessType,int iTotalNum)
+{
+    if(iTotalNum > 0)//有效
+    {
+        ui->progressBar->reset();
+        ui->progressBar->setMaximum(iTotalNum); //进度条
+        //初始化其它UI界面
+    }
+}
+
+
+void bssetcurve::OnWorkStatus(int iProcessType,int iWorkNum, const char *czName)
+{
+    ui->progressBar->setValue(iWorkNum);
+    ui->label_procName->setText("");
+    ui->label_procName->setText(tr(czName));
+}
+
+
+//填充参数名称
+void bssetcurve::GetCodeDataList(int iType)
+{
+    sqlite_data datalist;
+    bool isResult = m_pDB->GetYQCode(datalist);
+    if(isResult)
+    {
+        if(!datalist.IsEmpty())
+        {
+            QString sCodeID;    
+            paramdict dict;
+            vector<paramitem>::iterator it;
+            for(int i=1;i<=datalist.RowCount();i++)
+            {
+                sCodeID = datalist.GetData(i,1);
+                if(sCodeID.length() > 0)
+                {                   
+                    for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+                    {
+                       if(sCodeID == ((*it).LHCodeID))
+                       {
+                            ui->cbxCodeName->addItem((*it).CodeName,sCodeID);
+                       }
+                    }
+                }
+            }
+        }
+    }
+    datalist.Free();
+}
+
+//关闭窗口
+void bssetcurve::on_butClose_clicked()
+{
+    if(m_bIsTesting)
+    {
+        QMessageBox::information(NULL, "提示信息", "系统正在标定曲线,完成后才能返回主界面!");
+    }
+    else
+    {
+        ((MyInputPanelContext*)(qApp->inputContext()))->close();
+         this->close();
+    }
+}
+//浓度，吸光度保存至变量
+void bssetcurve::SetCurveCalibration()
+{
+    if(ui->litChroma1->text().trimmed().length() > 0)
+    {
+        s_Chroma1 = ui->litChroma1->text().trimmed();
+        m_iPointCount++;
+    }
+    if(ui->litAbsorbency1->text().trimmed().length() > 0 /*&& ui->litAbsorbency1->text().toFloat() != 0*/)
+    {
+        s_XGD1 = ui->litAbsorbency1->text().trimmed();
+    }
+
+    if(ui->litChroma2->text().trimmed().length() > 0 && ui->litChroma2->text().toFloat() != 0)
+    {
+        s_Chroma2 = ui->litChroma2->text().trimmed();
+        m_iPointCount++;
+    }
+    if(ui->litAbsorbency2->text().trimmed().length() > 0 /*&& ui->litAbsorbency2->text().toFloat() != 0*/)
+    {
+        s_XGD2 = ui->litAbsorbency2->text().trimmed();
+    }
+
+    if(ui->litChroma3->text().trimmed().length() > 0 && ui->litChroma3->text().toFloat() != 0)
+    {
+        s_Chroma3 = ui->litChroma3->text().trimmed();
+        m_iPointCount++;
+    }
+    if(ui->litAbsorbency3->text().trimmed().length() > 0 /*&& ui->litAbsorbency3->text().toFloat() != 0*/)
+    {
+        s_XGD3 = ui->litAbsorbency3->text().trimmed();
+    }
+
+    if(ui->litChroma4->text().trimmed().length() > 0 && ui->litChroma4->text().toFloat() != 0)
+    {
+        s_Chroma4 = ui->litChroma4->text().trimmed();
+        m_iPointCount++;
+    }
+    if(ui->litAbsorbency4->text().trimmed().length() > 0 /*&& ui->litAbsorbency4->text().toFloat() != 0*/)
+    {
+        s_XGD4 = ui->litAbsorbency4->text().trimmed();
+    }
+
+    if(ui->litChroma5->text().trimmed().length() > 0 && ui->litChroma5->text().toFloat() != 0)
+    {
+        s_Chroma5 = ui->litChroma5->text().trimmed();
+        m_iPointCount++;
+    }
+    if(ui->litAbsorbency5->text().trimmed().length() > 0 /*&& ui->litAbsorbency5->text().toFloat() != 0*/)
+    {
+        s_XGD5 = ui->litAbsorbency5->text().trimmed();
+    }
+}
+
+//拟合曲线
+bool bssetcurve::Couvade(const char* czID,int iCurveID)
+{
+    int nNumber = 0;
+    double dChroma,dXGD;
+    double K,B,R;
+    double Y[5];
+    double A[5];
+
+    bool isResult = false;
+    double dZeroAbsorbency = 0.0;
+
+    dChroma = s_Chroma1.toFloat();
+    dXGD = s_XGD1.toFloat();
+    dZeroAbsorbency = dXGD;
+
+    if(dChroma >= 0)
+    {
+        Y[nNumber] = dChroma;
+        A[nNumber] = dXGD - dZeroAbsorbency;
+        nNumber++;
+    }
+
+    dChroma = s_Chroma2.toFloat();
+    dXGD = s_XGD2.toFloat();
+    if(dChroma>=0 && dXGD>0)
+    {
+        Y[nNumber] = dChroma;
+        A[nNumber] = dXGD - dZeroAbsorbency;
+        nNumber++;
+    }
+
+    dChroma = s_Chroma3.toFloat();
+    dXGD = s_XGD3.toFloat();
+    if(dChroma>=0 && dXGD>0)
+    {
+        Y[nNumber] = dChroma;
+        A[nNumber] = dXGD - dZeroAbsorbency;
+        nNumber++;
+    }
+
+    dChroma = s_Chroma4.toFloat();
+    dXGD = s_XGD4.toFloat();
+    if(dChroma>=0 && dXGD>0)
+    {
+        Y[nNumber] = dChroma;
+        A[nNumber] = dXGD - dZeroAbsorbency;
+        nNumber++;
+    }
+
+    dChroma = s_Chroma5.toFloat();
+    dXGD = s_XGD5.toFloat();
+    if(dChroma>=0 && dXGD>0)
+    {
+        Y[nNumber] = dChroma;
+        A[nNumber] = dXGD - dZeroAbsorbency;
+        nNumber++;
+    }
+
+    if(nNumber>1)
+    {
+        //如果多于一个点,则拟合,否则,保存就够了
+
+        isResult = this->CurveCouvade(&Y[0],&A[0],nNumber,&K,&B,&R);
+        if(isResult)
+        {
+            struCurveInfo model;
+            model.CurveID = iCurveID;
+            strcpy(model.czID,czID);
+            if(m_nType == 6)
+                model.CalcMode = ui->cbxCalcWay->itemData(ui->cbxCalcWay->currentIndex()).toInt();
+            else
+                model.CalcMode = 0;
+            model.DataTime = QDateTime::currentDateTime();
+            ui->litBlankAbsorb->setText(ui->litAbsorbency1->text());
+
+            model.R = R;
+            model.K = K;
+            model.B = B;
+
+            m_fK = K;
+            m_fR = R;
+            m_fB = B;
+
+            if(ui->litMinValue->text().trimmed().length() > 0)
+                model.MinValue = ui->litMinValue->text().toFloat();
+            if(ui->litMaxValue->text().trimmed().length() > 0)
+                model.MaxValue = ui->litMaxValue->text().toFloat();
+            if(ui->litBlankAbsorb->text().trimmed().length() > 0)
+                model.BlankAbsorb =  ui->litBlankAbsorb->text().toFloat();  //空白吸光度
+            if(ui->litStdAbsorb->text().trimmed().length() > 0)             //标样吸光度
+                model.StdAbsorb = ui->litStdAbsorb->text().toFloat();
+            if(ui->litStdConc->text().trimmed().length() > 0)               //标样浓度
+                model.CheckChroma = ui->litStdConc->text().toFloat();
+            isResult = m_pDB->UpdateCurveManger(model);
+
+            this->ShowFormulae(model);
+        }        
+    }
+
+    return isResult;
+}
+
+bool bssetcurve::CurveCouvade(double* Y,double* X,int nNumber,double* K,double* B,double* R)
+{
+    bool isResult = true;
+    double KSum =0,BSum = 0,KBSum = 0,KSquareSum = 0,BSquareSum = 0;
+
+    for(int i = 0 ; i < nNumber ; i++)
+    {
+        KSum+= X[i];			//吸光度和
+        BSum+= Y[i];			//浓度和
+        KBSum+=X[i]*Y[i];		//吸光度乘浓度的和
+        KSquareSum+= X[i]*X[i];	//吸光度的平方和
+        BSquareSum+= Y[i]*Y[i];	//浓度的平方和
+    }
+
+    if(nNumber*KSquareSum - KSum*KSum != 0)
+    {
+        *K = (nNumber*KBSum - KSum*BSum)/(nNumber*KSquareSum - KSum*KSum);
+        *B = (BSum - *K*KSum)/nNumber;
+    }
+    else
+    {
+        isResult = false;
+        QMessageBox::information(NULL, "提示信息", "数据有误,除数不能为零!");
+        return isResult;
+    }
+    if((nNumber*KSquareSum - KSum*KSum)*(nNumber*BSquareSum - BSum*BSum) > 0)
+    {
+        *R = (nNumber*KBSum - KSum*BSum)/sqrt((nNumber*KSquareSum - KSum*KSum)*(nNumber*BSquareSum - BSum*BSum));
+    }
+    else
+    {
+        isResult = false;
+        QMessageBox::information(NULL, "提示信息", "数据错误,取开方数小于零!");
+        return isResult;
+    }
+    return isResult;
+}
+
+//保存标样 1 浓度所对应的吸光度
+void bssetcurve::on_butSaveStandard1_clicked()
+{
+    if(m_bIsTesting)
+        return;
+    if(ui->litChroma1->text().length() <= 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "标样浓度一的值不能为空!");
+        return;
+    }
+
+    if(ui->litAbsorbency1->text().length() > 0)
+    {
+        m_iPointID = 1;
+        bool isResult = this->SaveStandardData();
+        if(isResult)
+        {
+            QMessageBox::information(NULL, "提示信息", "标样一数据保存成功!");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "曲线一没有对应的吸光度值，不能保存!");
+    }
+}
+//点保存按钮后，则出现拟合方程
+bool bssetcurve::SaveStandardData()
+{
+    char czID[16];memset(czID,0,16);
+    int iCurveID = atoi(ui->cbxCurveName->itemData(ui->cbxCurveName->currentIndex()).toString().toLatin1().data());
+    strcpy(czID,ui->cbxCodeName->itemData(ui->cbxCodeName->currentIndex()).toString().toLatin1().data());
+    BsCurveDotInfo4 model;
+    strcpy(model.czID,czID);
+    model.iCurveID = iCurveID;
+    m_iCurveID = model.iCurveID;
+
+    if(m_nType == 6)
+        model.iCalcMode = ui->cbxCalcWay->itemData(ui->cbxCalcWay->currentIndex()).toInt();
+        else
+        model.iCalcMode = 0;
+    model.iPointID = m_iPointID;
+    switch(m_iPointID)
+    {
+        case 1:
+            model.fChroma = ui->litChroma1->text().toFloat();
+            model.fAbsorbency = ui->litAbsorbency1->text().toFloat();
+        break;
+        case 2:
+            model.fChroma = ui->litChroma2->text().toFloat();
+            model.fAbsorbency = ui->litAbsorbency2->text().toFloat();
+            break;
+        case 3:
+            model.fChroma = ui->litChroma3->text().toFloat();
+            model.fAbsorbency = ui->litAbsorbency3->text().toFloat();
+            break;
+        case 4:
+            model.fChroma = ui->litChroma4->text().toFloat();
+            model.fAbsorbency = ui->litAbsorbency4->text().toFloat();
+            break;
+        case 5:
+            model.fChroma = ui->litChroma5->text().toFloat();
+            model.fAbsorbency = ui->litAbsorbency5->text().toFloat();
+            break;
+    }
+
+    //保存某一个点的浓度值和吸光度值
+    sqlite_data datalist;
+    bool isResult = m_pDB->GetCurveDataInfo(model,datalist);
+    if(isResult)
+    {
+        if(!datalist.IsEmpty())
+        {
+            isResult = m_pDB->UpdateCurveDataInfo(model);
+        }
+        else
+        {
+            isResult = m_pDB->InsCurveDataInfo(model);
+        }
+    }
+    datalist.Free();
+
+    //下面为拟合曲线公式算法
+    this->SetCurveCalibration();
+    if(m_iPointCount > 1)//浓度标点大于1的时候才拟合曲线，否则不拟合（包括0点空白浓度）
+    {        
+        isResult = this->Couvade(czID,iCurveID);
+    }
+    m_iPointCount = 0;
+    return isResult;
+}
+
+
+//保存标样 2 浓度所对应的吸光度
+void bssetcurve::on_butSaveStandard2_clicked()
+{
+    if(m_bIsTesting)
+        return;
+    if(ui->litChroma2->text().length() <= 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "标样浓度二的值不能为空!");
+        return;
+    }
+
+    if(ui->litAbsorbency2->text().length() > 0)
+    {
+        m_iPointID = 2;
+        bool isResult = this->SaveStandardData();
+        if(isResult)
+        {
+            QMessageBox::information(NULL, "提示信息", "标样二数据保存成功!");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "曲线二没有对应的吸光度值，不能保存!");
+    }
+}
+//保存标样 3 浓度所对应的吸光度
+void bssetcurve::on_butSaveStandard3_clicked()
+{
+    if(m_bIsTesting)
+        return;
+    if(ui->litChroma3->text().length() <= 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "标样浓度三的值不能为空!");
+        return;
+    }
+
+    if(ui->litAbsorbency3->text().length() > 0)
+    {
+        m_iPointID = 3;
+        bool isResult = this->SaveStandardData();
+        if(isResult)
+        {
+            QMessageBox::information(NULL, "提示信息", "标样三数据保存成功!");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "曲线三没有对应的吸光度值，不能保存!");
+    }
+}
+//保存标样 4 浓度所对应的吸光度
+void bssetcurve::on_butSaveStandard4_clicked()
+{
+    if(m_bIsTesting)
+        return;
+    if(ui->litChroma4->text().length() <= 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "标样浓度四的值不能为空!");
+        return;
+    }
+
+    if(ui->litAbsorbency4->text().length() > 0)
+    {
+        m_iPointID = 4;
+        bool isResult = this->SaveStandardData();
+        if(isResult)
+        {
+            QMessageBox::information(NULL, "提示信息", "标样四数据保存成功!");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "曲线四没有对应的吸光度值，不能保存!");
+    }
+}
+//保存标样 5 浓度所对应的吸光度
+void bssetcurve::on_butSaveStandard5_clicked()
+{
+    if(m_bIsTesting)
+        return;
+    if(ui->litChroma5->text().length() <= 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "标样浓度五的值不能为空!");
+        return;
+    }
+
+    if(ui->litAbsorbency5->text().length() > 0)
+    {
+        m_iPointID = 5;
+        bool isResult = this->SaveStandardData();
+        if(isResult)
+        {
+            QMessageBox::information(NULL, "提示信息", "标样五数据保存成功!");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "曲线五没有对应的吸光度值，不能保存!");
+    }
+}
+
+//保存设置工作曲线
+void bssetcurve::on_butSetWorkCurve_clicked()
+{
+    if(m_bIsTesting)
+        return;
+    this->SetWorkCurve(1);
+    QMessageBox::information(NULL, "提示信息", "您已经成功将此曲线设置为当前的工作曲线!");
+}
+//将当前曲线设置工作曲线
+void bssetcurve::SetWorkCurve(int iType)
+{
+    QString sParamCode = ui->cbxCodeName->itemData(ui->cbxCodeName->currentIndex()).toString();
+    QString qsCurveID = ui->cbxCurveName->itemData(ui->cbxCurveName->currentIndex()).toString();
+    QByteArray ba = qsCurveID.toLatin1();
+    char cItem[64];memset(cItem,0,64);
+
+    if(iType == 1)
+    {
+        sprintf(cItem,"WorkCurveID_%s",sParamCode.toLatin1().data());
+        GetAfxConfig()->SetIni("SYSSET",cItem,ba.data());
+    }
+    else
+    {
+        sprintf(cItem,"DemaCurveID_%s",sParamCode.toLatin1().data());
+        GetAfxConfig()->SetIni("SYSSET",cItem,ba.data());
+        GetAfxConfig()->SetIni("SYSSET","BDCodeID",sParamCode.toLatin1().data());//标定曲线对应的参数代码
+    }
+}
+
+bool bssetcurve::ShowMessageBox(int iType)
+{
+    bool isFlag = false;
+    QString qsInfoName;
+    if(iType == 1)
+        qsInfoName = "确认启动标定吗？";
+    else if(iType == 2)
+        qsInfoName = "确认停止吗？";
+    else if(iType == 3)
+        qsInfoName = "确认启动标样校准吗？";
+    else if(iType == 4)
+        qsInfoName = "确认启动空白校准吗？";
+
+
+    QMessageBox mess(QMessageBox::Question, "提示", qsInfoName, NULL);
+    QPushButton *cancelButton = mess.addButton(tr("取消"),QMessageBox::RejectRole);
+    QPushButton *okButton = mess.addButton(tr("确定"), QMessageBox::AcceptRole);
+    mess.exec();
+    if ((QPushButton*)mess.clickedButton() == okButton)
+    {
+        isFlag = true;
+    }
+    return isFlag;
+}
+
+void bssetcurve::SetCalibration(int iPointID)
+{
+    if(m_bIsTesting)
+        return;
+    bool isFlag = this->ShowMessageBox(1);
+    if(!isFlag)
+    {
+        return;
+    }
+    QString qsChroma;
+    if(iPointID == 1)
+        qsChroma = ui->litChroma1->text().trimmed();
+    else if(iPointID == 2)
+        qsChroma = ui->litChroma2->text().trimmed();
+    else if(iPointID == 3)
+        qsChroma = ui->litChroma3->text().trimmed();
+    else if(iPointID == 4)
+        qsChroma = ui->litChroma4->text().trimmed();
+    else if(iPointID == 5)
+        qsChroma = ui->litChroma5->text().trimmed();
+
+    if(qsChroma.length() > 0)
+    {
+        char czID[16];memset(czID,0,16);
+        strcpy(czID,ui->cbxCodeName->itemData(ui->cbxCodeName->currentIndex()).toString().toLatin1().data());
+        this->SetWorkCurve(2);
+        m_bIsTesting = true;
+        m_iPointID = iPointID;
+
+        char cMsgInfo[50];memset(cMsgInfo,0,50);
+        sprintf(cMsgInfo,"标定 %d 开始启动",iPointID);
+        this->OnDebugInfo(4,cMsgInfo);
+        m_CmdWord = CMD_CURVECALIBRATION;
+
+        ui->lcdBaselineVal->display(0);
+        ui->lcdSampleVal->display(0);
+        ui->lcdAbsorbency->display(0);
+        ui->lcdTempValue->display(0);
+
+        this->SetControlBgColor(ui->butStopTest,true);
+        ui->butStopTest->setEnabled(true);
+        if(iPointID == 1)
+        {
+             ui->butCalibration1->setEnabled(false);
+             this->SetControlBgColor(ui->butCalibration1,false);
+        }
+        else if(iPointID == 2)
+        {
+             ui->butCalibration2->setEnabled(false);
+             this->SetControlBgColor(ui->butCalibration2,false);
+        }
+        else if(iPointID == 3)
+        {
+             ui->butCalibration3->setEnabled(false);
+             this->SetControlBgColor(ui->butCalibration3,false);
+        }
+        else if(iPointID == 4)
+        {
+             ui->butCalibration4->setEnabled(false);
+             this->SetControlBgColor(ui->butCalibration4,false);
+        }
+        else if(iPointID == 5)
+        {
+             ui->butCalibration5->setEnabled(false);
+             this->SetControlBgColor(ui->butCalibration5,false);
+        }
+
+        emit NotifyMangeCurve(CMD_CURVECALIBRATION);
+    }
+    else
+    {
+        QString qsMsg;
+        if(iPointID == 1)
+        {
+            ui->litChroma1->setFocus();
+            qsMsg = "一";
+        }
+        if(iPointID == 2)
+        {
+            ui->litChroma2->setFocus();
+            qsMsg = "二";
+        }
+        else if(iPointID == 3)
+        {
+            ui->litChroma3->setFocus();
+            qsMsg = "三";
+        }
+        else if(iPointID == 4)
+        {
+            ui->litChroma4->setFocus();
+            qsMsg = "四";
+        }
+        else if(iPointID == 5)
+        {
+            ui->litChroma5->setFocus();
+            qsMsg = "五";
+        }
+        QMessageBox::information(NULL, "提示信息", "请输入标样" + qsMsg + "浓度！");
+    }
+
+}
+
+//标线1工作曲线
+void bssetcurve::on_butCalibration1_clicked()
+{
+    this->SetCalibration(1);    
+}
+
+void bssetcurve::on_butCalibration2_clicked()
+{
+    this->SetCalibration(2);
+}
+
+void bssetcurve::on_butCalibration3_clicked()
+{
+    this->SetCalibration(3);
+}
+
+void bssetcurve::on_butCalibration4_clicked()
+{
+    this->SetCalibration(4);
+}
+
+void bssetcurve::on_butCalibration5_clicked()
+{
+    this->SetCalibration(5);
+}
+
+void bssetcurve::on_cbxCurveName_currentIndexChanged(int index)
+{
+    if(index >= 0)
+    {
+        this->CurveInit();
+    }
+}
+
+void bssetcurve::on_cbxCalcWay_currentIndexChanged(int index)
+{
+    if(index >= 0)
+    {
+        m_bCalcWay = true;
+        this->CurveInit();
+    }
+}
+
+void bssetcurve::CurveInit()
+{
+    BsCurveDotInfo4 model;
+    QString qsTemp = ui->cbxCodeName->itemData(ui->cbxCodeName->currentIndex()).toString();
+    QByteArray ba = qsTemp.toLatin1();
+    strcpy(model.czID,ba.data());
+    model.iCurveID = atoi(ui->cbxCurveName->itemData(ui->cbxCurveName->currentIndex()).toString().toLatin1().data());
+    if(m_nType == 6)
+        this->GetCurveDataList(model.czID,model.iCurveID,ui->cbxCalcWay->itemData(ui->cbxCalcWay->currentIndex()).toInt());
+    else
+        this->GetCurveDataList(model.czID,model.iCurveID,0);
+}
+
+void bssetcurve::GetCurveDataList(const char* czID,int iCurveID,int iCalcMode)
+{
+    ui->litChroma1->setText("");
+    ui->litAbsorbency1->setText("");
+    ui->litChroma2->setText("");
+    ui->litAbsorbency2->setText("");
+    ui->litChroma3->setText("");
+    ui->litAbsorbency3->setText("");
+    ui->litChroma4->setText("");
+    ui->litAbsorbency4->setText("");
+    ui->litChroma5->setText("");
+    ui->litAbsorbency5->setText("");    
+
+    sqlite_data datalist;
+    bool isResult = m_pDB->GetCurveDataInfo(czID,iCurveID,iCalcMode,datalist);
+    if(isResult)
+    {
+        if(!datalist.IsEmpty())
+        {
+            for(int i=1;i<=datalist.RowCount();i++)
+            {
+                QString qsTemp;
+                double dChromaVal,dAbsorbencyVal;
+                int iPointID = atoi(datalist.GetData(i,4));
+                dChromaVal = atof(datalist.GetData(i,5));
+                dAbsorbencyVal = atof(datalist.GetData(i,6));
+                if(1 == iPointID)
+                {
+                    qsTemp.sprintf("%.2f",dChromaVal);
+                    ui->litChroma1->setText(qsTemp);
+                    qsTemp.sprintf("%.4f",dAbsorbencyVal);
+                    ui->litAbsorbency1->setText(qsTemp);
+                }
+                else if(2 == iPointID)
+                {
+                    qsTemp.sprintf("%.2f",dChromaVal);
+                    ui->litChroma2->setText(qsTemp);
+                    qsTemp.sprintf("%.4f",dAbsorbencyVal);
+                    ui->litAbsorbency2->setText(qsTemp);
+                }
+                else if(3 == iPointID)
+                {
+                    qsTemp.sprintf("%.2f",dChromaVal);
+                    ui->litChroma3->setText(qsTemp);
+                    qsTemp.sprintf("%.4f",dAbsorbencyVal);
+                    ui->litAbsorbency3->setText(qsTemp);
+                }
+                else if(4 == iPointID)
+                {
+                    qsTemp.sprintf("%.2f",dChromaVal);
+                    ui->litChroma4->setText(qsTemp);
+                    qsTemp.sprintf("%.4f",dAbsorbencyVal);
+                    ui->litAbsorbency4->setText(qsTemp);
+                }
+                else if(5 == iPointID)
+                {
+                    qsTemp.sprintf("%.2f",dChromaVal);
+                    ui->litChroma5->setText(qsTemp);
+                    qsTemp.sprintf("%.4f",dAbsorbencyVal);
+                    ui->litAbsorbency5->setText(qsTemp);
+                }
+            }
+        }
+    }
+    datalist.Free();
+    this->FillDot(czID,iCurveID,iCalcMode);
+}
+
+void bssetcurve::FillDot(const char* czID,int iCurveID,int iCalcMode)
+{
+    //曲线标定时间
+    ui->lblDataTime->setVisible(false);
+    ui->litMinValue->setText("");
+    ui->litMaxValue->setText("");    
+    ui->litBlankChroma->setText("0");
+    ui->litBlankAbsorb->setText("");
+    ui->litStdConc->setText("");
+    ui->litStdAbsorb->setText("");
+
+    sqlite_data datalist;
+    bool isResult = m_pDB->GetCurveManger(czID,iCurveID,iCalcMode,datalist);
+    if(isResult)
+    {
+        if(!datalist.IsEmpty())
+        {
+            struCurveInfo model;
+            model.CalcMode = atoi(datalist.GetData(1,3));
+            model.DataTime = QDateTime::fromString(QString(datalist.GetData(1,4)),"yyyy-MM-dd hh:mm:ss");
+            model.R = atof(datalist.GetData(1,5));
+            model.K = atof(datalist.GetData(1,6));
+            model.B = atof(datalist.GetData(1,7));
+            model.BlankAbsorb = atof(datalist.GetData(1,8));
+            model.CheckChroma = atof(datalist.GetData(1,9));
+            model.StdAbsorb = atof(datalist.GetData(1,10));
+            model.MinValue = atof(datalist.GetData(1,11));
+            model.MaxValue = atof(datalist.GetData(1,12));
+
+
+            ui->lblDataTime->setVisible(true);
+            if(m_nType == 6 && !m_bCalcWay)
+               ui->cbxCalcWay->setCurrentIndex(ui->cbxCalcWay->findData(model.CalcMode));
+            ui->lblDataTime->setText("标定时间：" + model.DataTime.toString("yyyy-MM-dd hh:mm:ss"));
+            ui->litBlankAbsorb->setText(QString::number(model.BlankAbsorb,'f',4));
+            ui->litStdConc->setText(QString::number(model.CheckChroma,'f',2));
+            ui->litStdAbsorb->setText(QString::number(model.StdAbsorb,'f',4));
+            ui->litMinValue->setText(QString::number(model.MinValue));
+            ui->litMaxValue->setText(QString::number(model.MaxValue));
+
+            m_fK = model.K;
+            m_fB = model.B;
+            m_fR = model.R;
+
+
+            this->ShowFormulae(model);
+       }
+    }
+    datalist.Free();
+    m_bCalcWay = false;
+}
+//停止标定
+void bssetcurve::on_butStopTest_clicked()
+{
+    bool isFlag = this->ShowMessageBox(2);
+    if(!isFlag)
+    {
+        return;
+    }    
+
+    char cMsgInfo[50];memset(cMsgInfo,0,50);
+    strcpy(cMsgInfo,"手动停止");
+    this->OnDebugInfo(4,cMsgInfo);
+    emit NotifyMangeCurve(CMD_STOPTEST);
+    m_bIsTesting = false;
+    if(m_iPointID == 1)
+    {
+        ui->butCalibration1->setEnabled(true);
+        this->SetControlBgColor(ui->butCalibration1,true);
+    }
+    else if(m_iPointID == 1)
+    {
+        ui->butCalibration1->setEnabled(true);
+        this->SetControlBgColor(ui->butCalibration1,true);
+    }
+    else if(m_iPointID == 2)
+    {
+        ui->butCalibration2->setEnabled(true);
+        this->SetControlBgColor(ui->butCalibration2,true);
+    }
+    else if(m_iPointID == 3)
+    {
+        ui->butCalibration3->setEnabled(true);
+        this->SetControlBgColor(ui->butCalibration3,true);
+    }
+    else if(m_iPointID == 4)
+    {
+        ui->butCalibration4->setEnabled(true);
+        this->SetControlBgColor(ui->butCalibration4,true);
+    }
+    else if(m_iPointID == 5)
+    {
+        ui->butCalibration5->setEnabled(true);
+        this->SetControlBgColor(ui->butCalibration5,true);
+    }
+    ui->butStdAbsorb->setEnabled(true);
+    this->SetControlBgColor(ui->butStdAbsorb,true);
+
+    ui->butBlankAbsorb->setEnabled(true);
+    this->SetControlBgColor(ui->butBlankAbsorb,true);
+
+    this->SetControlBgColor(ui->butStopTest,false);
+    ui->butStopTest->setEnabled(false);
+}
+//标样校准
+void bssetcurve::on_butStdAbsorb_clicked()
+{
+    if(m_bIsTesting)
+        return;
+    bool isFlag = this->ShowMessageBox(3);
+    if(!isFlag)
+    {
+        return;
+    }
+
+    if(ui->litStdConc->text().length() <= 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "标样浓度值不能为空!");
+        return;
+    }
+    else
+    {
+        OnDebugInfo(4,"标样校准开始启动");
+        char czID[16];memset(czID,0,16);
+        strcpy(czID,ui->cbxCodeName->itemData(ui->cbxCodeName->currentIndex()).toString().toLatin1().data());
+        this->SetWorkCurve(2);
+        m_bIsTesting = true;
+        ui->butStdAbsorb->setEnabled(false);
+        this->SetControlBgColor(ui->butStdAbsorb,false);
+        this->SetControlBgColor(ui->butStopTest,true);
+        ui->butStopTest->setEnabled(true);
+        ui->lcdBaselineVal->display(0);
+        ui->lcdSampleVal->display(0);
+        ui->lcdAbsorbency->display(0);
+        ui->lcdTempValue->display(0);
+        m_CmdWord = CMD_SAMPLEADJUST;
+        emit NotifyMangeCurve(CMD_SAMPLEADJUST);
+    }
+}
+//空白校准
+void bssetcurve::on_butBlankAbsorb_clicked()
+{
+    if(m_bIsTesting)
+        return;
+    bool isFlag = this->ShowMessageBox(4);
+    if(!isFlag)
+    {
+        return;
+    }    
+
+    if(ui->litBlankChroma->text().length() != 0)
+    {
+        OnDebugInfo(4,"空白校准开始启动");
+        ui->litBlankChroma->setText("0");
+        char czID[16];memset(czID,0,16);
+        strcpy(czID,ui->cbxCodeName->itemData(ui->cbxCodeName->currentIndex()).toString().toLatin1().data());
+        this->SetWorkCurve(2);
+        m_bIsTesting = true;
+        ui->butBlankAbsorb->setEnabled(false);
+        this->SetControlBgColor(ui->butBlankAbsorb,false);
+        this->SetControlBgColor(ui->butStopTest,true);
+        ui->butStopTest->setEnabled(true);
+        ui->lcdBaselineVal->display(0);
+        ui->lcdSampleVal->display(0);
+        ui->lcdAbsorbency->display(0);
+        ui->lcdTempValue->display(0);
+        m_CmdWord = CMD_BANKADJUST;
+        emit NotifyMangeCurve(CMD_BANKADJUST);
+    }
+}
+//标样校准--保存
+void bssetcurve::on_butSaveStdAbsorb_clicked()
+{
+    if(ui->litStdAbsorb->text().length() <= 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "标样吸光度值不能为空!");
+        return;
+    }
+    if(ui->litStdConc->text().length() <= 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "标样浓度值不能为空!");
+        return;
+    }
+    if(m_bIsTesting)
+        return;
+    SaveBlankStdAbsorbValue(CMD_SAMPLEADJUST);
+}
+//空白校准--保存
+void bssetcurve::on_butSaveBlankAbsorb_clicked()
+{
+    if(ui->litBlankAbsorb->text().length() <= 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "空白吸光度值不能为空!");
+        return;
+    }
+    if(m_bIsTesting)
+        return;
+    SaveBlankStdAbsorbValue(CMD_BANKADJUST);
+}
+
+void bssetcurve::SaveBlankStdAbsorbValue(emCmdWord eCmdType)
+{
+    struCurveInfo model;
+    strcpy(model.czID,ui->cbxCodeName->itemData(ui->cbxCodeName->currentIndex()).toString().toLatin1().data());
+    model.CurveID = atoi(ui->cbxCurveName->itemData(ui->cbxCurveName->currentIndex()).toString().toLatin1().data());
+    if(m_nType == 6)
+    {
+        model.CalcMode = ui->cbxCalcWay->itemData(ui->cbxCalcWay->currentIndex()).toInt();
+    }
+    else
+        model.CalcMode = 0;
+
+    model.K = m_fK;
+    model.R = m_fR;
+    model.B = m_fB;
+    model.CheckChroma =  ui->litStdConc->text().toFloat();
+    model.StdAbsorb = ui->litStdAbsorb->text().toFloat();
+    model.BlankAbsorb = ui->litBlankAbsorb->text().toFloat();
+    if(ui->litMinValue->text().trimmed().length() > 0)
+        model.MinValue = ui->litMinValue->text().toFloat();
+    if(ui->litMaxValue->text().trimmed().length() > 0)
+        model.MaxValue = ui->litMaxValue->text().toFloat();
+    model.DataTime = QDateTime::currentDateTime();
+
+    bool isResult = m_pDB->UpdateCurveManger(eCmdType,model);
+    if(isResult)
+    {
+        this->ShowFormulae(model);
+        QMessageBox::information(NULL, "提示信息", "保存成功!");
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "保存失败!");
+    }
+}
+
+void bssetcurve::on_cbxCodeName_currentIndexChanged(const QString &arg1)
+{
+    this->GetCodeUnit(ui->cbxCodeName->itemData(ui->cbxCodeName->currentIndex()).toString());
+} 
+
+void bssetcurve::on_butSetErrorRange_clicked()
+{
+    if(ui->litStandardErrRange->text().trimmed().length() == 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "请设置误差范围值!");
+        return;
+    }
+    char czGroup[64];
+    char czItem[64];
+    memset(czGroup,0,64);
+    strcpy(czGroup,"AutoAdjust_SET");
+    memset(czItem,0,64);
+    strcpy(czItem,"StandardErrRange");
+    char czValue[64];
+    memset(czValue,0,64);
+    strcpy(czValue,ui->litStandardErrRange->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    QMessageBox::information(NULL, "提示信息", "误差范围设置成功!");
+}
+
+void bssetcurve::on_butMinMaxSave_clicked()
+{
+    if(ui->litMinValue->text().trimmed().length() == 0 || ui->litMaxValue->text().trimmed().length() == 0)
+    {
+        return;
+    }
+    bool isResult = this->SaveStandardData();
+    QString sMsgBox;
+    if(isResult)
+    {
+        sMsgBox = "保存成功!";
+    }
+    else
+    {
+        sMsgBox = "保存失败s!";
+    }
+    QMessageBox::information(NULL, "提示信息", sMsgBox);
+}
+
+//量程自动切换
+void bssetcurve::on_chkRangeAutoChange_clicked(bool checked)
+{
+    char czGroup[64];
+    char czItem[64];
+    char czValue[64];
+
+    memset(czGroup,0,64);
+    strcpy(czGroup,"AutoAdjust_SET");
+    memset(czItem,0,64);
+    strcpy(czItem,"RangeAutoChangeSet");
+    memset(czValue,0,64);
+    if(!checked)
+    {
+        strcpy(czValue,"0");
+    }
+    else
+    {
+        strcpy(czValue,"1");
+    }
+    GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    QMessageBox::information(NULL, "提示信息", "量程自动切换设置成功!");
+}

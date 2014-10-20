@@ -1,0 +1,389 @@
+#include "bssetautoadjust.h"
+#include "ui_bssetautoadjust.h"
+#include <QTextCodec>
+#include <QMessageBox>
+
+bsSetAutoAdjust::bsSetAutoAdjust(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::bsSetAutoAdjust)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    this->SetControlEnable(false);
+    this->GetAutoAdjustValue();
+    if(ui->litStaUpStdAbsorbTime->text().trimmed().length() == 0)
+        ui->litStaUpStdAbsorbTime->setText(QDateTime::currentDateTime().addDays(1).toString("yyyy-MM-dd hh:mm:ss"));
+    if(ui->litStaUpBlankAbsorbTime->text().trimmed().length() == 0)
+        ui->litStaUpBlankAbsorbTime->setText(QDateTime::currentDateTime().addDays(1).toString("yyyy-MM-dd hh:mm:ss"));
+    if(ui->litNextAutoHcTime->text().trimmed().length() == 0)
+    ui->litNextAutoHcTime->setText(QDateTime::currentDateTime().addDays(1).toString("yyyy-MM-dd hh:mm:ss"));
+}
+
+bsSetAutoAdjust::~bsSetAutoAdjust()
+{
+    delete ui;
+}
+
+void bsSetAutoAdjust::GetAutoAdjustValue()
+{
+    char czGroup[64];
+    char czItem[64];
+    char czValue[64];
+    memset(czGroup,0,64);
+    strcpy(czGroup,"AutoAdjust_SET");
+    memset(czItem,0,64);
+    strcpy(czItem,"AutoAdjustSet");
+    memset(czValue,0,64);
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    if(strlen(czValue) > 0)
+    {
+        if(!strcmp(czValue,"1"))
+        {
+            ui->chkOpenAdjust->setChecked(true);
+        }
+        else
+        {
+            ui->chkOpenAdjust->setChecked(false);
+        }
+    }
+
+    memset(czGroup,0,64);
+    strcpy(czGroup,"AutoAdjust_SET");
+
+    //自动校准
+    memset(czItem,0,64);
+    strcpy(czItem,"AutoAdjustCyc");
+    memset(czValue,0,64);
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    if(strlen(czValue) > 0)
+    {
+        ui->chkAutoAdjustCyc->setChecked(true);
+        ui->litAutoAdjustCyc->setText(QString(czValue));
+        ui->litAutoAdjustCyc->setEnabled(true);
+        this->SetControlBgColor(ui->litAutoAdjustCyc,true);
+
+        ui->chkStaUpStdAbsorbTime->setEnabled(true);
+        ui->chkStaUpBlankAbsorbTime->setEnabled(true);
+    }
+
+    //启用下次标样自动校准的时间：
+    memset(czItem,0,64);
+    strcpy(czItem,"AutoStdAbsorbTime");
+    memset(czValue,0,64);
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    if(strlen(czValue) > 0)
+    {
+        ui->litStaUpStdAbsorbTime->setText(QString(czValue));        
+    }
+
+    memset(czItem,0,64);
+    strcpy(czItem,"IsAutoStdAbsorb");
+    memset(czValue,0,64);
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    if(strlen(czValue) > 0)
+    {
+        if(atoi(czValue) == 1)
+        {
+            this->SetControlBgColor(ui->litStaUpStdAbsorbTime,true);
+            ui->chkStaUpStdAbsorbTime->setChecked(true);
+            ui->chkStaUpStdAbsorbTime->setChecked(false);
+            ui->chkStaUpStdAbsorbTime->setEnabled(true);
+            ui->litStaUpStdAbsorbTime->setEnabled(true);
+        }
+    }
+
+    //启用下次空白自动校准的时间：
+    memset(czItem,0,64);
+    strcpy(czItem,"AutoBlankAbsorbTime");
+    memset(czValue,0,64);
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    if(strlen(czValue) > 0)
+    {
+        ui->litStaUpBlankAbsorbTime->setText(QString(czValue));
+    }
+
+    memset(czItem,0,64);
+    strcpy(czItem,"IsAutoBlankAbsorb");
+    memset(czValue,0,64);
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    if(strlen(czValue) > 0)
+    {
+         if(atoi(czValue) == 1)
+         {
+             this->SetControlBgColor(ui->litStaUpBlankAbsorbTime,true);
+             ui->chkStaUpBlankAbsorbTime->setChecked(true);
+             ui->litStaUpBlankAbsorbTime->setEnabled(true);
+             ui->chkStaUpBlankAbsorbTime->setEnabled(true);
+         }
+    }
+
+    //标准允许的误差范围（单位:%）：
+    memset(czItem,0,64);
+    strcpy(czItem,"StandardErrRange");
+    memset(czValue,0,64);
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    if(strlen(czValue) > 0)
+    {
+        ui->litStandardErrRange->setText(QString(czValue));
+        this->SetControlBgColor(ui->litStandardErrRange,true);
+    }
+    //启用仪器周期执行数据核查功能(单位:分钟)：
+    memset(czItem,0,64);
+    strcpy(czItem,"AutoHcCyc");
+    memset(czValue,0,64);
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    if(strlen(czValue) > 0)
+    {
+        ui->chkQyYqZqTime->setChecked(true);
+        ui->litQyYqZqTime->setText(QString(czValue));
+        this->SetControlBgColor(ui->litQyYqZqTime,true);
+    }
+    //下次自动核查时间：
+    memset(czItem,0,64);
+    strcpy(czItem,"AutoSampLetestTime");
+    memset(czValue,0,64);
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    if(strlen(czValue) > 0)
+    {
+        ui->litNextAutoHcTime->setText(QString(czValue));
+        this->SetControlBgColor(ui->litNextAutoHcTime,true);
+    }
+
+    memset(czItem,0,64);
+    strcpy(czItem,"IsAutoSampLetest");
+    memset(czValue,0,64);
+    GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+    if(strlen(czValue) > 0)
+    {
+        if(atoi(czValue) == 1)
+        {
+            ui->chkQyYqZqTime->setChecked(true);
+            ui->chkQyYqZqTime->setEnabled(true);
+            ui->lblNextAutoHcTime->setEnabled(true);
+            ui->litQyYqZqTime->setEnabled(true);
+            ui->litNextAutoHcTime->setEnabled(true);
+        }
+    }
+}
+
+
+//关闭
+void bsSetAutoAdjust::on_butClose_clicked()
+{
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    this->close();
+}
+//保存AutoBlankAbsorbTime
+void bsSetAutoAdjust::on_butSave_clicked()
+{
+    char czGroup[64];
+    char czItem[64];
+    char czValue[64];
+
+    memset(czGroup,0,64);
+    strcpy(czGroup,"AutoAdjust_SET");
+    memset(czItem,0,64);
+    strcpy(czItem,"AutoAdjustSet");
+    memset(czValue,0,64);
+    if(ui->chkOpenAdjust->isChecked())
+    {
+        strcpy(czValue,"1");
+    }
+    else
+    {
+        strcpy(czValue,"0");
+    }
+    GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+
+    memset(czGroup,0,64);
+    strcpy(czGroup,"AutoAdjust_SET");
+
+    //自动校准周期（单位:分钟）
+    if(ui->chkAutoAdjustCyc->isChecked())
+    {
+        if(ui->litAutoAdjustCyc->text().length() > 0)
+        {
+            memset(czItem,0,64);
+            strcpy(czItem,"AutoAdjustCyc");
+
+            memset(czValue,0,64);
+            strcpy(czValue,ui->litAutoAdjustCyc->text().trimmed().simplified().toLatin1().data());
+            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+        }
+    }
+
+    //启用下次标样自动校准的时间：
+    if(ui->chkStaUpStdAbsorbTime->isChecked())
+    {
+        if(ui->litStaUpStdAbsorbTime->text().length() > 0)
+        {
+            memset(czItem,0,64);
+            strcpy(czItem,"AutoStdAbsorbTime");
+            memset(czValue,0,64);
+            strcpy(czValue,ui->litStaUpStdAbsorbTime->text().trimmed().simplified().toLatin1().data());
+            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+
+            memset(czItem,0,64);
+            strcpy(czItem,"IsAutoStdAbsorb");
+            memset(czValue,0,64);
+            strcpy(czValue,"1");
+            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+        }
+    }
+    else
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"IsAutoStdAbsorb");
+        memset(czValue,0,64);
+        strcpy(czValue,"0");
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+    //启用下次空白自动校准的时间：
+    if(ui->chkStaUpBlankAbsorbTime->isChecked())
+    {
+        if(ui->litStaUpBlankAbsorbTime->text().length() > 0)
+        {
+            memset(czItem,0,64);
+            strcpy(czItem,"AutoBlankAbsorbTime");
+
+            memset(czValue,0,64);
+            strcpy(czValue,ui->litStaUpBlankAbsorbTime->text().trimmed().simplified().toLatin1().data());
+            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+
+            memset(czItem,0,64);
+            strcpy(czItem,"IsAutoBlankAbsorb");
+            memset(czValue,0,64);
+            strcpy(czValue,"1");
+            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+        }
+    }
+    else
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"IsAutoBlankAbsorb");
+        memset(czValue,0,64);
+        strcpy(czValue,"0");
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+    //标准允许的误差范围（单位:%）：
+    if(ui->litStandardErrRange->text().length() > 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"StandardErrRange");
+
+        memset(czValue,0,64);
+        strcpy(czValue,ui->litStandardErrRange->text().trimmed().simplified().toLatin1().data());
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+    if(ui->chkQyYqZqTime->isChecked())
+    {
+        //启用仪器周期执行数据核查功能(单位:分钟)：
+        if(ui->litQyYqZqTime->text().length() > 0)
+        {
+            memset(czItem,0,64);
+            strcpy(czItem,"AutoHcCyc");
+
+            memset(czValue,0,64);
+            strcpy(czValue,ui->litQyYqZqTime->text().trimmed().simplified().toLatin1().data());
+            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+        }
+
+        //下次自动核查时间：
+        if(ui->litNextAutoHcTime->text().length() > 0)
+        {
+            memset(czItem,0,64);
+            strcpy(czItem,"AutoSampLetestTime");
+
+            memset(czValue,0,64);
+            strcpy(czValue,ui->litNextAutoHcTime->text().trimmed().simplified().toLatin1().data());
+            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+        }
+
+        memset(czItem,0,64);
+        strcpy(czItem,"IsAutoSampLetest");
+        memset(czValue,0,64);
+        strcpy(czValue,"1");
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    else
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"IsAutoSampLetest");
+        memset(czValue,0,64);
+        strcpy(czValue,"0");
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+    QMessageBox::information(NULL, "提示信息", "保存成功!");
+}
+
+void bsSetAutoAdjust::SetControlEnable(bool isFlag)
+{
+    ui->litQyYqZqTime->setEnabled(isFlag);
+    ui->litNextAutoHcTime->setEnabled(isFlag);
+    ui->litStaUpStdAbsorbTime->setEnabled(isFlag);
+    ui->litStaUpBlankAbsorbTime->setEnabled(isFlag);
+    ui->chkStaUpStdAbsorbTime->setEnabled(isFlag);
+    ui->chkStaUpBlankAbsorbTime->setEnabled(isFlag);
+    this->SetControlBgColor(ui->litQyYqZqTime,false);
+    this->SetControlBgColor(ui->litNextAutoHcTime,false);
+    this->SetControlBgColor(ui->litStaUpStdAbsorbTime,false);
+    this->SetControlBgColor(ui->litStaUpBlankAbsorbTime,false);
+}
+
+void bsSetAutoAdjust::SetControlBgColor(QLineEdit* qlit, bool isFlag)
+{
+    if(isFlag)
+    {
+        qlit->setStyleSheet("background-color:rgb(255,255,255);border:2px groove gray;border-radius:10px;padding:2px 4px;");
+    }
+    else
+    {
+        qlit->setStyleSheet("background-color:rgb(123,163,255);border:2px groove gray;border-radius:10px;padding:2px 4px;");
+    }
+}
+
+void bsSetAutoAdjust::on_chkQyYqZqTime_clicked(bool checked)
+{
+    ui->litQyYqZqTime->setEnabled(checked);
+    ui->litNextAutoHcTime->setEnabled(checked);
+    this->SetControlBgColor(ui->litQyYqZqTime,checked);
+    this->SetControlBgColor(ui->litNextAutoHcTime,checked);
+}
+
+void bsSetAutoAdjust::on_chkStaUpStdAbsorbTime_clicked(bool checked)
+{
+    ui->litStaUpStdAbsorbTime->setEnabled(checked);
+    this->SetControlBgColor(ui->litStaUpStdAbsorbTime,checked);
+}
+
+void bsSetAutoAdjust::on_chkStaUpBlankAbsorbTime_clicked(bool checked)
+{
+    ui->litStaUpBlankAbsorbTime->setEnabled(checked);
+    this->SetControlBgColor(ui->litStaUpBlankAbsorbTime,checked);
+}
+
+void bsSetAutoAdjust::on_chkAutoAdjustCyc_clicked(bool checked)
+{
+    ui->chkStaUpStdAbsorbTime->setEnabled(checked);
+    ui->chkStaUpBlankAbsorbTime->setEnabled(checked);
+    if(!checked)
+    {
+        ui->chkStaUpStdAbsorbTime->setChecked(checked);
+        ui->chkStaUpBlankAbsorbTime->setChecked(checked);
+        ui->litStaUpStdAbsorbTime->setEnabled(checked);
+        ui->litStaUpBlankAbsorbTime->setEnabled(checked);
+        this->SetControlBgColor(ui->litStaUpStdAbsorbTime,checked);
+        this->SetControlBgColor(ui->litStaUpBlankAbsorbTime,checked);
+    }
+}

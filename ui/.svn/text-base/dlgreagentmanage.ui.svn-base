@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>dlgReagentManage</class>
+ <widget class="QDialog" name="dlgReagentManage">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>548</width>
+    <height>425</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget#dlgReagentManage{border-image: url(:/res/background.png);}</string>
+  </property>
+  <widget class="QPushButton" name="butClose">
+   <property name="geometry">
+    <rect>
+     <x>460</x>
+     <y>390</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>关闭</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnAdd5">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>350</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>+5ml</string>
+   </property>
+  </widget>
+  <widget class="QProgressBar" name="progressBarA">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>50</y>
+     <width>300</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QProgressBar::chunk {background-color: red;} QProgressBar{text-align: center;}</string>
+   </property>
+   <property name="maximum">
+    <number>500</number>
+   </property>
+   <property name="value">
+    <number>0</number>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="textVisible">
+    <bool>true</bool>
+   </property>
+   <property name="invertedAppearance">
+    <bool>false</bool>
+   </property>
+   <property name="textDirection">
+    <enum>QProgressBar::TopToBottom</enum>
+   </property>
+   <property name="format">
+    <string>                      (%v/%m)</string>
+   </property>
+  </widget>
+  <widget class="QProgressBar" name="progressBarB">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>100</y>
+     <width>300</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="maximum">
+    <number>500</number>
+   </property>
+   <property name="value">
+    <number>0</number>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="textVisible">
+    <bool>true</bool>
+   </property>
+   <property name="invertedAppearance">
+    <bool>false</bool>
+   </property>
+   <property name="textDirection">
+    <enum>QProgressBar::TopToBottom</enum>
+   </property>
+   <property name="format">
+    <string>                      (%v/%m)</string>
+   </property>
+  </widget>
+  <widget class="QProgressBar" name="progressBarC">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>150</y>
+     <width>300</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="maximum">
+    <number>500</number>
+   </property>
+   <property name="value">
+    <number>0</number>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="textVisible">
+    <bool>true</bool>
+   </property>
+   <property name="invertedAppearance">
+    <bool>false</bool>
+   </property>
+   <property name="textDirection">
+    <enum>QProgressBar::TopToBottom</enum>
+   </property>
+   <property name="format">
+    <string>                      (%v/%m)</string>
+   </property>
+  </widget>
+  <widget class="QProgressBar" name="progressBarD">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>200</y>
+     <width>300</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="maximum">
+    <number>500</number>
+   </property>
+   <property name="value">
+    <number>0</number>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="textVisible">
+    <bool>true</bool>
+   </property>
+   <property name="invertedAppearance">
+    <bool>false</bool>
+   </property>
+   <property name="textDirection">
+    <enum>QProgressBar::TopToBottom</enum>
+   </property>
+   <property name="format">
+    <string>                      (%v/%m)</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnAdd20">
+   <property name="geometry">
+    <rect>
+     <x>105</x>
+     <y>350</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>+20ml</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnAdd100">
+   <property name="geometry">
+    <rect>
+     <x>190</x>
+     <y>350</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>+100ml</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnReduce20">
+   <property name="geometry">
+    <rect>
+     <x>105</x>
+     <y>390</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>-20ml</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnReduce100">
+   <property name="geometry">
+    <rect>
+     <x>190</x>
+     <y>390</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>-100ml</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnReduce5">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>390</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>-5ml</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnAddAll">
+   <property name="geometry">
+    <rect>
+     <x>370</x>
+     <y>350</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>加满</string>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="radioButtonA">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>50</y>
+     <width>100</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>参比标液</string>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="radioButtonB">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>100</y>
+     <width>100</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="text">
+    <string>电解液</string>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="radioButtonC">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>150</y>
+     <width>100</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="text">
+    <string>镀膜液</string>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="radioButtonD">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>200</y>
+     <width>101</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="text">
+    <string>中和液</string>
+   </property>
+  </widget>
+  <widget class="QProgressBar" name="progressBarE">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>250</y>
+     <width>300</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="maximum">
+    <number>500</number>
+   </property>
+   <property name="value">
+    <number>0</number>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="textVisible">
+    <bool>true</bool>
+   </property>
+   <property name="invertedAppearance">
+    <bool>false</bool>
+   </property>
+   <property name="textDirection">
+    <enum>QProgressBar::TopToBottom</enum>
+   </property>
+   <property name="format">
+    <string>                      (%v/%m)</string>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="radioButtonE">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>250</y>
+     <width>100</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="text">
+    <string>消解液</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnAdd500">
+   <property name="geometry">
+    <rect>
+     <x>280</x>
+     <y>350</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>+500ml</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnReduce500">
+   <property name="geometry">
+    <rect>
+     <x>280</x>
+     <y>390</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>-500ml</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="checkMax">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>314</y>
+     <width>111</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QCheckBox{border:2px groove gray;border-radius:10px;padding:2px 4px;background-color: rgb(25, 75, 138);color: rgb(255, 255, 255);}
+QCheckBox::indicator{width:24px;height:24px;}
+QCheckBox::indicator:checked{image:url(:/res/yes.png);}
+QCheckBox::indicator:unchecked{image:url(:/res/no.png);}</string>
+   </property>
+   <property name="text">
+    <string>修改最大值</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnSave">
+   <property name="geometry">
+    <rect>
+     <x>370</x>
+     <y>390</y>
+     <width>70</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>保存</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="labeltime">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>320</y>
+     <width>301</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QFrame" name="frame_9">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>40</y>
+     <width>521</width>
+     <height>261</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(214, 232, 255);</string>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::StyledPanel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_7">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>20</y>
+     <width>66</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">font: 75 12pt &quot;Century Schoolbook L&quot;;
+background-color: rgb(214, 232, 255);</string>
+   </property>
+   <property name="text">
+    <string>试剂余量</string>
+   </property>
+  </widget>
+  <zorder>frame_9</zorder>
+  <zorder>butClose</zorder>
+  <zorder>btnAdd5</zorder>
+  <zorder>progressBarA</zorder>
+  <zorder>progressBarB</zorder>
+  <zorder>progressBarC</zorder>
+  <zorder>progressBarD</zorder>
+  <zorder>btnAdd20</zorder>
+  <zorder>btnAdd100</zorder>
+  <zorder>btnReduce20</zorder>
+  <zorder>btnReduce100</zorder>
+  <zorder>btnReduce5</zorder>
+  <zorder>btnAddAll</zorder>
+  <zorder>radioButtonA</zorder>
+  <zorder>radioButtonB</zorder>
+  <zorder>radioButtonC</zorder>
+  <zorder>radioButtonD</zorder>
+  <zorder>progressBarE</zorder>
+  <zorder>radioButtonE</zorder>
+  <zorder>btnAdd500</zorder>
+  <zorder>btnReduce500</zorder>
+  <zorder>checkMax</zorder>
+  <zorder>btnSave</zorder>
+  <zorder>labeltime</zorder>
+  <zorder>label_7</zorder>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>butClose</sender>
+   <signal>clicked()</signal>
+   <receiver>dlgReagentManage</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>547</x>
+     <y>391</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>621</x>
+     <y>366</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

@@ -1,0 +1,929 @@
+#include "dlgtest.h"
+#include "ui_dlgtest.h"
+//#include "./core/cdbbusiness.h"
+#include "plottest.h"
+#include <QDateTime>
+#include <QDate>
+#include "core/cprocess1.h"
+//#include "./core/minIni.h"
+#include "core/cdbmanager.h"
+#include "core/cmydatabase.h"
+#include <dirent.h>
+#include <QMouseEvent>
+
+DlgTest::DlgTest(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::DlgTest)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMC = pMC;
+
+    ui->groupBox_Detector->hide();
+    ui->groupBox_YQKind->hide();
+
+    char cValue[64];
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INITDATA","CaclFlag",cValue);
+    if(atoi(cValue))
+    {
+        ui->checkEchemCacl->setChecked(true);
+    }
+    else
+    {
+        ui->checkEchemCacl->setChecked(false);
+    }
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INFO","YQType",cValue);
+    ui->comboYQ->setCurrentIndex(atoi(cValue)-1);
+    m_iYQType = atoi(cValue);
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INITDATA","Z07A",cValue);
+    ui->comZ07A->setCurrentIndex(atoi(cValue));
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INITDATA","Z07B",cValue);
+    ui->comZ07B->setCurrentIndex(atoi(cValue));
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INITDATA","Z08A",cValue);
+    ui->comZ08A->setCurrentIndex(atoi(cValue));
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INITDATA","Z08B",cValue);
+    ui->comZ08B->setCurrentIndex(atoi(cValue));
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INITDATA","Z24A",cValue);
+    ui->comZ24A->setCurrentIndex(atoi(cValue));
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INITDATA","Z24B",cValue);
+    ui->comZ24B->setCurrentIndex(atoi(cValue));
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INITDATA","Z27A",cValue);
+    ui->comZ27A->setCurrentIndex(atoi(cValue));
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INITDATA","Z27B",cValue);
+    ui->comZ27B->setCurrentIndex(atoi(cValue));
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("Z06_SET","LeftDistance",cValue);
+    ui->comLeftBase->setCurrentIndex(atoi(cValue));
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("Z06_SET","RightDistance",cValue);
+    ui->comRightBase->setCurrentIndex(atoi(cValue));
+
+
+//    ui->combcomport->setCurrentIndex(0);
+//    memset(cValue,0,64);
+//    GetAfxConfig()->GetIni("comport_0","baudrate",cValue);
+//    if(!strcmp(cValue,"9600"))
+//    {
+//        ui->combobaudrate->setCurrentIndex(0);
+//    }
+//    else
+//    {
+//        ui->combobaudrate->setCurrentIndex(1);
+//    }
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INFO","YQSubType",cValue);
+    if(atoi(cValue) == 0)
+    {
+        ui->rabtYQKind0->setChecked(true);
+    }
+    else
+    {
+        ui->rabtYQKind1->setChecked(true);
+    }
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("INFO","Detector",cValue);
+    if(atoi(cValue) == 0)
+    {
+        ui->rabtFID->setChecked(true);
+    }
+    else
+    {
+        ui->rabtECD->setChecked(true);
+    }
+
+    this->GetYQTitModNum();
+    this->WinColShowOrHide(m_iYQType);
+}
+
+DlgTest::~DlgTest()
+{
+    delete ui;
+}
+
+void DlgTest::WinColShowOrHide(int iYQType)
+{
+    ui->checkEchemCacl->hide();
+    ui->comZ07A->hide();
+    ui->comZ07B->hide();
+    ui->comZ24A->hide();
+    ui->comZ24B->hide();
+    ui->comZ08A->hide();
+    ui->comZ08B->hide();
+    ui->comZ27A->hide();
+    ui->comZ27B->hide();
+    ui->label_16->hide();
+    ui->frame_4->hide();
+    ui->label_2->hide();
+    ui->label_3->hide();
+    ui->label_4->hide();
+    ui->label_5->hide();
+    ui->label_6->hide();
+    ui->label_7->hide();
+    ui->label_8->hide();
+    ui->label_9->hide();
+    ui->label_10->hide();
+    ui->label_11->hide();
+    ui->label_12->hide();
+    ui->label_13->hide();
+
+    ui->label_19->hide();
+    ui->comLeftBase->hide();
+    ui->comRightBase->hide();
+    ui->label_17->hide();
+    ui->label_18->hide();
+    ui->frame_6->hide();
+
+    if(1 == iYQType)
+    {
+        ui->checkEchemCacl->show();
+        ui->comZ07A->show();
+        ui->comZ07B->show();
+        ui->comZ24A->show();
+        ui->comZ24B->show();
+        ui->comZ08A->show();
+        ui->comZ08B->show();
+        ui->comZ27A->show();
+        ui->comZ27B->show();
+        ui->label_16->show();
+        ui->frame_4->show();
+        ui->label_2->show();
+        ui->label_3->show();
+        ui->label_4->show();
+        ui->label_5->show();
+        ui->label_6->show();
+        ui->label_7->show();
+        ui->label_8->show();
+        ui->label_9->show();
+        ui->label_10->show();
+        ui->label_11->show();
+        ui->label_12->show();
+        ui->label_13->show();
+    }
+    else if(5 == iYQType)
+    {
+        ui->label_19->show();
+        ui->comLeftBase->show();
+        ui->comRightBase->show();
+        ui->label_17->show();
+        ui->label_18->show();
+        ui->frame_6->show();
+    }
+}
+
+//获取仪器title
+void DlgTest::GetYQTitModNum()
+{
+    ui->comYQTitle->clear();
+    ui->comYQModNum->clear();
+    vecTitModNumList.clear();
+    struYQTitModNum item;
+
+    item.titleID = 0;
+    strcpy(item.cTitle,"水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 1;
+    strcpy(item.cTitle,"锌水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(Zn)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 2;
+    strcpy(item.cTitle,"鎘水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(Cd)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 3;
+    strcpy(item.cTitle,"铅水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(Pb)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 4;
+    strcpy(item.cTitle,"铜水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(Cu)");
+    vecTitModNumList.push_back(item);
+
+//    item.titleID = 5;
+//    strcpy(item.cTitle,"镍水质分析仪");
+//    strcpy(item.cModNum,"");
+//    vecTitModNumList.push_back(item);
+
+    item.titleID = 6;
+    strcpy(item.cTitle,"砷水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(As)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 7;
+    strcpy(item.cTitle,"汞水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(Hg)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 8;
+    strcpy(item.cTitle,"铬水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(Cr)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 9;
+    strcpy(item.cTitle,"硒水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(Se)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 10;
+    strcpy(item.cTitle,"锑水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(Sb)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 11;
+    strcpy(item.cTitle,"氨氮水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(NH)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 12;
+    strcpy(item.cTitle,"氯化物水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(C1)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 13;
+    strcpy(item.cTitle,"氟化物水质分析仪");
+    strcpy(item.cModNum,"LFEC-2006(F)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 14;
+    strcpy(item.cTitle,"高锰酸盐指数水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(CODMn)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 15;
+    strcpy(item.cTitle,"化学需氧量水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(COD)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 16;
+    strcpy(item.cTitle,"总铬水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Tcr)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 17;
+    strcpy(item.cTitle,"砷水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(As)Ⅰ");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 18;
+    strcpy(item.cTitle,"总砷水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(As)Ⅱ");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 19;
+    strcpy(item.cTitle,"六价铬水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Cr)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 20;
+    strcpy(item.cTitle,"铁水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Fe)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 21;
+    strcpy(item.cTitle,"锰水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Mn)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 22;
+    strcpy(item.cTitle,"镍水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Ni)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 23;
+    strcpy(item.cTitle,"锑水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Sb)Ⅰ");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 24;
+    strcpy(item.cTitle,"总锑水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Sb)Ⅱ");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 25;
+    strcpy(item.cTitle,"银水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Ag)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 26;
+    strcpy(item.cTitle,"铜水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Cu)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 27;
+    strcpy(item.cTitle,"铝水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(A1)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 28;
+    strcpy(item.cTitle,"锌水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Zn)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 29;
+    strcpy(item.cTitle,"总氮水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(TN)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 30;
+    strcpy(item.cTitle,"氨氮水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(NH)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 31;
+    strcpy(item.cTitle,"硝酸盐氮水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(NO3)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 32;
+    strcpy(item.cTitle,"亚硝酸盐氮水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(NO2)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 33;
+    strcpy(item.cTitle,"总磷水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(TP)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 34;
+    strcpy(item.cTitle,"正磷酸盐水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(PO4)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 35;
+    strcpy(item.cTitle,"硫化物水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(S)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 36;
+    strcpy(item.cTitle,"汞水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Hg)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 37;
+    strcpy(item.cTitle,"余氯/总氯水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(TC1)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 38;
+    strcpy(item.cTitle,"总氰化物水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(CN)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 39;
+    strcpy(item.cTitle,"苯胺类水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(AN)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 40;
+    strcpy(item.cTitle,"甲醛水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(CHO)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 41;
+    strcpy(item.cTitle,"地表水挥发酚水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Phe)Ⅰ");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 42;
+    strcpy(item.cTitle,"污染源挥发酚水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Phe)Ⅱ");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 43;
+    strcpy(item.cTitle,"石油类水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(Oi1)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 44;
+    strcpy(item.cTitle,"UVCOD/TOC水质分析仪");
+    strcpy(item.cModNum,"LFS-2002(UV)");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 45;
+    strcpy(item.cTitle,"五参数水质分析仪");
+    strcpy(item.cModNum,"LFWCS-2008");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 46;
+    strcpy(item.cTitle,"有机物水质分析仪");
+    strcpy(item.cModNum,"LFGC-2012");
+    vecTitModNumList.push_back(item);
+
+    item.titleID = 47;
+    strcpy(item.cTitle,"水质综合毒性水质分析仪");
+    strcpy(item.cModNum,"LFTOX-Z2010");
+    vecTitModNumList.push_back(item);
+
+
+    //烟气在线分析仪（编号从60——79）
+    item.titleID = 60;
+    strcpy(item.cTitle,"烟气在线分析仪");
+    strcpy(item.cModNum,"LFGA-2010");
+    vecTitModNumList.push_back(item);
+
+    //原子荧光分析仪(编号从80——99)
+    item.titleID = 80;
+    strcpy(item.cTitle,"原子荧光分析仪");
+    strcpy(item.cModNum,"LFAF-2014");
+    vecTitModNumList.push_back(item);
+
+    //有机物(编号从100-200)
+
+
+     int iYQType = ui->comboYQ->currentIndex() + 1;
+
+     if(vecTitModNumList.size() > 0)
+     {
+         vector<struYQTitModNum>::iterator it;
+         for(it=vecTitModNumList.begin();it<vecTitModNumList.end();it++)
+         {
+             if(iYQType == 1)
+             {
+                 if((*it).titleID >= 0 && (*it).titleID <= 13)
+                 {
+                     QString sTitle = (*it).cTitle;
+                     QString sModNum = (*it).cModNum;
+                     QString sValue = QString::number((*it).titleID);
+                     ui->comYQTitle->addItem(sTitle,sValue);
+                     ui->comYQModNum->addItem(sModNum,sValue);
+                 }
+             }
+             else if(iYQType == 2)
+             {
+                 if((*it).titleID >= 60 && (*it).titleID <= 79)
+                 {
+                     QString sTitle = (*it).cTitle;
+                     QString sModNum = (*it).cModNum;
+                     QString sValue = QString::number((*it).titleID);
+                     ui->comYQTitle->addItem(sTitle,sValue);
+                     ui->comYQModNum->addItem(sModNum,sValue);
+                 }
+             }
+             else if(iYQType == 3)
+             {
+
+             }
+             else if(iYQType == 4)
+             {
+                 if((*it).titleID >= 14 && (*it).titleID <= 44)
+                 {
+                     QString sTitle = (*it).cTitle;
+                     QString sModNum = (*it).cModNum;
+                     QString sValue = QString::number((*it).titleID);
+                     ui->comYQTitle->addItem(sTitle,sValue);
+                     ui->comYQModNum->addItem(sModNum,sValue);
+                 }
+             }
+             else if(iYQType == 5)
+             {
+                 if((*it).titleID >= 80 && (*it).titleID <= 99)
+                 {
+                     QString sTitle = (*it).cTitle;
+                     QString sModNum = (*it).cModNum;
+                     QString sValue = QString::number((*it).titleID);
+                     ui->comYQTitle->addItem(sTitle,sValue);
+                     ui->comYQModNum->addItem(sModNum,sValue);
+                 }
+             }
+
+         }
+
+         char cTitID[6];
+         memset(cTitID,0,6);
+         GetAfxConfig()->GetIni("INFO","TitNumID",cTitID);
+         if(strlen(cTitID) > 0)
+         {
+             QString sValue = QString(cTitID);             
+             ui->comYQTitle->setCurrentIndex(ui->comYQTitle->findData(sValue));
+             ui->comYQModNum->setCurrentIndex(ui->comYQModNum->findData(sValue));
+         }
+         else
+         {
+             ui->comYQTitle->setCurrentIndex(0);
+             ui->comYQModNum->setCurrentIndex(0);
+         }
+     }
+}
+
+void DlgTest::on_comboYQ_currentIndexChanged(int index)
+{
+    if(index == 2 || index == 3)
+    {
+        ui->groupBox_YQKind->show();
+        if(index == 3)
+        {
+            ui->rabtYQKind0->setText("地表水");
+            ui->rabtYQKind1->setText("污染源");
+        }
+        else
+        {
+             ui->groupBox_Detector->show();
+        }
+    }
+    else
+    {
+        ui->groupBox_Detector->hide();
+        ui->groupBox_YQKind->hide();
+    }
+    this->GetYQTitModNum();
+    this->WinColShowOrHide(ui->comboYQ->currentIndex() + 1);
+}
+
+
+void DlgTest::mousePressEvent(QMouseEvent * mouseEvent)
+{
+    int x = mouseEvent->pos().x();
+    int y = mouseEvent->pos().y();
+
+
+    if ((x < 50)&&(y > 440))
+    {
+        m_nClick++;
+        if(m_nClick >4)
+        {
+
+        }
+    }
+
+}
+
+
+void DlgTest::on_btnUpdDB_clicked()
+{
+    int nKind = GetAfxYQType();
+    char czPath[256];memset(czPath,0,256);
+    sprintf(czPath,"yqdata");
+    CDBManager db;
+    db.Create_DB_YQ(czPath,"yq.db");
+    db.Create_DB_Consume(czPath,"yq.db");
+    db.Create_DB_ConsumeInfo(czPath,"yq.db");
+    db.Create_DB_ConsumeUpdate(czPath,"yq.db");
+    db.Create_DB_2091(czPath,"yq.db");
+
+    if(1 == nKind)
+    {
+        db.Create_DB_3005(czPath,"yq.db");
+        db.Create_DB_3016(czPath,"yq.db");
+        db.Create_DB_3025(czPath,"yq.db");
+        db.Create_DB_8051(czPath,"yq.db");
+        db.Create_DB_Linear(czPath,"yq.db");
+        db.Create_DB_Maintain(czPath,"yq.db");
+        db.Create_DB_EchemHh(czPath,"yq.db");
+
+    }
+    else if(3 == nKind)
+    {
+        db.Create_DB_3005(czPath,"yq.db");
+        db.Create_DB_3016(czPath,"yq.db");
+        db.Create_DB_3025(czPath,"yq.db");
+        db.Create_DB_8051(czPath,"yq.db");
+        db.Create_DB_VocGroup(czPath,"yq.db");
+        db.Create_DB_VocDots(czPath,"yq.db");
+        db.Create_DB_VocInternal(czPath,"yq.db");
+        db.Create_DB_VocSubDots(czPath,"yq.db");
+        db.Create_DB_VocDataInfo(czPath,"yq.db");
+    }
+    else if(4 == nKind)
+    {
+        //A.主库
+        db.Create_DB_3005(czPath,"yq.db");      //加标回收数据(主库)
+        db.Create_DB_3016(czPath,"yq.db");      //标样核查数据(主库)
+        db.Create_DB_3025(czPath,"yq.db");      //平行样数据(主库)
+        db.Create_DB_8051(czPath,"yq.db");      //水样数据(主库)
+        db.Create_DB_Maintain(czPath,"yq.db");  //维护信息
+        db.Create_4_BsCurveDotInfo(czPath,"yq.db");//比色化曲线点信息(主库)
+        db.Create_4_BsCurveManger(czPath,"yq.db");//比色法曲线管理(主库)
+        db.Create_4_BsDataInfo(czPath,"yq.db");//比色法详细数据(主库)
+
+    }
+    else if(5 == nKind || 6 == nKind)
+    {
+        db.Create_DB_3005(czPath,"yq.db");
+        db.Create_DB_3016(czPath,"yq.db");
+        db.Create_DB_3025(czPath,"yq.db");
+        db.Create_DB_8051(czPath,"yq.db");
+//        db.Create_5_AFSCurveManger(czPath,"yq.db");//比色法曲线管理(主库)
+        db.Create_4_BsCurveDotInfo(czPath,"yq.db");//比色化曲线点信息(主库)
+        db.Create_4_BsCurveManger(czPath,"yq.db");//比色法曲线管理(主库)
+        db.Create_4_BsDataInfo(czPath,"yq.db");//比色法详细数据(主库)
+
+    }
+    //初始化耗材列表
+    InitConsume(czPath);
+
+    QMessageBox::information(NULL,"提示信息","数据升级成功!");
+}
+void DlgTest::InitConsume(const char* czPath)
+{
+    char czDBFile[256];memset(czDBFile,0,256);
+    sprintf(czDBFile,"%s/%s/yq.db",DB_ROOT_PATH,czPath);
+    CMyDataBase* pDb = new CMyDataBase(czDBFile);
+    //公共相同的
+    pDb->Consume_add("SJ","试剂","");
+    pDb->Consume_add("HC","耗材","");
+
+    //试剂
+    pDb->Consume_add("A","参比标准溶液","SJ");
+    pDb->Consume_add("B","蒸馏水","SJ");
+    pDb->Consume_add("D","镀膜液","SJ");
+    pDb->Consume_add("E","消解液","SJ");
+    pDb->Consume_add("G","电解液","SJ");
+    pDb->Consume_add("AA","标样","SJ");
+    pDb->Consume_add("F","还原液","SJ");
+    pDb->Consume_add("H","掩蔽剂","SJ");
+    pDb->Consume_add("I","氧化剂","SJ");
+    pDb->Consume_add("J","中和液","SJ");
+    pDb->Consume_add("K","吸收液","SJ");
+
+    pDb->Consume_add("S1","参比标准溶液","SJ");
+    pDb->Consume_add("S2","蒸馏水","SJ");
+    pDb->Consume_add("S3","镀膜液","SJ");
+    pDb->Consume_add("S4","消解液","SJ");
+    pDb->Consume_add("S5","电解液","SJ");
+    pDb->Consume_add("S6","标样","SJ");
+    pDb->Consume_add("S7","还原液","SJ");
+    pDb->Consume_add("S8","掩蔽剂","SJ");
+    pDb->Consume_add("S9","氧化剂","SJ");
+    pDb->Consume_add("S10","中和液","SJ");
+    pDb->Consume_add("S11","吸收液","SJ");
+    pDb->Consume_add("S12","显色剂","SJ");
+    pDb->Consume_add("S13","标液一","SJ");
+    pDb->Consume_add("S14","标液二","SJ");
+    pDb->Consume_add("S15","调节液","SJ");
+    pDb->Consume_add("S16","氧化剂","SJ");
+    pDb->Consume_add("S17","释放剂","SJ");
+    pDb->Consume_add("S18","缓冲液","SJ");
+    pDb->Consume_add("S19","萃取剂","SJ");
+    pDb->Consume_add("S20","清洗液","SJ");
+    pDb->Consume_add("S21","释放剂","SJ");
+    pDb->Consume_add("S21","冷却水","SJ");
+
+    //耗材
+    pDb->Consume_add("HC_A","橡胶注射器","HC");
+    pDb->Consume_add("HC_B","塑注射器圈(柱塞泵)","HC");
+    pDb->Consume_add("HC_C","参比电极","HC");
+    pDb->Consume_add("HC_D","工作电极","HC");
+    pDb->Consume_add("HC_E","辅助电极","HC");
+    pDb->Consume_add("HC_F","U型汞灯","HC");
+    pDb->Consume_add("HC_G","笔型汞灯","HC");
+    pDb->Consume_add("HC_H","微型真空泵","HC");
+    pDb->Consume_add("HC_I","O型密封圈","HC");
+    //烟气
+    pDb->Consume_add("HC_J","烟气光源","HC");
+    pDb->Consume_add("HC_K","烟气氧传感器","HC");
+    pDb->Consume_add("HC_L","烟气电机","HC");
+    pDb->Consume_add("HC_M","烟气采样泵","HC");
+    pDb->Consume_add("HC_N","烟气风扇","HC");
+    pDb->Consume_add("HC_O","烟气制冷片","HC");
+
+    //有机物
+    pDb->Consume_add("HC_P","氮气","HC");
+    pDb->Consume_add("HC_Q","氢气","HC");
+    pDb->Consume_add("HC_R","空气","HC");
+    pDb->Consume_add("HC_S","萃取头","HC");
+    pDb->Consume_add("HC_T","毛细柱","HC");
+
+    delete pDb;
+}
+
+void DlgTest::on_btnRegister_clicked()
+{
+    CYQ* pYQ = m_pMC->pYQs->GetYQ("Z07");
+    if(pYQ)
+    {
+        pYQ->m_pModbusRegister->SetFloatToRegister(40100,-123.234);
+        pYQ->m_pModbusRegister->SetInt16(40110,65535);
+        pYQ->m_pModbusRegister->SetInt32(40120,1234567890);
+        qDebug("SetFloatToRegister=%.4f",pYQ->m_pModbusRegister->GetFloatFromRegister(40100));
+        qDebug("GetInt16=%d",pYQ->m_pModbusRegister->GetInt16(40110));
+        qDebug("GetInt32=%d",pYQ->m_pModbusRegister->GetInt32(40120));
+
+        pYQ->SetLastTime(QDateTime::currentDateTime());
+        QDateTime dt = pYQ->GetLastTime();
+        qDebug("GetProcessType=%d",pYQ->GetProcessType());
+        qDebug("GetLastTime=%04d-%02d-%02d %02d-%02d-%02d",dt.date().year(),dt.date().month(),dt.date().day(),dt.time().hour(),dt.time().minute(),dt.time().second());
+    }
+}
+
+void DlgTest::on_btnsave_clicked()
+{
+    char cType[64];
+    int index = 0;
+
+    if(ui->checkEchemCacl->isChecked())
+    {
+        GetAfxConfig()->SetIni("INITDATA","CaclFlag","1");
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("INITDATA","CaclFlag","0");
+    }
+    index = ui->comboYQ->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index+1);
+    GetAfxConfig()->SetIni("INFO","YQType",cType);
+
+    if(ui->rabtYQKind0->isChecked())
+    {
+        GetAfxConfig()->SetIni("INFO","YQSubType","0");
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("INFO","YQSubType","1");
+    }
+    if(index == 2)//有机物
+    {
+        if(ui->rabtFID->isChecked())
+        {
+            GetAfxConfig()->SetIni("INFO","Detector","0");
+        }
+        else
+        {
+            GetAfxConfig()->SetIni("INFO","Detector","1");
+        }
+    }
+
+    index = ui->comZ07A->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index);
+    GetAfxConfig()->SetIni("INITDATA","Z07A",cType);
+
+    index = ui->comZ07B->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index);
+    GetAfxConfig()->SetIni("INITDATA","Z07B",cType);
+
+    index = ui->comZ08A->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index);
+    GetAfxConfig()->SetIni("INITDATA","Z08A",cType);
+
+    index = ui->comZ08B->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index);
+    GetAfxConfig()->SetIni("INITDATA","Z08B",cType);
+
+    index = ui->comZ24A->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index);
+    GetAfxConfig()->SetIni("INITDATA","Z24A",cType);
+
+    index = ui->comZ24B->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index);
+    GetAfxConfig()->SetIni("INITDATA","Z24B",cType);
+
+    index = ui->comZ27A->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index);
+    GetAfxConfig()->SetIni("INITDATA","Z27A",cType);
+
+    index = ui->comZ27B->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index);
+    GetAfxConfig()->SetIni("INITDATA","Z27B",cType);
+
+    index = ui->comLeftBase->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index);
+    GetAfxConfig()->SetIni("Z06_SET","LeftDistance",cType);
+
+    index = ui->comRightBase->currentIndex();
+    memset(cType,0,64);
+    sprintf(cType,"%d",index);
+    GetAfxConfig()->SetIni("Z06_SET","RightDistance",cType);
+
+//    if(0 == ui->combcomport->currentIndex())
+//    {
+//        GetAfxConfig()->SetIni("comport_0","baudrate",ui->combobaudrate->currentText().toLatin1().data());
+//    }
+//    else  if(1 == ui->combcomport->currentIndex())
+//    {
+//        GetAfxConfig()->SetIni("comport_1","baudrate",ui->combobaudrate->currentText().toLatin1().data());
+//    }
+//    else if(2 == ui->combcomport->currentIndex())
+//    {
+//        GetAfxConfig()->SetIni("comport_2","baudrate",ui->combobaudrate->currentText().toLatin1().data());
+//    }
+//    else if(3 == ui->combcomport->currentIndex())
+//    {
+//        GetAfxConfig()->SetIni("comport_3","baudrate",ui->combobaudrate->currentText().toLatin1().data());
+//    }
+//    else if(4 == ui->combcomport->currentIndex())
+//    {
+//        GetAfxConfig()->SetIni("comport_4","baudrate",ui->combobaudrate->currentText().toLatin1().data());
+//    }
+
+    int iTitleID = ui->comYQTitle->itemData(ui->comYQTitle->currentIndex()).toString().toInt();
+    memset(cType,0,64);
+    sprintf(cType,"%d",iTitleID);
+    GetAfxConfig()->SetIni("INFO","TitNumID",cType);
+
+    QMessageBox::information(NULL,"提示信息","保存成功!");
+
+}
+
+//void DlgTest::on_combcomport_currentIndexChanged(int index)
+//{
+//    char tmp[64];
+//    memset(tmp,0,64);
+//    if( 0 == index)
+//    {
+//        GetAfxConfig()->GetIni("comport_0","baudrate",tmp);
+//        if(!strcmp(tmp,"9600"))
+//        {
+//            ui->combobaudrate->setCurrentIndex(0);
+//        }
+//        else
+//        {
+//            ui->combobaudrate->setCurrentIndex(1);
+//        }
+//    }
+//    else if(1 == index)
+//    {
+//        GetAfxConfig()->GetIni("comport_1","baudrate",tmp);
+//        if(!strcmp(tmp,"9600"))
+//        {
+//            ui->combobaudrate->setCurrentIndex(0);
+//        }
+//        else
+//        {
+//            ui->combobaudrate->setCurrentIndex(1);
+//        }
+//    }
+//    else if(2 == index)
+//    {
+//        GetAfxConfig()->GetIni("comport_2","baudrate",tmp);
+//        if(!strcmp(tmp,"9600"))
+//        {
+//            ui->combobaudrate->setCurrentIndex(0);
+//        }
+//        else
+//        {
+//            ui->combobaudrate->setCurrentIndex(1);
+//        }
+//    }
+//    else if(3 == index)
+//    {
+//        GetAfxConfig()->GetIni("comport_3","baudrate",tmp);
+//        if(!strcmp(tmp,"9600"))
+//        {
+//            ui->combobaudrate->setCurrentIndex(0);
+//        }
+//        else
+//        {
+//            ui->combobaudrate->setCurrentIndex(1);
+//        }
+//    }
+//    else if(4 == index)
+//    {
+//        GetAfxConfig()->GetIni("comport_4","baudrate",tmp);
+//        if(!strcmp(tmp,"9600"))
+//        {
+//            ui->combobaudrate->setCurrentIndex(0);
+//        }
+//        else
+//        {
+//            ui->combobaudrate->setCurrentIndex(1);
+//        }
+//    }
+//}
+
+
+void DlgTest::on_comYQTitle_currentIndexChanged(int index)
+{
+    QString sValue = ui->comYQTitle->itemData(index).toString();
+    ui->comYQModNum->setCurrentIndex(ui->comYQModNum->findData(sValue));
+}
+
+void DlgTest::on_btnExit_clicked()
+{
+    qApp->exit();
+}

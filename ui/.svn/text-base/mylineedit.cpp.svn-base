@@ -1,0 +1,17 @@
+#include "mylineedit.h"
+#include <QMouseEvent>
+#include "sfkeyboard.h"
+
+using namespace std;
+
+MyLineEdit::MyLineEdit(QWidget *parent) :
+    QLineEdit(parent)
+{
+}
+
+
+void MyLineEdit::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    QLineEdit::mouseDoubleClickEvent(event);
+    emit doubleClicked(this);
+}

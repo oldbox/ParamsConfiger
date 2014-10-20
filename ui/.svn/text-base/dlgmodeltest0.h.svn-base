@@ -1,0 +1,48 @@
+#ifndef DLGMODELTEST0_H
+#define DLGMODELTEST0_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+
+#define NUM_MODULE 10
+
+namespace Ui {
+class dlgmodeltest0;
+}
+
+class dlgmodeltest0 : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest0(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest0();
+    
+private slots:
+    void on_btnClose_clicked();
+
+    void on_btnManualScan_clicked();
+
+    void on_btnScanModInfo_clicked();
+
+    void on_btnSetModAdd_clicked();
+
+    void on_tabwidData_cellPressed(int row, int column);
+
+    void on_btnSetBaudrate_clicked();
+
+private:
+    Ui::dlgmodeltest0 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+
+    void Init();
+    void SetModTableStyle();
+    void GetSetAllModel();
+    QString GetModelName(int iAddress);
+    bool judgeYQConnect();
+    void DealWithBroadcast();
+    void PlsSelectMdl(QString context);
+};
+
+#endif // DLGMODELTEST0_H

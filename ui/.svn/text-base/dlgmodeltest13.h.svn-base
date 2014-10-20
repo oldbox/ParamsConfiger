@@ -1,0 +1,25 @@
+#ifndef DLGMODELTEST13_H
+#define DLGMODELTEST13_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class dlgmodeltest13;
+}
+
+class dlgmodeltest13 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest13(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest13();
+    
+private:
+    Ui::dlgmodeltest13 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+};
+
+#endif // DLGMODELTEST13_H

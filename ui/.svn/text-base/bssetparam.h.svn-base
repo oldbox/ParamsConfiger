@@ -1,0 +1,44 @@
+#ifndef BSSETPARAM_H
+#define BSSETPARAM_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include "../core/paramdict.h"
+#include <QTableWidgetItem>
+
+namespace Ui {
+class bsSetParam;
+}
+
+class bsSetParam : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit bsSetParam(CMainCtrl* pMC,int nUserType,QWidget *parent = 0);
+    ~bsSetParam();
+    
+private slots:
+    void on_butRestoreDefault_clicked();
+    void on_butSave_clicked();
+    void on_butClose_clicked();
+    void changeCheckBox(int,int);
+    void on_tabWidParam_itemClicked(QTableWidgetItem *item);
+
+private:
+    Ui::bsSetParam *ui;
+    QMap<QString,QString> qmCodeList;
+    CMainCtrl* m_pMC;
+  //  SfKeyboard* sfkey;
+   // QLineEdit *objLit;
+    CDBBusiness* m_pDb;
+    QTableWidgetItem *checkBox;
+
+    void GetParamDictList();
+  //  bool eventFilter(QObject *object, QEvent *event);
+    void GetYQsList(QString qsCodeName);
+    bool InitCurveManger(const char* czID);
+    //paramdict* m_dict;
+};
+
+#endif // BSSETPARAM_H

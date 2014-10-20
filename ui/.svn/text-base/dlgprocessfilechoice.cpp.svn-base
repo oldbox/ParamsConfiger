@@ -1,0 +1,186 @@
+#include "dlgprocessfilechoice.h"
+#include "ui_dlgprocessfilechoice.h"
+
+dlgProcessfileChoice::dlgProcessfileChoice(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgProcessfileChoice)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    if(GetAfxYQType() == 3)
+    {
+        ui->label_8->setText("基线测试");
+        ui->label_7->hide();
+        ui->lineRoute_7->hide();
+        ui->btnscan_7->hide();
+    }
+    else if(GetAfxYQType() != 1)
+    {
+        ui->label_7->setText("曲线标定");
+        ui->label_8->hide();
+        ui->lineRoute_8->hide();
+        ui->btnscan_8->hide();
+    }
+
+    Init();
+}
+
+dlgProcessfileChoice::~dlgProcessfileChoice()
+{
+    delete ui;
+}
+void dlgProcessfileChoice::Init()
+{
+    char cValue[MAX_SIZE];
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ProcessFile","WaterTest",cValue);
+    ui->lineRoute_0->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ProcessFile","SampleTest",cValue);
+    ui->lineRoute_1->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ProcessFile","SampleAdjust",cValue);
+    ui->lineRoute_2->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ProcessFile","BlankAdjust",cValue);
+    ui->lineRoute_3->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ProcessFile","BlankTest",cValue);
+    ui->lineRoute_4->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ProcessFile","InitTest",cValue);
+    ui->lineRoute_5->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ProcessFile","Wash",cValue);
+    ui->lineRoute_6->setText(QString::fromUtf8(cValue));
+
+    if(1 == GetAfxYQType())
+    {
+        memset(cValue,0,MAX_SIZE);
+        GetAfxConfig()->GetIni("ProcessFile","ElecMaintain",cValue);
+        ui->lineRoute_7->setText(QString::fromUtf8(cValue));
+
+        memset(cValue,0,MAX_SIZE);
+        GetAfxConfig()->GetIni("ProcessFile","LineScan",cValue);
+        ui->lineRoute_8->setText(QString::fromUtf8(cValue));
+    }
+    else
+    {
+        memset(cValue,0,MAX_SIZE);
+        GetAfxConfig()->GetIni("ProcessFile","CurveCali",cValue);
+        ui->lineRoute_7->setText(QString::fromUtf8(cValue));
+    }
+    if(3 == GetAfxYQType())
+    {
+        memset(cValue,0,MAX_SIZE);
+        GetAfxConfig()->GetIni("ProcessFile","ElecMaintain",cValue);
+        ui->lineRoute_8->setText(QString::fromUtf8(cValue));
+    }
+
+}
+void dlgProcessfileChoice::on_btnscan_1_clicked()
+{
+    GetProcessFileName(1);
+}
+void dlgProcessfileChoice::GetProcessFileName(int nIndex)
+{
+    QString filename;
+    char czPath[255];
+    char czTmp[255];
+
+    memset(czPath,0,255);
+    memset(czTmp,0,255);
+    sprintf(czPath,"%s",INI_ROOT_PATH);
+    strcat(czPath,"/processfile/");
+    QString qsPath = QString(czPath);
+   filename = QFileDialog::getOpenFileName(this,
+       tr("选择流程文件"),
+       qsPath,
+       tr("file (*.dll *.txt *.* **)")); //选择路径
+   if(filename.isEmpty())
+   {
+       return;
+   }
+   else
+   {
+       QLineEdit *pbs[9] = {ui->lineRoute_0, ui->lineRoute_1, ui->lineRoute_2, ui->lineRoute_3,
+                              ui->lineRoute_4, ui->lineRoute_5, ui->lineRoute_6, ui->lineRoute_7,
+                              ui->lineRoute_8};
+        QLineEdit *pb = pbs[nIndex];
+        pb->setText(filename);
+   }
+}
+void dlgProcessfileChoice::on_btnscan_0_clicked()
+{
+    GetProcessFileName(0);
+}
+
+void dlgProcessfileChoice::on_btnscan_2_clicked()
+{
+    GetProcessFileName(2);
+}
+
+void dlgProcessfileChoice::on_btnscan_3_clicked()
+{
+    GetProcessFileName(3);
+}
+
+void dlgProcessfileChoice::on_btnscan_4_clicked()
+{
+    GetProcessFileName(4);
+}
+
+void dlgProcessfileChoice::on_btnscan_5_clicked()
+{
+    GetProcessFileName(5);
+}
+
+void dlgProcessfileChoice::on_btnscan_6_clicked()
+{
+    GetProcessFileName(6);
+}
+
+void dlgProcessfileChoice::on_btnscan_7_clicked()
+{
+    GetProcessFileName(7);
+}
+
+void dlgProcessfileChoice::on_btnscan_8_clicked()
+{
+    GetProcessFileName(8);
+}
+
+void dlgProcessfileChoice::on_btnClose_clicked()
+{
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    this->close();
+    emit EmityParWinClolse();
+}
+
+void dlgProcessfileChoice::on_btnSave_clicked()
+{
+    GetAfxConfig()->SetIni("ProcessFile","WaterTest",ui->lineRoute_0->text().toLatin1().data());
+    GetAfxConfig()->SetIni("ProcessFile","SampleTest",ui->lineRoute_1->text().toLatin1().data());
+    GetAfxConfig()->SetIni("ProcessFile","SampleAdjust",ui->lineRoute_2->text().toLatin1().data());
+    GetAfxConfig()->SetIni("ProcessFile","BlankAdjust",ui->lineRoute_3->text().toLatin1().data());
+    GetAfxConfig()->SetIni("ProcessFile","BlankTest",ui->lineRoute_4->text().toLatin1().data());
+    GetAfxConfig()->SetIni("ProcessFile","InitTest",ui->lineRoute_5->text().toLatin1().data());
+    GetAfxConfig()->SetIni("ProcessFile","Wash",ui->lineRoute_6->text().toLatin1().data());
+    if(1 == GetAfxYQType())
+    {
+        GetAfxConfig()->SetIni("ProcessFile","ElecMaintain",ui->lineRoute_7->text().toLatin1().data());
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("ProcessFile","CurveCali",ui->lineRoute_7->text().toLatin1().data());
+    }
+    GetAfxConfig()->SetIni("ProcessFile","LineScan",ui->lineRoute_8->text().toLatin1().data());
+    QMessageBox::information(NULL, "提示信息","保存成功!",QMessageBox::Ok);
+}

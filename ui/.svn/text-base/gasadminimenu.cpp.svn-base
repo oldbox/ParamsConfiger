@@ -1,0 +1,96 @@
+#include "gasadminimenu.h"
+#include "ui_gasadminimenu.h"
+#include <QDesktopWidget>
+#include "../ui/gasstatusquery.h"
+
+gasadminimenu::gasadminimenu(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::gasadminimenu)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMc = pMC;
+    if(CConfig::GetAfxUserType()<=2)
+    {
+        ui->BtnStateQuery->hide();
+        ui->ButtonCurve->hide();
+        ui->btnSystemSet->hide();
+        this->setGeometry(QRect(0,0,386,95));
+    }
+}
+
+gasadminimenu::~gasadminimenu()
+{
+    delete ui;
+}
+void gasadminimenu::on_ButtonCurve_clicked()
+{
+    this->close();
+
+    CYQ* pYQ = m_pMc->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        pYQ->m_pProcess->SetDrawCurve(true);//进入烟气显示光谱曲线界面标志
+
+    }
+    gasdispscopecurve* pDispCurve = new gasdispscopecurve(m_pMc);
+    pDispCurve->move((qApp->desktop()->width() - pDispCurve->width())/2,(qApp->desktop()->height() - pDispCurve->height())/2);
+    pDispCurve->exec();
+    delete pDispCurve;
+}
+
+void gasadminimenu::on_BtnStateQuery_clicked()
+{
+    this->close();
+    gasstatusquery *pStatusQuery = new gasstatusquery(1,m_pMc);
+    pStatusQuery->move((qApp->desktop()->width() - pStatusQuery->width())/2,(qApp->desktop()->height() - pStatusQuery->height())/2);
+    pStatusQuery->exec();
+    delete pStatusQuery;
+    pStatusQuery = NULL;
+}
+
+void gasadminimenu::on_btnReagent_clicked()
+{
+    this->close();
+    dlConsManage *pdConsMan = new dlConsManage(m_pMc);
+    pdConsMan->move((qApp->desktop()->width() - pdConsMan->width())/2,(qApp->desktop()->height() - pdConsMan->height())/2);
+    pdConsMan->exec();
+    delete pdConsMan;
+    pdConsMan = NULL;
+
+    //更新流程中的耗材状态表
+    for(int iP=0;iP<YQMAXCOUNT;iP++)
+    {
+        if(m_pMc->pYQs->pProcess[iP])
+        {
+            m_pMc->pYQs->pProcess[iP]->InitConsumemap();
+        }
+    }
+}
+
+void gasadminimenu::on_btnModule_clicked()
+{
+    this->close();
+    gasMaintainRemind *pRemind = new gasMaintainRemind(m_pMc);
+    pRemind->move((qApp->desktop()->width() - pRemind->width())/2,(qApp->desktop()->height() - pRemind->height())/2);
+    pRemind->exec();
+    delete pRemind;
+    pRemind = NULL;
+}
+
+void gasadminimenu::on_btnreset_clicked()
+{
+    this->close();
+    sync();
+    reboot(RB_AUTOBOOT);
+}
+
+void gasadminimenu::on_btnSystemSet_clicked()
+{
+    DlgNetSetting *pNetSetting = new DlgNetSetting();
+    pNetSetting->move((qApp->desktop()->width() - pNetSetting->width())/2,(qApp->desktop()->height() - pNetSetting->height())/2);
+    pNetSetting->exec();
+    this->hide();
+    delete pNetSetting;
+    pNetSetting = NULL;
+}

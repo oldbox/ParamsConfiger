@@ -1,0 +1,213 @@
+#include "voc_dlgcurveshow_2.h"
+#include "ui_voc_dlgcurveshow_2.h"
+#include "../core/myplot.h"
+#include "../plot/plot_2.h"
+#include "../core/cdbbusiness.h"
+#include "../core/cconfig.h"
+#include "voc_dlgcurveset.h"
+#include <iostream>
+
+voc_dlgCurveShow_2::voc_dlgCurveShow_2(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::voc_dlgCurveShow_2)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    m_plot = new Plot_2(ui->frame);
+    m_plot->setGeometry(20,20,580, 318);
+
+    float fValue = 0;
+    m_fCurrResponse = 0.0;
+    m_nCurrID = 0;
+
+//    ReadIniFile("Y2Multiple",m_nMultiple);
+//    if(m_nMultiple <= 0)
+//        m_nMultiple = 1;
+    ReadIniFile("Y2axis_Max",fValue);
+    m_fMax_Y = fValue;
+    ReadIniFile("Y2axis_Min",fValue);
+    m_fMin_Y = fValue;
+    ReadIniFile("X2axis_Max",fValue);
+    m_fMax_X  = fValue*60*1000;
+    ReadIniFile("X2axis_Min",fValue);
+    m_fMin_X = fValue*60*1000;
+
+    m_zoomer = new QwtPlotZoomer( m_plot->canvas() );
+    m_zoomer->setMousePattern( QwtEventPattern::MouseSelect2,
+        Qt::RightButton, Qt::ControlModifier );
+    m_zoomer->setMousePattern( QwtEventPattern::MouseSelect3,
+        Qt::RightButton );
+
+//    QString sValue = "uV(";
+//    QString sMultiple;
+//    sMultiple.setNum(m_nMultiple);
+//    sValue.append(sMultiple);
+//    sValue.append(")");
+    ui->lblMultiple->setText("℃");
+}
+
+voc_dlgCurveShow_2::~voc_dlgCurveShow_2()
+{
+    delete ui;
+    delete m_zoomer;
+    delete m_plot;
+}
+void voc_dlgCurveShow_2::appendPoint(QPointF point)
+{
+//    point.setY(point.y()/m_nMultiple);//除以倍数
+     m_fCurrResponse = point.y();
+     m_nCurrID++;
+    if(point.y() > m_fMax_Y)
+    {
+        m_fMax_Y = point.y();
+        m_plot->setYAxisMax(m_fMax_Y);
+    }
+    if(point.y() < m_fMin_Y)
+    {
+        m_fMin_Y = point.y();
+        m_plot->setYAxisMin(m_fMin_Y);
+    }
+    m_plot->appendPoint(point);
+
+    char tmp[255];
+    memset(tmp,0,255);
+    sprintf(tmp,"当前值=%.1f;当前点=%d;时间=%s",m_fCurrResponse,m_nCurrID,QSTimelabel(point.x()));
+    ui->lbltext->setText(tmp);
+}
+void voc_dlgCurveShow_2::start(bool btag)
+{
+    if(btag)
+    {
+        m_plot->setYAxisScale(m_fMin_Y,m_fMax_Y);
+        m_plot->setTime(m_fMax_X);
+    }
+    else
+    {
+        int nValue = 0;
+        ReadIniFile("GainDataRTime",nValue);
+        if(nValue <= 0)
+            nValue = 20;
+        double fTime = nValue*60.0*1000.0;
+        m_plot->setYAxisScale(m_fMin_Y,m_fMax_Y);
+        m_plot->setTime(fTime);
+
+        m_fMin_X = 0;
+        m_fMax_X = fTime;
+    }
+    m_fCurrResponse = 0.0;
+    m_nCurrID = 0;
+    m_plot->start();
+}
+void voc_dlgCurveShow_2::end()
+{
+    m_plot->end();
+}
+
+void voc_dlgCurveShow_2::on_pbtYAxisUp_clicked()
+{
+    m_fMax_Y = m_fMax_Y - m_fMax_Y*0.1;
+    m_plot->setYAxisMax(m_fMax_Y);
+
+}
+
+void voc_dlgCurveShow_2::on_pbtYAxisDown_clicked()
+{
+    m_fMax_Y = m_fMax_Y + m_fMax_Y*0.1;
+    m_plot->setYAxisMax(m_fMax_Y);
+}
+
+void voc_dlgCurveShow_2::on_pbtXAxisLeft_clicked()
+{
+    m_fMax_X = m_fMax_X + m_fMax_X*0.05;
+    m_plot->setTime(m_fMax_X);
+}
+
+void voc_dlgCurveShow_2::on_pbtXAxisRight_clicked()
+{
+    m_fMax_X = m_fMax_X - m_fMax_X*0.05;
+    m_plot->setTime(m_fMax_X);
+}
+
+void voc_dlgCurveShow_2::on_pbtSet_clicked()
+{
+    voc_dlgCurveSet dlg(1);
+    dlg.exec();
+    if(dlg.m_nResult == 1)
+    {
+        float fValue = 0;
+        ReadIniFile("Y2axis_Max",fValue);
+        m_fMax_Y = fValue;
+
+        ReadIniFile("Y2axis_Min",fValue);
+        m_fMin_Y = fValue;
+
+        ReadIniFile("X2axis_Max",fValue);
+        m_fMax_X = fValue*60*1000;
+        ReadIniFile("X2axis_Min",fValue);
+        m_fMin_X = fValue*60*1000;
+
+        m_plot->setYAxisScale(m_fMin_Y,m_fMax_Y);
+        m_plot->setXAxisScale(m_fMin_X,m_fMax_X);
+
+    }
+}
+bool voc_dlgCurveShow_2::ReadIniFile(const char czTeam[], float &fValue)
+{
+    fValue = 0.0;
+    char czValue[64];memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni("VOC_SET",czTeam,czValue))
+    {
+        fValue = atof(czValue);
+        return true;
+    }
+    return false;
+}
+bool voc_dlgCurveShow_2::ReadIniFile(const char czTeam[], int &nValue)
+{
+    char czValue[64];memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni("VOC_SET",czTeam,czValue))
+    {
+        nValue = atoi(czValue);
+        return true;
+    }
+    return false;
+}
+void voc_dlgCurveShow_2::WriteIniFile(const char czTeam[], int nValue)
+{
+    char czValue[64];memset(czValue,0,64);
+    sprintf(czValue,"%d",nValue);
+    GetAfxConfig()->SetIni("VOC_SET",czTeam,czValue);
+
+}
+void voc_dlgCurveShow_2::WriteIniFile(const char czTeam[], float fValue)
+{
+    char czValue[64];memset(czValue,0,64);
+    sprintf(czValue,"%f",fValue);
+    GetAfxConfig()->SetIni("VOC_SET",czTeam,czValue);
+
+}
+char* voc_dlgCurveShow_2::QSTimelabel( double v ) const
+{
+    //将毫秒数换算成x天x时x分x秒x毫秒
+    long ms = long(v);
+    int ss = 1000;//毫秒
+    int mi = ss * 60;//1分钟
+    int hh = mi * 60;//1小时
+    int dd = hh * 24;//1天
+
+    int day = ms / dd;
+    int hour = (ms - day * dd) / hh;
+    int minute = (ms - day * dd - hour * hh) / mi;
+    int second = (ms - day * dd - hour * hh - minute * mi) / ss;
+//    int milliSecond = ms - day * dd - hour * hh - minute * mi - second * ss;
+
+    char czTmp[64];memset(czTmp,0,64);
+//        sprintf(czTmp,"%02d:%02d %03d",minute,second,milliSecond);
+    if(hour > 0)
+        sprintf(czTmp,"%02d:%02d:%02d",hour,minute,second);
+    else
+        sprintf(czTmp,"%02d:%02d",minute,second);
+//          sprintf(czTmp,"%0.0f",v);
+    return czTmp;
+}

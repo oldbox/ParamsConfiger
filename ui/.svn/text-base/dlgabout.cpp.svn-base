@@ -1,0 +1,122 @@
+#include "dlgabout.h"
+#include "ui_dlgabout.h"
+#include "../core/cconfig.h"
+#include <QNetworkInterface>
+#include <iostream>
+
+using namespace std;
+
+DlgAbout::DlgAbout(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::DlgAbout)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    ui->txtWarning->setText(QObject::trUtf8("版权所有＠1997－2013 力合科技（湖南）股份有限公司。\n\n警告:本计算机程序受版权法和国际条约保护。如未经授权而擅自复制或传播本程序(或其中任何部分)，将受到严厉的民事和刑事制裁，并将在法律许可的最大限度内受到起诉。"));
+
+    char czName[64],czVer[64],czCT[64],czGasID[64];
+    memset(czName,0,64);
+    memset(czVer,0,64);
+    memset(czCT,0,64);
+
+    GetAfxConfig()->GetIni("INFO","YQName",czName);
+    GetAfxConfig()->GetIni("INFO","core_ver",czVer);
+    GetAfxConfig()->GetIni("INFO","CreateTime",czCT);
+//    ui->lblVer->setText(QObject::trUtf8(czVer));
+    ui->lblVer->setText(QObject::trUtf8("1.0.0.1481"));
+    ui->lblCreateTime->setText(QObject::trUtf8(czCT));
+
+    if(2 == GetAfxYQType())//烟气获取设备ID
+    {
+        QString qsYQID = QString(czName);
+        qsYQID.append("   仪器ID:");
+        memset(czGasID,0,64);
+        getDeviceID(czGasID);
+        if(strlen(czGasID)>0)
+        {
+            GetAfxConfig()->SetIni("GasSetting","GasID",czGasID);
+            qsYQID.append(QString(czGasID));
+            ui->lblName->setText(qsYQID);
+        }
+        else
+        {
+            GetAfxConfig()->GetIni("GasSetting","GasID",czGasID);
+            qsYQID.append(QString(czGasID));
+            ui->lblName->setText(qsYQID);
+        }
+    }
+    else
+    {
+        ui->lblName->setText(QObject::trUtf8(czName));
+    }
+
+    if(CConfig::GetAfxUserType()<=2)
+    {
+        ui->labIP1->hide();
+        ui->labIP2->hide();
+    }
+
+    bool isOneFlag = false;
+    bool isTwoFlag = false;
+
+    QList<QNetworkInterface> list = QNetworkInterface::allInterfaces();
+    foreach(QNetworkInterface interface,list)
+    {
+        QList<QNetworkAddressEntry> entryList =interface.addressEntries();
+
+        //获取IP地址条目列表，每个条目中包含一个IP地址，一个子网掩码和一个广播地址
+        foreach(QNetworkAddressEntry entry,entryList)
+        {
+            if(isIp(entry.ip().toString()))
+            {
+                if(entry.ip().toString().indexOf("127") < 0)
+                {
+                    QString qsIPs = "IP: " + entry.ip().toString() + "   Mask: " + entry.netmask().toString();
+                    if(qsIPs.length() > 0 && ui->labIP1->text().trimmed() == "ip1")
+                    {
+                        ui->labIP1->setText(qsIPs);
+                        isOneFlag = true;
+                        continue;
+                    }
+                    if(isOneFlag)
+                    {
+                        ui->labIP2->setText(qsIPs);
+                        isOneFlag = false;
+                        isTwoFlag = true;
+                        continue;
+                    }
+                }
+
+                //遍历每一个IP地址条目
+                //cout << "IP Address:" << entry.ip().toString().toStdString() << endl;
+            }
+        }       
+    }
+
+}
+bool DlgAbout::isIp(QString qsIP)
+ {
+     QStringList data = qsIP.split('.');
+     if(data.size() != 4)
+         return false;
+     int n;
+     bool b;
+     for(int i = 0; i < 4; i ++)
+     {
+         n = data[i].toInt(&b);
+         if((!b) || (n < 0) || (n > 255))
+             return false;
+     }
+     return true;
+ }
+
+DlgAbout::~DlgAbout()
+{
+    delete ui;
+}
+
+void DlgAbout::on_btnOK_clicked()
+{
+    accept();
+}
+

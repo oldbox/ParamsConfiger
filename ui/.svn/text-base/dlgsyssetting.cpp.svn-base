@@ -1,0 +1,356 @@
+#include "dlgsyssetting.h"
+#include "ui_dlgsyssetting.h"
+#include <vector>
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QTextCodec>
+
+dlgsyssetting::dlgsyssetting(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgsyssetting)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    m_nYQType = GetAfxYQType();
+    if(5 == m_nYQType)
+    {
+        ui->BoxTestType->insertItem(6,"曲线标定");
+    }
+    else if(1 == m_nYQType)
+    {
+        ui->BoxTestType->insertItem(6,"线性扫描");
+        ui->BoxTestType->insertItem(7,"电极维护");
+    }
+    Init();
+
+}
+
+dlgsyssetting::~dlgsyssetting()
+{
+    delete ui;
+}
+void dlgsyssetting::Init()
+{
+    char czTmp[64];
+    memset(czTmp,0,64);
+    GetAfxConfig()->GetIni("RangeSet","RangeWay",czTmp);
+    if(0 == atoi(czTmp))
+    {
+        ui->radioRange1->setChecked(true);
+    }
+    else if(1 == atoi(czTmp))
+    {
+        ui->radioRange2->setChecked(true);
+    }
+    else if(2 == atoi(czTmp))
+    {
+        ui->radioRange3->setChecked(true);
+    }
+    memset(czTmp,0,64);
+    GetAfxConfig()->GetIni("RangeSet","Range1Value",czTmp);
+    ui->RangeValue1->setText(QString::fromUtf8(czTmp));
+
+    memset(czTmp,0,64);
+    GetAfxConfig()->GetIni("RangeSet","Range2Value",czTmp);
+    ui->RangeValue2->setText(QString::fromUtf8(czTmp));
+
+    memset(czTmp,0,64);
+    GetAfxConfig()->GetIni("RangeSet","xiaojieValue",czTmp);
+    ui->RangeValue3->setText(QString::fromUtf8(czTmp));
+
+    memset(czTmp,0,64);
+    GetAfxConfig()->GetIni("MainParaSet","Voltage",czTmp);
+    ui->LineVoltage->setText(QString::fromUtf8(czTmp));
+
+    memset(czTmp,0,64);
+    GetAfxConfig()->GetIni("MainParaSet","EndVoltage",czTmp);
+    ui->LineEndVoltage->setText(QString::fromUtf8(czTmp));
+
+    memset(czTmp,0,64);
+    GetAfxConfig()->GetIni("MainParaSet","Time",czTmp);
+    ui->LineTime->setText(QString::fromUtf8(czTmp));
+
+    memset(czTmp,0,64);
+    GetAfxConfig()->GetIni("ProcessFile","WaterTest",czTmp);
+    ui->lineRoute->setText(QString::fromUtf8(czTmp));
+    ui->BoxTestType->setCurrentIndex(0);
+
+    memset(czTmp,0,64);
+    GetAfxConfig()->GetIni("RangeSet","RangeSwitch",czTmp);
+    if(1 == atoi(czTmp))
+    {
+        ui->checkBoxRange->setChecked(true);
+    }
+    else
+    {
+        ui->checkBoxRange->setChecked(false);
+    }
+}
+
+void dlgsyssetting::on_btnSave_clicked()
+{
+    char cGroup[MAX_SIZE];
+    char cItem[MAX_SIZE];
+    char cValue[MAX_SIZE];
+
+    memset(cGroup,0,MAX_SIZE);
+    memset(cItem,0,MAX_SIZE);
+    memset(cValue,0,MAX_SIZE);
+    strcpy(cGroup,"RangeSet");
+    strcpy(cItem,"RangeWay");
+    if(ui->radioRange1->isChecked())
+    {
+        GetAfxConfig()->SetIni(cGroup,cItem,"0");
+    }
+    else if(ui->radioRange2->isChecked())
+    {
+        GetAfxConfig()->SetIni(cGroup,cItem,"1");
+    }
+    else if(ui->radioRange3->isChecked())
+    {
+        GetAfxConfig()->SetIni(cGroup,cItem,"2");
+    }
+
+    memset(cValue,0,MAX_SIZE);
+    strcpy(cValue,ui->RangeValue1->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni("RangeSet","Range1Value",cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    strcpy(cValue,ui->RangeValue2->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni("RangeSet","Range2Value",cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    strcpy(cValue,ui->RangeValue3->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni("RangeSet","xiaojieValue",cValue);
+
+    memset(cGroup,0,MAX_SIZE);
+    memset(cItem,0,MAX_SIZE);
+    memset(cValue,0,MAX_SIZE);
+
+    GetAfxConfig()->SetIni("MainParaSet","Voltage",ui->LineVoltage->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni("MainParaSet","EndVoltage",ui->LineEndVoltage->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni("MainParaSet","Time",ui->LineTime->text().trimmed().toLatin1().data());
+
+    QMessageBox::information(NULL, "提示信息","保存成功!",QMessageBox::Ok);
+}
+
+//void dlgsyssetting::on_btnHelp_clicked()
+//{
+//    dlghelpinfo *pHelpInfo = new dlghelpinfo(4);
+//    pHelpInfo->exec();
+//    delete pHelpInfo;
+//    pHelpInfo = NULL;
+//}
+
+void dlgsyssetting::on_btnscan_clicked()
+{
+    QString filename;
+    char czPath[255];
+    char czTmp[255];
+
+    memset(czPath,0,255);
+    memset(czTmp,0,255);
+    sprintf(czPath,"%s",INI_ROOT_PATH);
+    strcat(czPath,"/processfile/");
+    QString qsPath = QString(czPath);
+   filename = QFileDialog::getOpenFileName(this,
+       tr("选择流程文件"),
+       qsPath,
+       tr("file (*.dll *.txt *.* **)")); //选择路径
+   if(filename.isEmpty())
+   {
+       return;
+   }
+   else
+   {
+       ui->lineRoute->setText(filename);
+       SaveProcessFileRoute(filename);
+   }
+}
+
+void dlgsyssetting::on_BoxTestType_currentIndexChanged(int index)
+{
+    char cValue[255];
+    memset(cValue,0,255);
+    if(0 == index)
+    {
+        GetAfxConfig()->GetIni("ProcessFile","WaterTest",cValue);
+    }else if(1 == index)
+    {
+        GetAfxConfig()->GetIni("ProcessFile","SampleTest",cValue);
+    }else if(2 == index)
+    {
+        GetAfxConfig()->GetIni("ProcessFile","SampleAdjust",cValue);
+    }else if(3 == index)
+    {
+        GetAfxConfig()->GetIni("ProcessFile","BlankAdjust",cValue);
+    }else if(4 == index)
+    {
+        GetAfxConfig()->GetIni("ProcessFile","InitTest",cValue);
+    }else if(5 == index)
+    {
+        GetAfxConfig()->GetIni("ProcessFile","Wash",cValue);
+    }else if(6 == index)
+    {
+        GetAfxConfig()->GetIni("ProcessFile","LineScan",cValue);
+    }
+    else if(7 == index)
+    {
+        GetAfxConfig()->GetIni("ProcessFile","ElecMaintain",cValue);
+    }
+    ui->lineRoute->setText(QString::fromUtf8(cValue));
+}
+void dlgsyssetting::SaveProcessFileRoute(QString czName)
+{
+    if(0 == ui->BoxTestType->currentIndex())
+    {
+        GetAfxConfig()->SetIni("ProcessFile","WaterTest",czName.toLatin1().data());
+    }else if(1 == ui->BoxTestType->currentIndex())
+    {
+        GetAfxConfig()->SetIni("ProcessFile","SampleTest",czName.toLatin1().data());
+    }else if(2 == ui->BoxTestType->currentIndex())
+    {
+        GetAfxConfig()->SetIni("ProcessFile","SampleAdjust",czName.toLatin1().data());
+    }else if(3 == ui->BoxTestType->currentIndex())
+    {
+        GetAfxConfig()->SetIni("ProcessFile","BlankAdjust",czName.toLatin1().data());
+    }else if(4 == ui->BoxTestType->currentIndex())
+    {
+        GetAfxConfig()->SetIni("ProcessFile","InitTest",czName.toLatin1().data());
+    }else if(5 == ui->BoxTestType->currentIndex())
+    {
+        GetAfxConfig()->SetIni("ProcessFile","Wash",czName.toLatin1().data());
+    }else if(6 == ui->BoxTestType->currentIndex())
+    {
+        if(1 == m_nYQType)
+        {
+            GetAfxConfig()->SetIni("ProcessFile","LineScan",czName.toLatin1().data());
+        }
+        else if(5 == m_nYQType)
+        {
+            GetAfxConfig()->SetIni("ProcessFile","CurveCali",czName.toLatin1().data());
+        }
+    }
+    else if(7 == ui->BoxTestType->currentIndex())
+    {
+        GetAfxConfig()->SetIni("ProcessFile","ElecMaintain",czName.toLatin1().data());
+    }
+}
+bool dlgsyssetting::CompareSaveOrNot()
+{
+    char cGroup[MAX_SIZE];
+    char cItem[MAX_SIZE];
+    char cValue[MAX_SIZE];
+
+    memset(cGroup,0,MAX_SIZE);
+    memset(cItem,0,MAX_SIZE);
+    strcpy(cGroup,"RangeSet");
+    strcpy(cItem,"RangeWay");
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni(cGroup,cItem,cValue);
+    if(ui->radioRange1->isChecked())
+    {
+        if(atoi(cValue) != 0)
+        {
+            return false;
+        }
+    }
+    else if(ui->radioRange2->isChecked())
+    {
+        if(atoi(cValue) != 1)
+        {
+            return false;
+        }
+    }
+    else if(ui->radioRange3->isChecked())
+    {
+        if(atoi(cValue) != 2)
+        {
+            return false;
+        }
+    }
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("RangeSet","Range1Value",cValue);
+    if(ui->RangeValue1->text() != QString(cValue))
+    {
+        return false;
+    }
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("RangeSet","Range2Value",cValue);
+    if(ui->RangeValue2->text() != QString(cValue))
+    {
+        return false;
+    }
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("RangeSet","xiaojieValue",cValue);
+    if(ui->RangeValue3->text() != QString(cValue))
+    {
+        return false;
+    }
+
+    memset(cGroup,0,MAX_SIZE);
+    memset(cItem,0,MAX_SIZE);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("MainParaSet","Voltage",cValue);
+    if(ui->LineVoltage->text() != QString(cValue))
+    {
+        return false;
+    }
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("MainParaSet","EndVoltage",cValue);
+    if(ui->LineEndVoltage->text() != QString(cValue))
+    {
+        return false;
+    }
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->SetIni("MainParaSet","Time",cValue);
+    if(ui->LineTime->text() != QString(cValue))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+void dlgsyssetting::on_btnClose_clicked()
+{
+    if(!CompareSaveOrNot())
+    {       
+        int ret = QMessageBox::information(NULL, "提示信息","有设置项内容未保存.\n"
+                                                  "请确认是否保存?",
+                                               QMessageBox::Yes | QMessageBox::No);
+        switch (ret)
+        {
+          case QMessageBox::Yes:
+                on_btnSave_clicked();
+              break;
+          case QMessageBox::No:
+              break;
+          default:
+              break;
+        }
+    }
+    this->close();
+}
+void dlgsyssetting::on_checkBoxRange_clicked(bool checked)
+{
+    if(checked)
+    {
+        GetAfxConfig()->SetIni("RangeSet","RangeSwitch","1");
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("RangeSet","RangeSwitch","0");
+    }
+}

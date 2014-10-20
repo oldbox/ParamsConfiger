@@ -1,0 +1,941 @@
+#include "gasadjust.h"
+#include "ui_gasadjust.h"
+#include "core/cprocess2.h"
+#include <QtGui/QtGui>
+
+gasadjust::gasadjust(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    m_nClick(0),
+    m_fResultN0(0.0),
+    m_fResultS02(0.0),
+    m_fResult02(0.0),
+    m_nCaliKind(1),
+    ui(new Ui::gasadjust)
+{
+
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    sfkey = new SfKeyboard(this);
+    sfkey->hide();
+    m_pMC = pMC;
+
+    m_nType = -1;
+
+    ui->lineSetFlow->installEventFilter(this);
+    ui->lineHandChromaN0->installEventFilter(this);
+    ui->lineHandChroma02->installEventFilter(this);
+    ui->lineHandChromaS02->installEventFilter(this);
+    ui->lineSpan02->installEventFilter(this);
+    ui->lineSpanS02->installEventFilter(this);
+    ui->lineSpanN0->installEventFilter(this);
+    ui->lineZero02->installEventFilter(this);
+    ui->lineZeroS02->installEventFilter(this);
+    ui->lineZeroN0->installEventFilter(this);
+
+    connect(pMC->pYQs,SIGNAL(NotifyGasResult(float,float,float,float)),this,SLOT(OnGasResult(float,float,float,float)));
+    connect(pMC->pYQs,SIGNAL(NotifyStatusValue(struGasStatusData*)),this,SLOT(OnStatusValue(struGasStatusData*)));
+    connect(pMC->pYQs,SIGNAL(NotifyGasCoef(float)),this,SLOT(OnGasCoef(float)));
+    this->Init();
+    this->InitAjustCoef();
+    ui->lineHandChromaN0->setFocus();
+
+    WordMovie =  new QMovie(":/res/Movie.gif");
+    ui->labelMovie->setMovie(WordMovie);
+    ui->labelWord->hide();
+    ui->labelMovie->hide();
+}
+
+gasadjust::~gasadjust()
+{
+    delete ui;
+    delete sfkey;
+}
+bool gasadjust::eventFilter(QObject *object, QEvent *event)
+{
+    if (event->type() == QEvent::FocusIn)
+    {
+         objLit = (QLineEdit*)object;
+    }
+    return false;
+}
+void gasadjust::Init()
+{
+     char cValue[64];
+     on_btnHandMode_clicked();
+    //手动
+    ui->rdiHandN0->setChecked(true);
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("GasHandCali","UnitN0",cValue);
+    if(atoi(cValue))
+    {
+        ui->btnspanN0Unit->setText("mg/m3");
+    }
+    else
+    {
+        ui->btnspanN0Unit->setText("ppm");
+    }
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("GasHandCali","UnitS02",cValue);
+    if(atoi(cValue))
+    {
+        ui->btnspanS02Unit->setText("mg/m3");
+    }
+    else
+    {
+        ui->btnspanS02Unit->setText("ppm");
+    }
+
+    ui->rdiHandN0->setChecked(true);
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni("GasHandCali","ConcN0",cValue))
+    {
+        ui->lineHandChromaN0->setText(QString(cValue));
+    }
+
+    //流速校准
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni("GasFlowCali","SettingFlow",cValue))
+    {
+        ui->lineSetFlow->setText(QString(cValue));
+    }
+
+    //零点校准
+    ui->rdiZeroN0->setChecked(true);
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("GasZeroCali","UnitN0",cValue);
+    if(atoi(cValue))
+    {
+        ui->btnZeroN0Unit->setText("mg/m3");
+    }
+    else
+    {
+        ui->btnZeroN0Unit->setText("ppm");
+    }
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("GasZeroCali","UnitS02",cValue);
+    if(atoi(cValue))
+    {
+        ui->btnZeroS02Unit->setText("mg/m3");
+    }
+    else
+    {
+        ui->btnZeroS02Unit->setText("ppm");
+    }
+
+
+}
+//void gasadjust::on_btnKeyboard_clicked()
+//{
+//    if(NULL != objLit)
+//    {
+//        int iWidthX = 320;
+//        iWidthX = iWidthX + objLit->x();
+//        if(iWidthX >= 640)
+//        {
+//            iWidthX = objLit->x() - 222 + objLit->width();
+//        }
+//        else
+//        {
+//            iWidthX = objLit->x();
+//        }
+//        int y = objLit->y() + objLit->height() + 100;
+//        QRect rect(iWidthX, y, sfkey->width(), sfkey->height());
+//        sfkey->setGeometry(rect);
+//        sfkey->Clear();
+//        sfkey->GetEditContent(objLit->text());
+//        sfkey->GetEditContent(objLit->text());
+//        sfkey->show();
+//        sfkey->SetCurLineEdit(objLit);
+//    }
+//}
+//m_nType值为0,1,2，0表示N0 1表示S02 2是流速校准跟氧气校准是一种类型,跑的流程不一样。
+void gasadjust::on_btnStart_clicked()
+{
+    if(!JudgeCaliType())
+    {
+        return;
+    }
+    ui->labelWord->show();
+    ui->labelMovie->show();
+    WordMovie->start();
+    setEnabled(false);
+
+    CYQ* pYQ = m_pMC->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        pYQ->m_pProcess->SetCaliStart(true);//校准开始
+        pYQ->m_pProcess->SetCaliType(m_nType);//校准类型
+
+     }
+    SaveStartData();//启动校准将设定的浓度与单位保存
+}
+//一氧化氮 二氧化硫结果实时显示于校准界面
+void gasadjust::OnGasResult(float fResultZA0, float fResultZA1, float fResultZB2, float fResultZB4)
+{
+
+    char czValue[MAX_SIZE];
+    float fResultN0 = 0.0;
+    float fResultS02 = 0.0;
+    float fResult02 = 0.0;
+    float fResultNO2 = 0.0;
+
+    fResult02 = fResultZB4;
+    fResultNO2 = fResultZA1;
+    fResultN0 = fResultZA0;
+    fResultS02 = fResultZB2;
+
+    memset(czValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("GasSetting","ChromaUnit",czValue);
+    if(atoi(czValue))
+    {
+        m_fResultN0 = (fResultN0*30)/22.4;
+        m_fResultS02 = (fResultS02*64)/22.4;
+    }
+    else
+    {
+        m_fResultN0 = fResultN0;
+        m_fResultS02 = fResultS02;
+    }
+
+    QString qsValueN0 = QString::number(m_fResultN0,'f',1);
+    ui->lineCurrN0->setText(qsValueN0);
+
+    QString qsValueS02 = QString::number(m_fResultS02,'f',1);
+    ui->lineCurrS02->setText(qsValueS02);
+
+    //跨度校准
+    QString qResultValue1;
+    if(ui->rdiHandN0->isChecked())//一氧化氮
+    {
+        if(ui->btnspanN0Unit->text() == "mg/m3")
+        {
+            fResultN0 = (30/22.4)*fResultZA0;
+        }
+        qResultValue1 = QString::number(fResultN0,'f',2);
+        ui->lineHandN0Value->setText(qResultValue1);
+    }
+    else if(ui->rdiHandS02->isChecked())//二氧化硫
+    {
+        if(ui->btnspanS02Unit->text() == "mg/m3")
+        {
+            fResultS02 = (64/22.4)*fResultZB2;
+        }
+        qResultValue1 = QString::number(fResultS02,'f',2);
+        ui->lineHandS02Value->setText(qResultValue1);
+    }
+    else
+    {
+        //do nothing
+    }
+
+    //零点校准
+    QString qResultValue2;
+    if(ui->rdiZeroN0->isChecked())
+    {
+        if(ui->btnZeroN0Unit->text() == "mg/m3")
+        {
+            fResultN0 = (30/22.4)*fResultZA0;
+        }
+        qResultValue2 = QString::number(fResultN0,'f',2);
+        ui->lineZeroN0Value->setText(qResultValue2);
+    }
+    else if(ui->rdiZeroS02->isChecked())
+    {
+        if(ui->btnZeroS02Unit->text() == "mg/m3")
+        {
+            fResultS02 = (64/22.4)*fResultZB2;
+        }
+        qResultValue2 = QString::number(fResultS02,'f',2);
+        ui->ineZeroS02Value->setText(qResultValue2);
+    }
+
+}
+void gasadjust::on_btnSave_clicked()
+{
+    //获取已修改的校准系数
+    ChangeCaliCoef();
+
+    SaveCaliCoef();
+
+    CYQ* pYQ = m_pMC->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        ((CProcess2*)(pYQ->m_pProcess))->InitCaliCoef();//校准系数再次从流程文件里获取
+    }    
+    QMessageBox::information(NULL, "提示信息","保存校准系数成功.",QMessageBox::Ok);
+}
+//氧气 流速数据实时显示于校准界面
+void gasadjust::OnStatusValue(struGasStatusData* data)
+{
+    float fResult02 = 0.0;
+    float fResultFlow = 0.0;
+
+    m_fResult02 = data->fOxygen;
+    QString qsValue = QString::number(m_fResult02,'f',2);
+    ui->lineCurr02->setText(qsValue);
+
+    if(ui->rdiHand02->isChecked())
+    {
+        fResult02 = data->fOxygen;
+        QString qResultValue1 = QString::number(fResult02,'f',2);
+        ui->lineHand02Value->setText(qResultValue1);
+    }
+
+    if(ui->rdiZero02->isChecked())
+    {
+        fResult02 = data->fOxygen;
+        QString qResultValue2 = QString::number(fResult02,'f',2);
+        ui->lineZero02Value->setText(qResultValue2);
+    }
+
+    fResultFlow = data->fFlow;
+    QString qResultValue3 = QString::number(fResultFlow,'f',2);
+    ui->lineFlowValue->setText(qResultValue3);
+
+}
+//回调改变相应的校准系数
+void gasadjust::OnGasCoef(float fCoef)
+{ 
+    char cValue[64];
+
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("GasCaliType","CaliType",cValue);
+    if(1 == atoi(cValue))
+    {
+       if( 0 == m_nType)
+       {
+           m_fN0SpanCoef = fCoef;
+       }
+       else if(1 == m_nType)
+       {
+           m_fS02SpanCoef = fCoef;
+       }
+       else if(2 == m_nType)
+       {
+           m_f02SpanCoef = fCoef;
+       }
+    }
+    else if(2 == atoi(cValue))
+    {
+       if( 0 == m_nType)
+       {
+           m_fNOZeroCoef = fCoef;
+       }
+       else if(1 == m_nType)
+       {
+           m_fSO2ZeroCoef = fCoef;
+       }
+       else if(2 == m_nType)
+       {
+           m_fO2ZeroCoef = fCoef;
+       }
+    }
+    else if(3 == atoi(cValue))
+    {
+        memset(cValue,0,64);
+        GetAfxConfig()->GetIni("GasFlowCali","SettingFlow",cValue);
+        if(0 == atof(cValue))
+        {
+             m_fFlowZeroCoef = fCoef;
+        }
+        else
+        {
+            m_fFlowSpanCoef = fCoef;
+        }
+    }
+
+    ui->labelWord->hide();
+    ui->labelMovie->hide();
+    WordMovie->stop();
+    setEnabled(true);
+    //保存校准系数
+    SaveCaliCoef();
+
+    QMessageBox::information(NULL, "提示信息","完成校准!",QMessageBox::Ok);
+
+}
+//启动校准将设定的浓度与单位保存，用于流程中计算校准系数
+void gasadjust::SaveStartData()
+{
+    char cValue[64];
+
+    if(1 == m_nCaliKind)
+    {
+        GetAfxConfig()->SetIni("GasCaliType","CaliType","1");
+        if(ui->rdiHandN0->isChecked())
+        {
+            memset(cValue,0,64);
+            strcpy(cValue,ui->lineHandChromaN0->text().trimmed().toLatin1().data());
+            GetAfxConfig()->SetIni("GasHandCali","ConcN0",cValue);
+
+            if(ui->btnspanN0Unit->text() == "ppm")
+            {
+                GetAfxConfig()->SetIni("GasHandCali","UnitN0","0");
+            }
+            else
+            {
+                GetAfxConfig()->SetIni("GasHandCali","UnitN0","1");
+            }
+        }
+        else if(ui->rdiHandS02->isChecked())
+        {
+            memset(cValue,0,64);
+            strcpy(cValue,ui->lineHandChromaS02->text().trimmed().toLatin1().data());
+            GetAfxConfig()->SetIni("GasHandCali","ConcS02",cValue);
+
+            if(ui->btnspanS02Unit->text() == "ppm")
+            {
+                GetAfxConfig()->SetIni("GasHandCali","UnitS02","0");
+            }
+            else
+            {
+                GetAfxConfig()->SetIni("GasHandCali","UnitS02","1");
+            }
+        }
+        else if(ui->rdiHand02->isChecked())
+        {
+            memset(cValue,0,64);
+            strcpy(cValue,ui->lineHandChroma02->text().trimmed().toLatin1().data());
+            GetAfxConfig()->SetIni("GasHandCali","Conc02",cValue);
+        }
+    }
+    else if(2 == m_nCaliKind)
+    {
+        GetAfxConfig()->SetIni("GasCaliType","CaliType","2");
+        if(ui->rdiZeroN0->isChecked())
+        {          
+            if(ui->btnZeroN0Unit->text() == "ppm")
+            {
+                GetAfxConfig()->SetIni("GasZeroCali","UnitN0","0");
+            }
+            else
+            {
+                GetAfxConfig()->SetIni("GasZeroCali","UnitN0","1");
+            }
+        }
+        else if(ui->rdiZeroS02)
+        {
+            if(ui->btnZeroS02Unit->text() == "ppm")
+            {
+                GetAfxConfig()->SetIni("GasZeroCali","UnitS02","0");
+            }
+            else
+            {
+                GetAfxConfig()->SetIni("GasZeroCali","UnitS02","1");
+            }
+        }
+    }
+    else if(3 == m_nCaliKind)
+    {
+       GetAfxConfig()->SetIni("GasCaliType","CaliType","3");
+       memset(cValue,0,64);
+       strcpy(cValue,ui->lineSetFlow->text().trimmed().toLatin1().data());
+       GetAfxConfig()->SetIni("GasFlowCali","SettingFlow",cValue);
+    }
+}
+//初始化校准系数，重新从配置文件中读校准系数
+void gasadjust::InitAjustCoef()
+{
+    char tmp[64];
+    memset(tmp,0,64);
+    if(GetAfxConfig()->GetIni("GasCoef","N0SpanCoef",tmp))
+    {
+        m_fN0SpanCoef = atof(tmp);
+    }
+    else
+    {
+        m_fN0SpanCoef = 1.0;
+    }
+
+    memset(tmp,0,64);
+    if(GetAfxConfig()->GetIni("GasCoef","NOZeroCoef",tmp))
+    {
+        m_fNOZeroCoef = atof(tmp);
+    }
+    else
+    {
+        m_fNOZeroCoef = 0.0;
+    }
+
+    memset(tmp,0,64);
+    if(GetAfxConfig()->GetIni("GasCoef","S02SpanCoef",tmp))
+    {
+        m_fS02SpanCoef = atof(tmp);
+    }
+    else
+    {
+        m_fS02SpanCoef = 1.0;
+    }
+    memset(tmp,0,64);
+    if(GetAfxConfig()->GetIni("GasCoef","SO2ZeroCoef",tmp))
+    {
+        m_fSO2ZeroCoef = atof(tmp);
+    }
+    else
+    {
+        m_fSO2ZeroCoef = 0.0;
+    }
+    memset(tmp,0,64);
+    if(GetAfxConfig()->GetIni("GasCoef","02SpanCoef",tmp))
+    {
+        m_f02SpanCoef = atof(tmp);
+    }
+    else
+    {
+        m_f02SpanCoef = 1.0;
+    }
+    memset(tmp,0,64);
+    if(GetAfxConfig()->GetIni("GasCoef","O2ZeroCoef",tmp))
+    {
+        m_fO2ZeroCoef = atof(tmp);
+    }
+    else
+    {
+        m_fO2ZeroCoef = 0.0;
+    }
+
+    memset(tmp,0,64);
+    if(GetAfxConfig()->GetIni("GasCoef","FlowSpanCoef",tmp))
+    {
+        m_fFlowSpanCoef = atof(tmp);
+    }
+    else
+    {
+        m_fFlowSpanCoef = 1.0;
+    }
+    memset(tmp,0,64);
+    if(GetAfxConfig()->GetIni("GasCoef","FlowZeroCoef",tmp))
+    {
+         m_fFlowZeroCoef = atof(tmp);
+    }
+    else
+    {
+         m_fFlowZeroCoef = 0.0;
+    }
+
+    CYQ* pYQ = m_pMC->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        ((CProcess2*)(pYQ->m_pProcess))->InitCaliCoef();//校准系数再次从流程文件里获取
+    }
+
+}
+//退出校准界面，流程中不再处理校准系数
+void gasadjust::on_btnClose_clicked()
+{
+    CYQ* pYQ = m_pMC->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        pYQ->m_pProcess->SetCaliStart(false);
+        ((CProcess2*)(pYQ->m_pProcess))->InitCaliCoef();//校准系数再次从流程文件里获取
+    }
+    this->close();
+}
+//恢复出厂设置
+void gasadjust::on_btnReset_clicked()
+{
+    dlgdamoremaind *pdlgdamo = new dlgdamoremaind(m_pMC,2,m_nCaliKind);
+    pdlgdamo->exec();
+    delete pdlgdamo;
+    pdlgdamo = NULL;
+    //恢复出厂设置后，校准系数已经改变，需重新从配置文件中获取校准系数
+    InitAjustCoef();
+}
+
+void gasadjust::on_btnspanN0Unit_clicked()
+{
+    QString qsValue;
+    float fValue = 0.0;
+    if(ui->btnspanN0Unit->text() == "ppm")
+    {
+        ui->btnspanN0Unit->setText("mg/m3");
+        fValue = ui->lineHandN0Value->text().toFloat();
+        fValue = (30/22.4)*fValue;
+        qsValue = QString::number(fValue,'f',2);
+        ui->lineHandN0Value->setText(qsValue);
+    }
+    else
+    {
+        ui->btnspanN0Unit->setText("ppm");
+        fValue = ui->lineHandN0Value->text().toFloat();
+        fValue = (22.4/30)*fValue;
+        qsValue = QString::number(fValue,'f',2);
+        ui->lineHandN0Value->setText(qsValue);
+    }
+}
+
+void gasadjust::on_btnspanS02Unit_clicked()
+{
+    QString qsValue;
+    float fValue = 0.0;
+    if(ui->btnspanS02Unit->text() == "ppm")
+    {
+        ui->btnspanS02Unit->setText("mg/m3");
+        fValue = ui->lineHandS02Value->text().toFloat();
+        fValue = (64/22.4)*fValue;
+        qsValue = QString::number(fValue,'f',2);
+        ui->lineHandS02Value->setText(qsValue);
+    }
+    else
+    {
+        ui->btnspanS02Unit->setText("ppm");
+        fValue = ui->lineHandS02Value->text().toFloat();
+        fValue = (22.4/64)*fValue;
+        qsValue = QString::number(fValue,'f',2);
+        ui->lineHandS02Value->setText(qsValue);
+    }
+}
+
+void gasadjust::on_btnZeroN0Unit_clicked()
+{
+    QString qsValue;
+    float fValue = 0.0;
+    if(ui->btnZeroN0Unit->text() == "ppm")
+    {
+        ui->btnZeroN0Unit->setText("mg/m3");
+        fValue = ui->lineZeroN0Value->text().toFloat();
+        fValue = (30/22.4)*fValue;
+        qsValue = QString::number(fValue,'f',2);
+        ui->lineZeroN0Value->setText(qsValue);
+    }
+    else
+    {
+        ui->btnZeroN0Unit->setText("ppm");
+        fValue = ui->lineZeroN0Value->text().toFloat();
+        fValue = (22.4/30)*fValue;
+        qsValue = QString::number(fValue,'f',2);
+        ui->lineZeroN0Value->setText(qsValue);
+    }
+}
+
+void gasadjust::on_btnZeroS02Unit_clicked()
+{
+    QString qsValue;
+    float fValue = 0.0;
+    if(ui->btnZeroS02Unit->text() == "ppm")
+    {
+        ui->btnZeroS02Unit->setText("mg/m3");
+        fValue = ui->ineZeroS02Value->text().toFloat();
+        fValue = (64/22.4)*fValue;
+        qsValue = QString::number(fValue,'f',2);
+        ui->ineZeroS02Value->setText(qsValue);
+    }
+    else
+    {
+        ui->btnZeroS02Unit->setText("ppm");
+        fValue = ui->ineZeroS02Value->text().toFloat();
+        fValue = (22.4/64)*fValue;
+        qsValue = QString::number(fValue,'f',2);
+        ui->ineZeroS02Value->setText(qsValue);
+    }
+}
+
+void gasadjust::on_rdiHandN0_clicked()
+{
+    char cValue[64];
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni("GasHandCali","ConcN0",cValue))
+    {
+        ui->lineHandChromaN0->setText(QString(cValue));
+    }
+}
+
+void gasadjust::on_rdiHandS02_clicked()
+{
+    char cValue[64];
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni("GasHandCali","ConcS02",cValue))
+    {
+        ui->lineHandChromaS02->setText(QString(cValue));
+    }
+}
+
+void gasadjust::on_rdiHand02_clicked()
+{
+    char cValue[64];
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni("GasHandCali","Conc02",cValue))
+    {
+        ui->lineHandChroma02->setText(QString(cValue));
+    }
+}
+void gasadjust::mousePressEvent(QMouseEvent * mouseEvent)
+{
+    int x = mouseEvent->pos().x();
+    int y = mouseEvent->pos().y();
+    QString qsValue;
+    int nUserType = CConfig::GetAfxUserType();
+
+    if ((x < 50)&&(y > 440))
+    {
+        m_nClick++;
+        if((m_nClick >10)&&(nUserType>2))
+        {
+            m_nClick = 0;
+            ui->fra1->hide();
+            ui->fra2->hide();
+            ui->fra3->hide();
+
+            ui->btnStart->hide();
+            ui->btnReset->hide();
+            ui->btnSave->setGeometry(QRect(420,432,100,40));
+            ui->btnSave->show();
+
+            qsValue = QString::number(m_fN0SpanCoef,'f',1);
+            ui->lineSpanN0->setText(qsValue);
+
+            qsValue = QString::number(m_fS02SpanCoef,'f',1);
+            ui->lineSpanS02->setText(qsValue);
+
+            qsValue = QString::number(m_f02SpanCoef,'f',1);
+            ui->lineSpan02->setText(qsValue);
+
+            qsValue = QString::number(m_fNOZeroCoef,'f',1);
+            ui->lineZeroN0->setText(qsValue);
+
+            qsValue = QString::number(m_fSO2ZeroCoef,'f',1);
+            ui->lineZeroS02->setText(qsValue);
+
+            qsValue = QString::number(m_fO2ZeroCoef,'f',1);
+            ui->lineZero02->setText(qsValue);
+
+            qsValue = QString::number(m_fResultN0,'f',1);
+            ui->lineCurrN0->setText(qsValue);
+
+            qsValue = QString::number(m_fResultS02,'f',1);
+            ui->lineCurrS02->setText(qsValue);
+
+            qsValue = QString::number(m_fResult02,'f',1);
+            ui->lineCurr02->setText(qsValue);
+            ui->page_4->show();
+            ui->page_1->hide();
+            ui->page_2->hide();
+            ui->page_3->hide();
+        }
+    }
+}
+//手动修改校准系数
+void gasadjust::ChangeCaliCoef()
+{
+   m_fN0SpanCoef = ui->lineSpanN0->text().toFloat();
+   m_fS02SpanCoef = ui->lineSpanS02->text().toFloat();
+   m_f02SpanCoef = ui->lineSpan02->text().toFloat();
+   m_fNOZeroCoef = ui->lineZeroN0->text().toFloat();
+   m_fSO2ZeroCoef = ui->lineZeroS02->text().toFloat();
+   m_fO2ZeroCoef = ui->lineZero02->text().toFloat();
+}
+//判断跨度校准系数是否已保存
+bool gasadjust::CompareSpanSaveOrNot()
+{
+    char tmp[64];
+    memset(tmp,0,64);
+    GetAfxConfig()->GetIni("GasCoef","N0SpanCoef",tmp);
+    if(m_fN0SpanCoef != atof(tmp))
+    {
+        return false;
+    }
+    memset(tmp,0,64);
+    GetAfxConfig()->GetIni("GasCoef","S02SpanCoef",tmp);
+    if(m_fS02SpanCoef != atof(tmp))
+    {
+        return false;
+    }
+    memset(tmp,0,64);
+    GetAfxConfig()->GetIni("GasCoef","02SpanCoef",tmp);
+    if(m_f02SpanCoef != atof(tmp))
+    {
+        return false;
+    }
+    return true;
+}
+bool gasadjust::CompareZeroSaveOrNot()
+{
+    char tmp[64];
+    GetAfxConfig()->GetIni("GasCoef","NOZeroCoef",tmp);
+    if(m_fNOZeroCoef != atof(tmp))
+    {
+        return false;
+    }
+    memset(tmp,0,64);
+    GetAfxConfig()->GetIni("GasCoef","SO2ZeroCoef",tmp);
+    if(m_fSO2ZeroCoef != atof(tmp))
+    {
+        return false;
+    }
+    memset(tmp,0,64);
+    GetAfxConfig()->GetIni("GasCoef","O2ZeroCoef",tmp);
+    if(m_fO2ZeroCoef != atof(tmp))
+    {
+        return false;
+    }
+    return true;
+}
+//保存校准系数
+void gasadjust::SaveCaliCoef()
+{
+    char tmp[MAX_SIZE];
+
+    memset(tmp,0,MAX_SIZE);
+    sprintf(tmp,"%f",m_fN0SpanCoef);
+    GetAfxConfig()->SetIni("GasCoef","N0SpanCoef",tmp);
+
+    memset(tmp,0,MAX_SIZE);
+    sprintf(tmp,"%f",m_fS02SpanCoef);
+    GetAfxConfig()->SetIni("GasCoef","S02SpanCoef",tmp);
+
+    memset(tmp,0,MAX_SIZE);
+    sprintf(tmp,"%f",m_f02SpanCoef);
+    GetAfxConfig()->SetIni("GasCoef","02SpanCoef",tmp);
+
+    memset(tmp,0,MAX_SIZE);
+    sprintf(tmp,"%f",m_fNOZeroCoef);
+    GetAfxConfig()->SetIni("GasCoef","NOZeroCoef",tmp);
+
+    memset(tmp,0,MAX_SIZE);
+    sprintf(tmp,"%f",m_fSO2ZeroCoef);
+    GetAfxConfig()->SetIni("GasCoef","SO2ZeroCoef",tmp);
+
+    memset(tmp,0,MAX_SIZE);
+    sprintf(tmp,"%f",m_fO2ZeroCoef);
+    GetAfxConfig()->SetIni("GasCoef","O2ZeroCoef",tmp);
+
+    //保存流速校准系数
+    memset(tmp,0,MAX_SIZE);
+    sprintf(tmp,"%f",m_fFlowSpanCoef);
+    GetAfxConfig()->SetIni("GasCoef","FlowSpanCoef",tmp);
+
+    memset(tmp,0,MAX_SIZE);
+    sprintf(tmp,"%f",m_fFlowZeroCoef);
+    GetAfxConfig()->SetIni("GasCoef","FlowZeroCoef",tmp);
+
+}
+//判断校准气体类型
+bool gasadjust::JudgeCaliType()
+{
+    if(1 == m_nCaliKind)
+    {       
+        int ret = QMessageBox::information(NULL, "提示信息",""
+                                                  "请确认标气的浓度值、单位与设定信息是否一致?",
+                                               QMessageBox::Yes | QMessageBox::No);
+        switch (ret)
+        {
+          case QMessageBox::Yes:
+              break;
+          case QMessageBox::No:
+                return false;
+              break;
+          default:
+              break;
+        }
+        if(ui->rdiHandN0->isChecked())
+        {
+            m_nType = 0;
+        }
+        else if(ui->rdiHandS02->isChecked())
+        {
+            m_nType = 1;
+        }
+        else if(ui->rdiHand02->isChecked())
+        {
+            m_nType = 2;
+        }
+
+    }else if(2 == m_nCaliKind)
+    {
+        if(ui->rdiZeroN0->isChecked())
+        {
+            m_nType = 0;
+        }
+        else if(ui->rdiZeroS02->isChecked())
+        {
+            m_nType = 1;
+        }
+        else if(ui->rdiZero02->isChecked())
+        {
+            m_nType = 2;
+        }
+    }
+    else if(3 == m_nCaliKind)
+    {
+        m_nType = 2;
+    }
+    return true;
+}
+void gasadjust::setEnabled(bool bEnable)
+{
+    if(bEnable)
+    {
+        ui->stackedWidget->setEnabled(true);
+        ui->btnSave->setEnabled(true);
+        ui->btnReset->setEnabled(true);
+        ui->btnClose->setEnabled(true);
+        ui->btnStart->setEnabled(true);
+        ui->btnHandMode->setEnabled(true);
+        ui->btnZeroMode->setEnabled(true);
+        ui->btnFlowMode->setEnabled(true);
+    }
+    else
+    {
+        ui->stackedWidget->setEnabled(false);
+        ui->btnSave->setEnabled(false);
+        ui->btnReset->setEnabled(false);
+        ui->btnClose->setEnabled(false);
+        ui->btnStart->setEnabled(false);
+        ui->btnHandMode->setEnabled(false);
+        ui->btnZeroMode->setEnabled(false);
+        ui->btnFlowMode->setEnabled(false);
+    }
+}
+
+void gasadjust::on_btnHandMode_clicked()
+{
+    ui->page_1->show();
+    ui->btnStart->show();
+    ui->btnReset->show();
+    ui->page_2->hide();
+    ui->page_3->hide();
+    ui->page_4->hide();
+    ui->btnSave->hide();
+    m_nCaliKind = 1;
+    ShowSelWin(m_nCaliKind);
+}
+
+void gasadjust::on_btnZeroMode_clicked()
+{
+    ui->page_2->show();
+    ui->btnStart->show();
+    ui->btnReset->show();
+    ui->page_1->hide();
+    ui->page_3->hide();
+    ui->page_4->hide();
+    ui->btnSave->hide();
+    m_nCaliKind = 2;
+    ShowSelWin(m_nCaliKind);
+}
+
+void gasadjust::on_btnFlowMode_clicked()
+{
+    ui->page_3->show();
+    ui->btnStart->show();
+    ui->btnReset->show();
+    ui->page_2->hide();
+    ui->page_1->hide();
+    ui->page_4->hide();
+    ui->btnSave->hide();
+    m_nCaliKind = 3;
+    ShowSelWin(m_nCaliKind);
+}
+void gasadjust::ShowSelWin(int iCMDType)
+{
+    QFrame *fram[3] = {ui->fra1,ui->fra2,ui->fra3};
+    for(int i = 1;i <= 3;i++)
+    {
+        QFrame *fra = fram[i - 1];
+        if(iCMDType == i)
+            fra->show();
+        else
+            fra->hide();
+    }
+}

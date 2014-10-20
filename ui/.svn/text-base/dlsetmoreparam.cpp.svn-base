@@ -1,0 +1,394 @@
+#include "dlsetmoreparam.h"
+#include "ui_dlsetmoreparam.h"
+#include "../core/cconfig.h"
+#include <QTextCodec>
+#include "dlselmoreparam.h"
+
+dlsetmoreparam::dlsetmoreparam(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlsetmoreparam)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMC = pMC;
+
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    this->GetInterAgreeType();
+    connect(ui->tabWidParam, SIGNAL(cellChanged(int,int)), this, SLOT(changeCheckBox(int, int)));
+    this->Init();
+}
+
+dlsetmoreparam::~dlsetmoreparam()
+{
+    delete checkBox;
+    delete ui;
+}
+
+void dlsetmoreparam::Init()
+{    
+    //ProcessType
+    ui->cbxProcessType->clear();
+     QString sText;
+     QString sValue;
+
+     sText = "重金属";
+     sValue = "1";
+     ui->cbxProcessType->addItem(sText,sValue);
+
+     sText = "紫外烟气";
+     sValue = "2";
+     ui->cbxProcessType->addItem(sText,sValue);
+
+     sText = "有机物";
+     sValue = "3";
+     ui->cbxProcessType->addItem(sText,sValue);
+
+     sText = "比色法";
+     sValue = "4";
+     ui->cbxProcessType->addItem(sText,sValue);
+
+     sText = "原子荧光";
+     sValue = "5";
+     ui->cbxProcessType->addItem(sText,sValue);
+
+     int iYQType = GetAfxYQType();
+     ui->cbxProcessType->setCurrentIndex(ui->cbxProcessType->findData(iYQType));
+
+    //COM Init
+    char cValue[12];
+    QString sComText,sComValue;
+    ui->cbxCOM->clear();
+    for(int i = 1;i<=20;i++)
+    {
+        memset(cValue,0,12);
+        sprintf(cValue,"COM%d",i);
+        sComText = QString(cValue);
+        sComValue = QString::number(i);
+        ui->cbxCOM->addItem(sComText,sComValue);
+    }
+}
+
+void dlsetmoreparam::GetInterAgreeType()
+{
+    char cIntName[64];
+    char cItem[20];
+    mapAgreeType.clear();
+    for(int i = 1;i<100;i++)
+    {
+        memset(cIntName,0,64);
+        memset(cItem,0,20);
+        sprintf(cItem,"AgreeName%d",i);
+        GetAfxConfig()->GetIni("InterAgreeType",cItem,cIntName);
+        if(strlen(cIntName) > 0)
+        {
+            mapAgreeType.insert(i,QString(cIntName));
+        }
+    }
+
+    if(mapAgreeType.size() > 0)
+    {
+        //隐藏表头
+        ui->tabWidParam->clear();
+        ui->tabWidParam->horizontalHeader()->setVisible(false);
+        ui->tabWidParam->verticalHeader()->setVisible(false);
+        ui->tabWidParam->setShowGrid(false); //设置不显示格子线
+        ui->tabWidParam->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一行
+        ui->tabWidParam->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        ui->tabWidParam->setColumnCount(1);
+        ui->tabWidParam->setRowCount(mapAgreeType.size());
+
+        QHeaderView *pTableHeaderView = ui->tabWidParam->horizontalHeader();
+        if (pTableHeaderView)
+        {
+            pTableHeaderView->setDefaultAlignment (Qt::AlignVCenter); //居中
+            pTableHeaderView->setTextElideMode (Qt::ElideRight); //...效果
+            pTableHeaderView->setStretchLastSection (true); //尾不留空白
+        }
+
+        int iRow = 0;
+
+        QMap<int,QString>::iterator it; //遍历map
+        char czGroup[64];
+        char czValue[64];
+        for ( it = mapAgreeType.begin(); it != mapAgreeType.end(); ++it )
+        {            
+            memset(czGroup,0,64);
+            memset(czValue,0,64);
+            sprintf(czGroup,"XY%d_SET",it.key());
+            checkBox = new QTableWidgetItem(it.value());
+            GetAfxConfig()->GetIni(czGroup,"Name",czValue);
+            if(strlen(czValue) == 0)
+            {
+                checkBox->setCheckState(Qt::Unchecked);
+            }
+            else
+            {
+                checkBox->setCheckState(Qt::Checked);
+            }
+
+            ui->tabWidParam ->setItem(iRow, 0, checkBox);
+            iRow ++;
+        }
+    }
+}
+
+void dlsetmoreparam::changeCheckBox(int row, int col)
+{
+    if(ui->tabWidParam->rowCount() > 0 && row >= 0 && col >= 0)
+    {
+        QString sAgreeName = ui->tabWidParam->item(row,col)->text().trimmed();//取出字符串
+        if(sAgreeName.length() > 0)
+        {
+            int iArgeeType = -1;
+            QMap<int,QString>::iterator it; //遍历map
+            for ( it = mapAgreeType.begin(); it != mapAgreeType.end(); ++it )
+            {
+                if(it.value() == sAgreeName)
+                {
+                    iArgeeType = it.key();
+                    break;
+                }
+            }
+            if(iArgeeType != -1)
+            {
+                char czGroup[20];memset(czGroup,0,20);
+                sprintf(czGroup,"XY%d_SET",iArgeeType);
+
+                if(ui->tabWidParam->item(row, col)->checkState() == Qt::Checked) //选中
+                {
+                    this->SaveIniFile(czGroup,sAgreeName.toUtf8().data());
+                    QMessageBox::information(NULL, "提示信息", "保存成功!");
+                }
+                else if(ui->tabWidParam->item(row, col)->checkState() == Qt::Unchecked)//取消
+                {
+                    GetAfxConfig()->DelIni(czGroup);
+                    QMessageBox::information(NULL, "提示信息", "删除成功!");
+                }
+            }
+        }
+    }
+}
+
+void dlsetmoreparam::SaveIniFile(const char* czGroup,const char* cAgreeName)
+{
+    char czItem[64];
+    char czValue[64];
+    //协议名称
+    memset(czItem,0,64);
+    memset(czValue,0,64);
+    strcpy(czItem,"Name");
+    strcpy(czValue,cAgreeName);
+    GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+
+    //ProcessType
+    memset(czItem,0,64);
+    memset(czValue,0,64);
+    strcpy(czItem,"ProcessType");
+    sprintf(czValue,"%d",ui->cbxProcessType->itemData(ui->cbxProcessType->currentIndex()).toInt());
+    GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+
+    //参数ID
+    if(strlen(m_czID) > 0)
+    {
+        memset(czItem,0,64);
+        memset(czValue,0,64);
+        strcpy(czItem,"czID");
+        strcpy(czValue,m_czID);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+    //串口号
+    if(ui->cbxCOM->currentText().length() > 0)
+    {
+        memset(czItem,0,64);
+        memset(czValue,0,64);
+        strcpy(czItem,"COM");
+        strcpy(czValue,ui->cbxCOM->itemData(ui->cbxCOM->currentIndex()).toString().toLatin1().data());
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+    //别名
+    if(ui->litByname->text().trimmed().length() > 0)
+    {
+        memset(czItem,0,64);
+        memset(czValue,0,64);
+        strcpy(czItem,"Byname");
+        strcpy(czValue,ui->litByname->text().trimmed().toLatin1().data());
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+    //TCP地址端口
+    if(ui->litTCPPort->text().trimmed().length() > 0)
+    {
+        memset(czItem,0,64);
+        memset(czValue,0,64);
+        strcpy(czItem,"TCPPort");
+        strcpy(czValue,ui->litTCPPort->text().trimmed().toLatin1().data());
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+    //SlaveID
+    if(ui->litSlaveID->text().trimmed().length() > 0)
+    {
+        memset(czItem,0,64);
+        memset(czValue,0,64);
+        strcpy(czItem,"SlaveID");
+        strcpy(czValue,ui->litSlaveID->text().trimmed().toLatin1().data());
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+    //寄存器
+    if(ui->litRegister->text().trimmed().length() > 0)
+    {
+        memset(czItem,0,64);
+        memset(czValue,0,64);
+        strcpy(czItem,"Register");
+        strcpy(czValue,ui->litRegister->text().trimmed().toLatin1().data());
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+}
+
+//保存
+void dlsetmoreparam::on_butSave_clicked()
+{
+    if(ui->litParamCode->text().trimmed().length() == 0 || strlen(m_czID) == 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "必须选择参数!");
+        return;
+    }
+    QString sAgreeName = ui->tabWidParam->currentItem()->text();
+    if(sAgreeName.length() > 0)
+    {
+        int iArgeeType = -1;
+        QMap<int,QString>::iterator it; //遍历map
+        for ( it = mapAgreeType.begin(); it != mapAgreeType.end(); ++it )
+        {
+            if(it.value() == sAgreeName)
+            {
+                iArgeeType = it.key();
+                break;
+            }
+        }
+        if(iArgeeType != -1)
+        {
+            char czGroup[20];memset(czGroup,0,20);
+            sprintf(czGroup,"XY%d_SET",iArgeeType);
+            this->SaveIniFile(czGroup,sAgreeName.toUtf8().data());
+            QMessageBox::information(NULL, "提示信息", "保存成功!");
+        }
+    }
+}
+
+//关闭
+void dlsetmoreparam::on_butClose_clicked()
+{
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    this->close();
+}
+
+void dlsetmoreparam::on_tabWidParam_itemClicked(QTableWidgetItem *item)
+{
+    if(NULL != item)
+    {
+        QString sAgreeName = item->text().trimmed();
+        if(sAgreeName.length() > 0)
+        {
+            memset(m_czID,0,16);
+            ui->litParamCode->setText("");
+            ui->litByname->setText("");
+            ui->litTCPPort->setText("");
+            ui->litSlaveID->setText("");
+            ui->litRegister->setText("");
+            ui->cbxCOM->setCurrentIndex(0);
+
+            int iArgeeType = -1;
+            QMap<int,QString>::iterator it; //遍历map
+            for ( it = mapAgreeType.begin(); it != mapAgreeType.end(); ++it )
+            {
+                if(it.value() == sAgreeName)
+                {
+                    iArgeeType = it.key();
+                    break;
+                }
+            }
+            if(iArgeeType != -1)
+            {
+                char czGroup[20];memset(czGroup,0,20);
+                sprintf(czGroup,"XY%d_SET",iArgeeType);
+                char czItem[64];
+                char czValue[64];
+
+                //参数
+                memset(czItem,0,64);
+                strcpy(czItem,"czID");
+                memset(czValue,0,64);
+                GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+                if(strlen(czValue) > 0)
+                {
+
+                }
+
+                //串口号
+                memset(czItem,0,64);
+                strcpy(czItem,"COM");
+                memset(czValue,0,64);
+                GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+                if(strlen(czValue) > 0)
+                {
+                    ui->cbxCOM->setCurrentIndex(ui->cbxCOM->findData(atoi(czValue)));
+                }
+
+                //别名
+                memset(czItem,0,64);
+                strcpy(czItem,"Byname");
+                memset(czValue,0,64);
+                GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+                if(strlen(czValue) > 0)
+                {
+                    ui->litByname->setText(QString(czValue));
+                }
+
+                //TCP地址端口
+                memset(czItem,0,64);
+                strcpy(czItem,"TCPPort");
+                memset(czValue,0,64);
+                GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+                if(strlen(czValue) > 0)
+                {
+                    ui->litTCPPort->setText(QString(czValue));
+                }
+
+                //SlaveID
+                memset(czItem,0,64);
+                strcpy(czItem,"SlaveID");
+                memset(czValue,0,64);
+                GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+                if(strlen(czValue) > 0)
+                {
+                    ui->litSlaveID->setText(QString(czValue));
+                }
+
+                //寄存器
+                memset(czItem,0,64);
+                strcpy(czItem,"Register");
+                memset(czValue,0,64);
+                GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+                if(strlen(czValue) > 0)
+                {
+                    ui->litRegister->setText(QString(czValue));
+                }
+            }
+        }
+    }
+}
+
+void dlsetmoreparam::on_btnSelParam_clicked()
+{
+    dlselmoreparam *pselParam = new dlselmoreparam();
+    pselParam->move((qApp->desktop()->width() - pselParam->width())/2,(qApp->desktop()->height() - pselParam->height())/2);
+    pselParam->exec();
+    delete pselParam;
+}

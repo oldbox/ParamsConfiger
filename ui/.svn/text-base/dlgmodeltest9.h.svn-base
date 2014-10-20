@@ -1,0 +1,72 @@
+#ifndef DLGMODELTEST9_H
+#define DLGMODELTEST9_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class dlgmodeltest9;
+}
+
+class dlgmodeltest9 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest9(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest9();
+    
+private slots:
+    void on_pbtStart_PJJJ_clicked();
+
+    void on_pbtStop_PJJJ_clicked();
+
+    void on_pbtStart_BOX_clicked();
+
+    void on_pbtStop_BOX_clicked();
+
+    void on_pbtStart_FID_clicked();
+
+    void on_pbtStop_FID_clicked();
+
+    void on_pbtStart_MXZInit_clicked();
+
+    void on_pbtStop_MXZInit_clicked();
+
+    void on_pbtOpen_GY_clicked();
+
+    void on_pbtClose_GY_clicked();
+
+    void on_pushButton_fire_clicked();
+
+    void on_pbtMXZ_Download_clicked();
+
+    void on_pbtStart_MXZ_clicked();
+
+    void on_pbtStop_MXZ_clicked();
+
+    void on_pbtPIDSet_clicked();
+
+    void on_pbtDASet_clicked();
+
+    void on_pbtOpen_ECD_clicked();
+
+    void on_pbtClose_ECD_clicked();
+
+    void on_pbtSpeed_clicked();
+
+    void on_btnReadStatus_once_clicked();
+
+    void on_cmbChannel_currentIndexChanged(int index);
+
+private:
+    bool ReadIniFile(const char czTeam[], int &nValue);
+    bool ReadIniFile(const char czTeam[],const char czItem[], int &nValue);
+    void WriteIniFile(const char czTeam[],const char czItem[], int nValue);
+private:
+    Ui::dlgmodeltest9 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* m_pYQ;
+};
+
+#endif // DLGMODELTEST9_H

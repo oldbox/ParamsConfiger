@@ -1,0 +1,32 @@
+#ifndef DLGCHANGEPASSWD_H
+#define DLGCHANGEPASSWD_H
+
+#include <QDialog>
+#include "sfkeyboard.h"
+#include "../core/cconfig.h"
+#include <QMessageBox>
+
+namespace Ui {
+class Dlgchangepasswd;
+}
+
+class Dlgchangepasswd : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit Dlgchangepasswd(QWidget *parent = 0);
+    ~Dlgchangepasswd();
+    
+private slots:
+//    void on_btnkeyboard_clicked();
+
+    void on_btnok_clicked();
+
+    void on_btncancel_clicked();
+
+private:
+    Ui::Dlgchangepasswd *ui;
+};
+
+#endif // DLGCHANGEPASSWD_H

@@ -1,0 +1,210 @@
+#include "dlgmodeltest11.h"
+#include "ui_dlgmodeltest11.h"
+#include <QMessageBox>
+#include <QTextCodec>
+
+dlgmodeltest11::dlgmodeltest11(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::dlgmodeltest11)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+}
+
+dlgmodeltest11::~dlgmodeltest11()
+{
+    delete ui;
+}
+
+//打开搅拌电机
+void dlgmodeltest11::on_butOpenMotorSpeed_clicked()
+{
+    if(ui->litOpenMotorSpeed->text().length() > 0)
+    {        
+        int iMotorSpeed = atoi(ui->litOpenMotorSpeed->text().toLatin1().data());
+        bool isResult =this->LinkOpenMotorSpeedModbus(iMotorSpeed);
+        if(isResult)
+        {
+            QMessageBox::information(NULL, "提示信息", "搅拌电机打开成功!");
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息", "搅拌电机打开失败!");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "请输入搅拌电机速度!");
+    }
+}
+//关闭搅拌电机
+void dlgmodeltest11::on_butCloseMotorSpeed_clicked()
+{
+    bool isResult = this->LinkCloseMotorSpeedModbus();
+    if(isResult)
+    {
+        QMessageBox::information(NULL, "提示信息", "搅拌电机关闭成功!");
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "搅拌电机关闭失败!");
+    }
+}
+//打开气泵
+void dlgmodeltest11::on_butOpenAirPumpSpeed_clicked()
+{
+    if(ui->litOpenAirPumpSpeed->text().length() > 0)
+    {
+        int iAirPumpSpeed = atoi(ui->litOpenAirPumpSpeed->text().toLatin1().data());
+        bool isResult = this->LinkOpenAirPumpSpeedModbus(iAirPumpSpeed);
+        if(isResult)
+        {
+            QMessageBox::information(NULL, "提示信息", "打开气泵成功!");
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息", "打开气泵失败!");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "请输入搅拌电机速度!");
+    }
+}
+//关闭气泵
+void dlgmodeltest11::on_lblCloseAirPumpSpeed_clicked()
+{
+    bool isResult = this->LinkCloseAirPumpSpeedModbus();
+    if(isResult)
+    {
+        QMessageBox::information(NULL, "提示信息", "关闭气泵成功!");
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "关闭气泵失败!");
+    }
+}
+
+//打开搅拌电机
+bool dlgmodeltest11::LinkOpenMotorSpeedModbus(int nMotorSpeedNum)
+{
+    if(false == judgeYQConnect()) return false;
+
+      int iMotorSpeedNum = 0;
+    if(nMotorSpeedNum < 50)
+        iMotorSpeedNum = 50;
+    else if(nMotorSpeedNum > 900)
+        iMotorSpeedNum = 900;
+    else
+        iMotorSpeedNum = nMotorSpeedNum;
+
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 190;
+    int16_t wPrm1 = iMotorSpeedNum;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(11,40001,1+1,bBuff))
+        return true;
+    else
+        return false;
+
+}
+//关闭搅拌电机
+bool dlgmodeltest11::LinkCloseMotorSpeedModbus()
+{
+    if(false == judgeYQConnect()) return false;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 191;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(11,40001,1,bBuff))
+        return true;
+    else
+        return false;
+
+}
+//打开气泵
+bool dlgmodeltest11::LinkOpenAirPumpSpeedModbus(int nAirPumpSpeedNum)
+{
+    if(false == judgeYQConnect()) return false;
+
+    int iAirPumpSpeedNum = 0;
+    if(nAirPumpSpeedNum > 64)
+        iAirPumpSpeedNum = 64;
+    else
+        iAirPumpSpeedNum = nAirPumpSpeedNum;
+
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 192;
+    int16_t wPrm1 = iAirPumpSpeedNum;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(11,40001,1+1,bBuff))
+        return true;
+    else
+        return false;
+}
+//关闭气泵
+bool dlgmodeltest11::LinkCloseAirPumpSpeedModbus()
+{
+    if(false == judgeYQConnect()) return false;
+
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 193;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(11,40001,1,bBuff))
+         return true;
+    else
+        return false;
+}
+
+bool dlgmodeltest11::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息", "仪器获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}

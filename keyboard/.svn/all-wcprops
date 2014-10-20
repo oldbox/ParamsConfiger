@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 42
+/svn/linux_yq/!svn/ver/1505/trunk/keyboard
+END
+inputpanelform.ui
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/linux_yq/!svn/ver/1178/trunk/keyboard/inputpanelform.ui
+END
+myinputpanelcontext.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/linux_yq/!svn/ver/1174/trunk/keyboard/myinputpanelcontext.h
+END
+myinputpanel.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/linux_yq/!svn/ver/1505/trunk/keyboard/myinputpanel.cpp
+END
+myinputpanel.h
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/linux_yq/!svn/ver/1505/trunk/keyboard/myinputpanel.h
+END
+myinputpanelcontext.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svn/linux_yq/!svn/ver/1486/trunk/keyboard/myinputpanelcontext.cpp
+END

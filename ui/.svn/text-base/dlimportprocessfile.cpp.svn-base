@@ -1,0 +1,329 @@
+#include "dlimportprocessfile.h"
+#include "ui_dlimportprocessfile.h"
+#include <qfile.h>
+#include <QDir>
+#include <QTextCodec>
+#include <qfile.h>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QTime>
+
+#include <iostream>
+using namespace std;
+
+dlImportProcessFile::dlImportProcessFile(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlImportProcessFile)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    memset(czDBFile,0,256);
+    this->Init();
+}
+
+void dlImportProcessFile::Init()
+{
+    QStringList filters;
+    filters << "*.dll" << "*.txt" << "*.DLL" << "*.TXT";
+
+    char czPath[255];memset(czPath,0,255);
+    memset(czDBFile,0,255);
+    sprintf(czPath,"%s",INI_ROOT_PATH);
+    strcat(czPath,"/processfile/");
+    strcpy(czDBFile,czPath);
+
+
+    m_pModel_file = new QFileSystemModel(this);
+    m_pModel_file->setNameFilters(filters);
+    selections = new QItemSelectionModel(m_pModel_file);
+    m_pModel_file->setFilter(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot);
+    m_pModel_file->setNameFilterDisables(false);
+
+    ui->tvFileList->setModel(m_pModel_file);
+    ui->tvFileList->setSelectionModel(selections);
+    ui->tvFileList->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    ui->tvFileList->setColumnWidth(0,200);
+    ui->tvFileList->setAlternatingRowColors(false);
+    ui->tvFileList->viewport()->setAttribute(Qt::WA_StaticContents);
+    ui->tvFileList->setAttribute(Qt::WA_MacShowFocusRect, false);
+    ui->tvFileList->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tvFileList->setRootIsDecorated(false);
+    ui->tvFileList->setItemsExpandable(false);
+    ui->tvFileList->setSortingEnabled(true);
+    ui->tvFileList->header()->setSortIndicator(0, Qt::AscendingOrder);
+    ui->tvFileList->header()->setStretchLastSection(false);
+    ui->tvFileList->setTextElideMode(Qt::ElideMiddle);
+    ui->tvFileList->setEditTriggers(QAbstractItemView::EditKeyPressed);
+    ui->tvFileList->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->tvFileList->setDragDropMode(QAbstractItemView::InternalMove);
+    ui->tvFileList->setRootIndex(m_pModel_file->setRootPath(czDBFile));
+
+    QObject::connect(ui->tvFileList->selectionModel(), SIGNAL(selectionChanged(QItemSelection, QItemSelection)),this, SLOT(selectedDateChanged(QItemSelection, QItemSelection)));
+}
+
+void dlImportProcessFile::selectedDateChanged(const QItemSelection &selected, const QItemSelection &deselected)
+{
+    // This is called when the model index corresponding to the current file is changed
+    Q_UNUSED(deselected);
+    Q_UNUSED(selected);
+    QModelIndexList indexes = selections->selectedIndexes();
+    QStringList allFiles;
+    QStringList fileNames;
+    m_filenames.clear();
+
+    foreach(QModelIndex index, indexes) {
+        QString path  = QDir::toNativeSeparators(m_pModel_file->filePath(index));
+        m_filenames += path;
+        QFileInfo inf(QDir::toNativeSeparators(m_pModel_file->filePath(index)));
+        if (inf.isRoot()){
+            m_bDisplay = false;
+        }
+        else if(inf.isFile()){
+            m_bDisplay = true;
+
+        }
+        else{
+            m_bDisplay = true;
+
+            }
+    }
+
+    for (int i = 0; i < indexes.count(); i++) {
+        allFiles.append(indexes.at(i).data().toString());
+    }
+
+    QModelIndex index = ui->tvFileList->currentIndex();
+    QString path = QDir::toNativeSeparators(m_pModel_file->filePath(index.parent()));
+    foreach (const QString &file, allFiles) {
+        const QString fileName = QDir::cleanPath(file);
+        QString paths = path + QDir::separator() + fileName;
+        QFileInfo fi(paths);
+        if(fi.exists()){
+            QString name = fi.fileName();
+            if(name == "")
+                continue;
+            fileNames += name;
+        }
+    }
+
+    if (fileNames.count() > 0)
+        for (int i = 0; i < fileNames.count(); i++) {
+            fileNames.replace(i, QString(QLatin1Char('"') + fileNames.at(i) + QLatin1Char('"')));
+    }
+    QString finalFiles = fileNames.join(QLatin1String(" "));
+    if (!finalFiles.isEmpty() && !ui->litFileName->hasFocus() && ui->litFileName->isVisible() && m_bDisplay)
+        ui->litFileName->setText(finalFiles);
+}
+
+dlImportProcessFile::~dlImportProcessFile()
+{
+    delete ui;
+}
+
+void dlImportProcessFile::on_butClose_clicked()
+{
+    this->close();
+}
+//导出
+void dlImportProcessFile::on_butExprot_clicked()
+{
+    if(ui->litFileName->text().trimmed().length() == 0)
+    {
+        return;
+    }
+
+    char cFilePath[1024];memset(cFilePath,0,1024);
+    QStringList qlAlyFileName = ui->litFileName->text().trimmed().split(" ");
+    QString sFileName;
+
+    QFile mmc("/dev/mmcblk0p1");
+    QFile mmu("/dev/sda1");
+    char czPath[1024];
+    char czTempPath[1024];memset(czTempPath,0,1024);
+    if(mmu.exists())
+    {
+        usleep(200000);
+        memset(czPath,0,1024);
+        memcpy(czPath,"/mnt",strlen("/mnt"));
+        strcat(czPath,"/u/");
+    }
+    else if(mmc.exists())
+    {
+        usleep(200000);
+        memset(czPath,0,1024);
+        memcpy(czPath,"/mnt",strlen("/mnt"));
+        strcat(czPath,"/sd-card/");
+    }
+    strcpy(czTempPath,czPath);
+    bool isResult = false;
+    if(qlAlyFileName.length() > 0) //多个文件导出
+    {
+        for(int i=0;i<qlAlyFileName.size();i++)
+        {
+            memset(czPath,0,1024);
+            strcpy(czPath,czTempPath);
+            memset(cFilePath,0,1024);
+            strcpy(cFilePath,czDBFile);
+            sFileName = qlAlyFileName.at(i).trimmed();
+            sFileName = sFileName.replace(QString(QLatin1Char('"')),"").trimmed();
+            if(sFileName.length() > 0)
+            {
+                strcat(cFilePath,sFileName.toLatin1().data());
+                strcat(czPath,sFileName.toLatin1().data());
+                if(strlen(cFilePath) > 0)
+                {                    
+                    bool isExistFile = false;
+                    if (QFile::exists(QString(czPath)))
+                    {
+                        isExistFile = true;
+                    }
+                    if(isExistFile)
+                    {
+                        QMessageBox mess(QMessageBox::Question, "提示", "已存在相同文件,是否覆盖？", NULL);
+                        QPushButton *cancelButton = mess.addButton(tr("取消"),QMessageBox::RejectRole);
+                        QPushButton *okButton = mess.addButton(tr("确定"), QMessageBox::AcceptRole);
+                        mess.exec();
+                        if ((QPushButton*)mess.clickedButton() == okButton)//确定
+                        {
+                            QFile::remove(QString(czPath));
+                        }
+                        else if((QPushButton*)mess.clickedButton() == cancelButton) //取消
+                        {
+                            return;
+                        }
+                    }
+
+                    isResult = FileTransfer(QString(cFilePath),QString(czPath));
+                }
+            }
+        }
+    }
+    else //单个文件导出
+    {
+        sFileName = ui->litFileName->text().trimmed();
+        sFileName = sFileName.replace(QString(QLatin1Char('"')),"").trimmed();
+        if(sFileName.length() > 0)
+        {
+            memset(czPath,0,1024);
+            strcpy(czPath,czTempPath);
+            memset(cFilePath,0,1024);
+            strcpy(cFilePath,czDBFile);
+            strcat(cFilePath,sFileName.toLatin1().data());
+            strcat(czPath,sFileName.toLatin1().data());
+
+            bool isExistFile = false;
+            if (QFile::exists(QString(czPath)))
+            {
+                isExistFile = true;
+            }
+            if(isExistFile)
+            {
+                QMessageBox mess(QMessageBox::Question, "提示", "已存在相同文件,是否覆盖？", NULL);
+                QPushButton *cancelButton = mess.addButton(tr("取消"),QMessageBox::RejectRole);
+                QPushButton *okButton = mess.addButton(tr("确定"), QMessageBox::AcceptRole);
+                mess.exec();
+                if ((QPushButton*)mess.clickedButton() == okButton)//确定
+                {
+                    QFile::remove(QString(czPath));
+                }
+                else if((QPushButton*)mess.clickedButton() == cancelButton) //取消
+                {
+                    return;
+                }
+            }
+
+            isResult = FileTransfer(QString(cFilePath),QString(czPath));
+
+        }
+    }
+    QMessageBox::information(NULL, "提示信息","导出文件成功!");
+}
+
+//拷贝文件
+int dlImportProcessFile::FileTransfer(QString sourceDir ,QString toDir)
+{
+    if (sourceDir == toDir)
+    {
+           return 1;
+    }
+    if (!QFile::exists(sourceDir))
+    {
+       return 0;
+    }
+
+    QFile file(sourceDir);
+    int fSize = file.size();
+    fSize /=1024;
+
+    QDir *createfile = new QDir;
+
+    if(createfile->exists(toDir))
+        createfile->remove(toDir);
+
+    delete createfile;
+
+    QTime t;
+    t.start();
+    if(!QFile::copy(sourceDir, toDir))
+    {
+        return 0;
+    }
+    int ems = t.elapsed();
+    return ems;
+}
+//导入
+void dlImportProcessFile::on_butImport_clicked()
+{
+    QString filename;
+
+    char czTemp[255];memset(czTemp,0,255);
+    sprintf(czTemp,"%s","/mnt/u/");
+    QString qsPath = QString(czTemp);
+
+    filename = QFileDialog::getOpenFileName(this,
+       tr("选择流程文件"),
+       qsPath,
+       tr("file (*.dll *.txt *.* ** *.DLL *.TXT)")); //选择路径
+   if(filename.isEmpty())
+   {
+       QMessageBox::information(NULL, "提示信息","请选择文件!");
+       return;
+   }
+   else
+   {
+        char czPath[255];memset(czPath,0,255);
+        strcpy(czPath,filename.toLatin1().data());
+
+        char czToPath[255];memset(czToPath,0,255);
+        sprintf(czToPath,"%s",INI_ROOT_PATH);
+        strcat(czToPath,"/processfile/");
+        //获取文件名
+        QStringList qlTemp  = filename.split("/");
+        QString sName;
+        if(qlTemp.length() > 0)
+        {
+            for(int i=0;i<qlTemp.length();i++)
+            {
+                if(qlTemp.at(i).trimmed() != "" && qlTemp.at(i).trimmed().indexOf(".") >= 0)
+                {
+                     sName = qlTemp.at(i);
+                     break;
+                }
+            }
+        }
+        else
+        {
+            sName = filename;
+        }
+        strcat(czToPath,sName.toLatin1().data());
+        FileTransfer(QString(czPath),QString(czToPath));
+        QMessageBox::information(NULL, "提示信息","导入文件成功!");
+        this->Init();
+
+   }
+}

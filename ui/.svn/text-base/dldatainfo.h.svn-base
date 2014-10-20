@@ -1,0 +1,40 @@
+#ifndef DLDATAINFO_H
+#define DLDATAINFO_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include "../core/paramdict.h"
+
+namespace Ui {
+class dldatainfo;
+}
+
+class dldatainfo : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dldatainfo(QString qsTime,QString qsName,int nIndex,QWidget *parent = 0);
+    ~dldatainfo();
+    
+private slots:
+    void on_WinClose();
+
+private:
+    Ui::dldatainfo *ui;
+    int m_iYQType;
+    QTimer *timer;
+    QString m_qsTime;
+    QString m_qsName;
+    QString m_qsYQID;
+    CDBBusiness* m_pDB;
+    int m_nIndex;
+
+    void SetDataListStyle();
+    void GetDataList();
+    void GetLogInfo();
+    QString GetYQName(QString sCodeID);
+  //  void paintEvent(QPaintEvent *event);
+};
+
+#endif // DLDATAINFO_H

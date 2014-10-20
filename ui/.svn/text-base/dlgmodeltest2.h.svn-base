@@ -1,0 +1,64 @@
+#ifndef DLGMODELTEST2_H
+#define DLGMODELTEST2_H
+
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class dlgmodeltest2;
+}
+
+struct TempWorkValue
+{
+    TempWorkValue()
+    {fTemp1 = 0.0;fTemp2 = 0.0;iWorkValue1 = 0;iWorkValue2 = 0;}
+    float fTemp1;
+    float fTemp2;
+    int iWorkValue1;
+    int iWorkValue2;
+};
+
+class dlgmodeltest2 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest2(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest2();
+
+    bool m_bRunThread;
+
+private slots:
+    void on_butOneReadTemp_clicked();
+    void on_butOneStop_clicked();
+    void on_butSetConstTemp_clicked();
+    void on_butSetConstTemp2_clicked();
+    void onTempOrWorkValue();
+
+signals:
+    void GetTempOrWorkValue();
+
+private:
+    bool judgeYQConnect();
+    //获取温度工作状态
+    QString GetTempStateName(int iTempStateID);
+    //设置温度模块恒温
+    bool LinkModbusSetConstantTemp(int iTempType,int iTempValue,int iMinute);
+    //线程运行
+    static void* AutoRunThread(void* pParam);
+    //启动线程
+    void RunThread();
+    //退出线程
+    void ExitRunThread();
+    Ui::dlgmodeltest2 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    int iTempType;//温度类型：是第1路温度还是第2路温度
+    bool bExitThread;
+    pthread_t id_autorun;
+    //线程运行时启动,读取温度值及工作状态
+    void onReadTempValOrWorkState();
+    bool m_bIsPthreadRun;
+    TempWorkValue m_struTempWorkValue;
+};
+
+#endif // DLGMODELTEST2_H

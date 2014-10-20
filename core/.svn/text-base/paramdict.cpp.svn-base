@@ -1,0 +1,776 @@
+#include "paramdict.h"
+#include "cconfig.h"
+#include <stdlib.h>
+
+paramdict::paramdict()
+{
+    int iYQType = GetAfxYQType();
+    int iSubYQType = GetAfxYQSubType();
+    if(1 == iYQType)  //重金属参数
+    {
+        paramitem item1;
+        //参数名：Z07—总铅
+        strcpy(item1.LHCodeID,"Z07");
+        strcpy(item1.GBCodeID,"Z07");
+        strcpy(item1.CodeName,"总铅");
+        item1.iProcessType = 1;        //流程类型
+        item1.SlaveID = 1;             //输出的Modbus地址
+        item1.parcode1.PeakSearchUp = -450;     //寻峰上限
+        item1.parcode1.PeakSearchDown = -650;   //寻峰下限
+        item1.DataDigits = 4;           //数据精度
+        item1.CalcWay = 1;              //计算方式
+        item1.SampleChroma = 0.01;      //标样浓度
+        item1.CheckChroma = 0;          //核查标样浓度
+        item1.Max = 2;                  //浓度数据超上限
+        item1.Min = 0;                  //浓度数据超下限
+        item1.BlankChroma = 0.0;        //空白浓度
+        item1.parcode1.SampleAdjust = 1.0;      //标样校准系数
+        item1.TopLimit = 5;
+        item1.LowerLimit = 0.001;
+        paramlist.push_back(item1);
+
+        //参数名：Z08—总镉
+        paramitem item2;
+        strcpy(item2.LHCodeID,"Z08");
+        strcpy(item2.GBCodeID,"Z08");
+        strcpy(item2.CodeName,"总镉");
+        item2.iProcessType = 1;        //流程类型
+        item2.SlaveID = 1;             //输出的Modbus地址
+        item2.parcode1.PeakSearchUp = -650;     //寻峰上限
+        item2.parcode1.PeakSearchDown = -850;   //寻峰下限
+        item2.DataDigits = 4;           //数据精度
+        item2.CalcWay = 1;              //计算方式
+        item2.SampleChroma = 0.01;      //标样浓度
+        item2.CheckChroma = 0;          //核查标样浓度
+        item2.Max = 2;                  //浓度数据超上限
+        item2.Min = 0;                  //浓度数据超下限
+        item2.BlankChroma = 0.0;        //空白浓度
+        item2.parcode1.SampleAdjust = 1.0;      //标样校准系数
+        item2.TopLimit = 2;
+        item2.LowerLimit = 0.0001;
+        paramlist.push_back(item2);
+
+        //参数名：Z24—总锌
+        paramitem item3;
+        strcpy(item3.LHCodeID,"Z24");
+        strcpy(item3.GBCodeID,"Z24");
+        strcpy(item3.CodeName,"总锌");
+        item3.iProcessType = 1;        //流程类型
+        item3.SlaveID = 1;              //输出的Modbus地址
+        item3.parcode1.PeakSearchUp = -1000;     //寻峰上限
+        item3.parcode1.PeakSearchDown = -1300;   //寻峰下限
+        item3.DataDigits = 4;           //数据精度
+        item3.CalcWay = 1;              //计算方式
+        item3.SampleChroma = 0.1;       //标样浓度
+        item3.CheckChroma = 0;          //核查标样浓度
+        item3.Max = 2;                  //浓度数据超上限
+        item3.Min = 0;                  //浓度数据超下限
+        item3.BlankChroma = 0.0;        //空白浓度
+        item3.parcode1.SampleAdjust = 1.0;//标样校准系数
+        item3.TopLimit = 5;
+        item3.LowerLimit = 0.01;
+        paramlist.push_back(item3);
+
+        //参数名：Z27—总铜
+        paramitem item4;
+        strcpy(item4.LHCodeID,"Z27");
+        strcpy(item4.GBCodeID,"Z27");
+        strcpy(item4.CodeName,"总铜");
+        item4.iProcessType = 1;        //流程类型
+        item4.SlaveID = 1;             //输出的Modbus地址
+        item4.parcode1.PeakSearchUp = -50;     //寻峰上限
+        item4.parcode1.PeakSearchDown = -400;   //寻峰下限
+        item4.DataDigits = 4;           //数据精parcode1度
+        item4.CalcWay = 1;              //计算方式
+        item4.SampleChroma = 0.05;      //标样浓度
+        item4.CheckChroma = 0;          //核查标样浓度
+        item4.Max = 2;                  //浓度数据超上限
+        item4.Min = 0;                  //浓度数据超下限
+        item4.BlankChroma = 0.0;        //空白浓度
+        item4.parcode1.SampleAdjust = 1.0;      //标样校准系数
+        item4.TopLimit = 5;
+        item4.LowerLimit = 0.002;
+        paramlist.push_back(item4);
+    }
+    else if(2 == iYQType)  //气体在线分析仪参数
+    {
+        paramitem item5;
+        strcpy(item5.LHCodeID,"ZB2");
+        strcpy(item5.GBCodeID,"02");
+        strcpy(item5.CodeName,"二氧化硫");
+        item5.iProcessType = 2;        //流程类型
+        item5.DataDigits = 4;           //数据精度
+        paramlist.push_back(item5);
+
+        paramitem item6;
+        strcpy(item6.LHCodeID,"ZA1");
+        strcpy(item6.GBCodeID,"011");
+        strcpy(item6.CodeName,"二氧化氮");
+        item6.iProcessType = 2;        //流程类型
+        item6.DataDigits = 4;           //数据精度
+        paramlist.push_back(item6);
+
+        paramitem item7;
+        strcpy(item7.LHCodeID,"ZA0");
+        strcpy(item7.GBCodeID,"010");
+        strcpy(item7.CodeName,"一氧化氮");
+        item7.iProcessType = 2;        //流程类型
+        item7.DataDigits = 4;           //数据精度
+        paramlist.push_back(item7);
+
+        paramitem item8;
+        strcpy(item8.LHCodeID,"ZB4");
+        strcpy(item8.GBCodeID,"S01");
+        strcpy(item8.CodeName,"氧气");
+        item8.iProcessType = 2;        //流程类型
+        item8.DataDigits = 4;           //数据精度
+        paramlist.push_back(item8);
+    }
+    else if(3 == iYQType)  //有机物在线分析仪参数
+    {
+        if(iSubYQType == 0)
+            Init_Voc();//挥发性有机物
+        else
+            Init_sVoc();//半挥发性有机物
+    }
+    else if(4 == iYQType || 6 == iYQType)  //比色法在线分析仪参数
+    {
+        paramitem item;
+
+        strcpy(item.LHCodeID,"Z05");
+        strcpy(item.GBCodeID,"060");
+        strcpy(item.CodeName,"氨氮");
+        item.iProcessType = 4;
+        item.CalcWay = 1;
+        item.parcode4.InsideCode = 5;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z02");
+        strcpy(item.GBCodeID,"011");
+        strcpy(item.CodeName,"CODcr");
+        item.iProcessType = 4;
+        item.CalcWay = 1;
+        item.parcode4.InsideCode = 2;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z06");
+        strcpy(item.GBCodeID,"020");
+        strcpy(item.CodeName,"总汞");
+        item.iProcessType = 4;
+        item.CalcWay = 1;
+        item.parcode4.InsideCode = 6;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z12");
+        strcpy(item.GBCodeID,"024");
+        strcpy(item.CodeName,"六价铬");
+        item.iProcessType = 4;
+        item.CalcWay = 2;
+        item.parcode4.InsideCode = 12;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z17");
+        strcpy(item.GBCodeID,"101");
+        strcpy(item.CodeName,"总磷");
+        item.iProcessType = 4;
+        item.CalcWay = 2;
+        item.parcode4.InsideCode = 17;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z18");
+        strcpy(item.GBCodeID,"065");
+        strcpy(item.CodeName,"总氮");
+        item.iProcessType = 4;
+        item.CalcWay = 2;
+        item.parcode4.InsideCode = 18;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z19");
+        strcpy(item.GBCodeID,"Z19");
+        strcpy(item.CodeName,"亚硝酸盐氮");
+        item.iProcessType = 4;
+        item.CalcWay = 2;
+        item.parcode4.InsideCode = 19;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z20");
+        strcpy(item.GBCodeID,"Z20");
+        strcpy(item.CodeName,"硝酸盐氮");
+        item.iProcessType = 4;
+        item.CalcWay = 2;
+        item.parcode4.InsideCode = 20;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z31");
+        strcpy(item.GBCodeID,"011");
+        strcpy(item.CodeName,"UVCOD");
+        item.iProcessType = 4;
+        item.CalcWay = 2;
+        item.parcode4.InsideCode = 31;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z24");
+        strcpy(item.GBCodeID,"Z24");
+        strcpy(item.CodeName,"总锌");
+        item.iProcessType = 4;
+        item.CalcWay = 2;
+        item.parcode4.InsideCode = 24;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z59");
+        strcpy(item.GBCodeID,"Z59");
+        strcpy(item.CodeName,"二氧化硅");
+        item.iProcessType = 4;
+        item.CalcWay = 2;
+        item.parcode4.InsideCode = 59;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+    }
+    else if(5 == iYQType)
+    {
+        paramitem item;
+        //参数名：Z06—汞
+        strcpy(item.LHCodeID,"Z06");
+        strcpy(item.GBCodeID,"Z06");
+        strcpy(item.CodeName,"汞");
+        item.iProcessType = 5;        //流程类型
+        item.SlaveID = 1;             //输出的Modbus地址
+        item.parcode1.PeakSearchUp = -450;     //寻峰上限
+        item.parcode1.PeakSearchDown = -650;   //寻峰下限
+        item.DataDigits = 4;           //数据精度
+        item.CalcWay = 1;              //计算方式
+        item.SampleChroma = 0.01;      //标样浓度
+        item.CheckChroma = 0;          //核查标样浓度
+        item.Max = 2;                  //浓度数据超上限
+        item.Min = 0;                  //浓度数据超下限
+        item.BlankChroma = 0.0;        //空白浓度
+        item.parcode1.SampleAdjust = 1.0;      //标样校准系数
+        paramlist.push_back(item);
+
+
+        strcpy(item.LHCodeID,"Z38");
+        strcpy(item.GBCodeID,"080");
+        strcpy(item.CodeName,"石油类");
+        item.iProcessType = 5;        //流程类型
+        item.SlaveID = 1;             //输出的Modbus地址
+        item.parcode1.PeakSearchUp = -450;     //寻峰上限
+        item.parcode1.PeakSearchDown = -650;   //寻峰下限
+        item.DataDigits = 4;           //数据精度
+        item.CalcWay = 1;              //计算方式
+        item.SampleChroma = 0.01;      //标样浓度
+        item.CheckChroma = 0;          //核查标样浓度
+        item.Max = 2;                  //浓度数据超上限
+        item.Min = 0;                  //浓度数据超下限
+        item.BlankChroma = 0.0;        //空白浓度
+        item.parcode1.SampleAdjust = 1.0;      //标样校准系数
+        paramlist.push_back(item);
+
+
+
+        strcpy(item.LHCodeID,"Z73");
+        strcpy(item.GBCodeID,"Z73");
+        strcpy(item.CodeName,"叶绿素");
+        item.iProcessType = 5;        //流程类型
+        item.SlaveID = 1;             //输出的Modbus地址
+        item.parcode1.PeakSearchUp = -450;     //寻峰上限
+        item.parcode1.PeakSearchDown = -650;   //寻峰下限
+        item.DataDigits = 4;           //数据精度
+        item.CalcWay = 1;              //计算方式
+        item.SampleChroma = 0.01;      //标样浓度
+        item.CheckChroma = 0;          //核查标样浓度
+        item.Max = 2;                  //浓度数据超上限
+        item.Min = 0;                  //浓度数据超下限
+        item.BlankChroma = 0.0;        //空白浓度
+        item.parcode1.SampleAdjust = 1.0;      //标样校准系数
+        paramlist.push_back(item);
+
+
+        strcpy(item.LHCodeID,"Z04");
+        strcpy(item.GBCodeID,"Z04");
+        strcpy(item.CodeName,"挥发酚");
+        item.iProcessType = 5;        //流程类型
+        item.SlaveID = 1;             //输出的Modbus地址
+        item.parcode1.PeakSearchUp = -450;     //寻峰上限
+        item.parcode1.PeakSearchDown = -650;   //寻峰下限
+        item.DataDigits = 4;           //数据精度
+        item.CalcWay = 1;              //计算方式
+        item.SampleChroma = 0.01;      //标样浓度
+        item.CheckChroma = 0;          //核查标样浓度
+        item.Max = 2;                  //浓度数据超上限
+        item.Min = 0;                  //浓度数据超下限
+        item.BlankChroma = 0.0;        //空白浓度
+        item.parcode1.SampleAdjust = 1.0;      //标样校准系数
+        paramlist.push_back(item);
+
+
+        strcpy(item.LHCodeID,"Z25");
+        strcpy(item.GBCodeID,"035");
+        strcpy(item.CodeName,"总硒");
+        item.iProcessType = 5;        //流程类型
+        item.SlaveID = 1;             //输出的Modbus地址
+        item.parcode1.PeakSearchUp = -450;     //寻峰上限
+        item.parcode1.PeakSearchDown = -650;   //寻峰下限
+        item.DataDigits = 4;           //数据精度
+        item.CalcWay = 1;              //计算方式
+        item.SampleChroma = 0.01;      //标样浓度
+        item.CheckChroma = 0;          //核查标样浓度
+        item.Max = 2;                  //浓度数据超上限
+        item.Min = 0;                  //浓度数据超下限
+        item.BlankChroma = 0.0;        //空白浓度
+        item.parcode1.SampleAdjust = 1.0;      //标样校准系数
+        paramlist.push_back(item);
+    }
+    else if(7 == iYQType)
+    {
+        paramitem item;
+
+        strcpy(item.LHCodeID,"Z59_1");
+        strcpy(item.GBCodeID,"Z59_1");
+        strcpy(item.CodeName,"二氧化硅1");
+        item.iProcessType = 7;
+        item.CalcWay = 2;
+        item.parcode5.priority = 1;
+        item.parcode4.InsideCode = 592;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z59_2");
+        strcpy(item.GBCodeID,"Z59_2");
+        strcpy(item.CodeName,"二氧化硅2");
+        item.iProcessType = 7;
+        item.CalcWay = 2;
+        item.parcode5.priority = 2;
+        item.parcode4.InsideCode = 592;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z59_3");
+        strcpy(item.GBCodeID,"Z59_3");
+        strcpy(item.CodeName,"二氧化硅3");
+        item.iProcessType = 7;
+        item.CalcWay = 2;
+        item.parcode5.priority = 3;
+        item.parcode4.InsideCode = 593;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z59_4");
+        strcpy(item.GBCodeID,"Z59_4");
+        strcpy(item.CodeName,"二氧化硅4");
+        item.iProcessType = 7;
+        item.CalcWay = 2;
+        item.parcode5.priority = 4;
+        item.parcode4.InsideCode = 594;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z59_5");
+        strcpy(item.GBCodeID,"Z59_5");
+        strcpy(item.CodeName,"二氧化硅5");
+        item.iProcessType = 7;
+        item.CalcWay = 2;
+        item.parcode5.priority = 5;
+        item.parcode4.InsideCode = 595;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+        strcpy(item.LHCodeID,"Z59_6");
+        strcpy(item.GBCodeID,"Z59_6");
+        strcpy(item.CodeName,"二氧化硅6");
+        item.iProcessType = 7;
+        item.CalcWay = 2;
+        item.parcode5.priority = 6;
+        item.parcode4.InsideCode = 596;
+        item.DataDigits = 4;
+        paramlist.push_back(item);
+
+    }
+
+}
+
+void paramdict::Init_Voc()
+{
+    paramitem item;
+    strcpy(item.LHCodeID,"U04");
+    strcpy(item.GBCodeID,"U04");
+    strcpy(item.CodeName,"三氯甲烷");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U22");
+    strcpy(item.GBCodeID,"U22");
+    strcpy(item.CodeName,"四氯化碳");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U23");
+    strcpy(item.GBCodeID,"U23");
+    strcpy(item.CodeName,"三溴甲烷");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U01");
+    strcpy(item.GBCodeID,"U01");
+    strcpy(item.CodeName,"二氯甲烷");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U05");
+    strcpy(item.GBCodeID,"U05");
+    strcpy(item.CodeName,"1,2-二氯乙烷");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U24");
+    strcpy(item.GBCodeID,"U24");
+    strcpy(item.CodeName,"环氧氯丙烷");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U25");
+    strcpy(item.GBCodeID,"U25");
+    strcpy(item.CodeName,"氯乙烯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U26");
+    strcpy(item.GBCodeID,"U26");
+    strcpy(item.CodeName,"1,1-二氯乙烯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U27");
+    strcpy(item.GBCodeID,"U27");
+    strcpy(item.CodeName,"1,2-二氯乙烯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U08");
+    strcpy(item.GBCodeID,"U08");
+    strcpy(item.CodeName,"三氯乙烯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U10");
+    strcpy(item.GBCodeID,"U10");
+    strcpy(item.CodeName,"四氯乙烯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U28");
+    strcpy(item.GBCodeID,"U28");
+    strcpy(item.CodeName,"氯丁二烯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U29");
+    strcpy(item.GBCodeID,"U29");
+    strcpy(item.CodeName,"六氯丁二烯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U14");
+    strcpy(item.GBCodeID,"U14");
+    strcpy(item.CodeName,"苯乙烯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U30");
+    strcpy(item.GBCodeID,"U30");
+    strcpy(item.CodeName,"乙醛");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U31");
+    strcpy(item.GBCodeID,"U31");
+    strcpy(item.CodeName,"丙烯醛");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U32");
+    strcpy(item.GBCodeID,"U32");
+    strcpy(item.CodeName,"三氯乙醛");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U06");
+    strcpy(item.GBCodeID,"U06");
+    strcpy(item.CodeName,"苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U09");
+    strcpy(item.GBCodeID,"U09");
+    strcpy(item.CodeName,"甲苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U12");
+    strcpy(item.GBCodeID,"U12");
+    strcpy(item.CodeName,"乙苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U33");
+    strcpy(item.GBCodeID,"U33");
+    strcpy(item.CodeName,"二甲苯(总量)");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U16");
+    strcpy(item.GBCodeID,"U16");
+    strcpy(item.CodeName,"异丙苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U11");
+    strcpy(item.GBCodeID,"U11");
+    strcpy(item.CodeName,"氯苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U18");
+    strcpy(item.GBCodeID,"U18");
+    strcpy(item.CodeName,"1,2-二氯苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U17");
+    strcpy(item.GBCodeID,"U17");
+    strcpy(item.CodeName,"1,4-二氯苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U34");
+    strcpy(item.GBCodeID,"U34");
+    strcpy(item.CodeName,"丙烯腈");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U35");
+    strcpy(item.GBCodeID,"U35");
+    strcpy(item.CodeName,"吡啶");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U36");
+    strcpy(item.GBCodeID,"U36");
+    strcpy(item.CodeName,"松节油");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U37");
+    strcpy(item.GBCodeID,"U37");
+    strcpy(item.CodeName,"苦味酸");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"UN1");
+    strcpy(item.GBCodeID,"UN1");
+    strcpy(item.CodeName,"疑似有机物1");
+    paramlist.push_back(item);
+}
+void paramdict::Init_sVoc()
+{
+    paramitem item;
+    strcpy(item.LHCodeID,"U38");
+    strcpy(item.GBCodeID,"U38");
+    strcpy(item.CodeName,"三氯苯(总量)");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U39");
+    strcpy(item.GBCodeID,"U39");
+    strcpy(item.CodeName,"四氯苯(总量)");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U40");
+    strcpy(item.GBCodeID,"U40");
+    strcpy(item.CodeName,"六氯苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U41");
+    strcpy(item.GBCodeID,"U41");
+    strcpy(item.CodeName,"硝基苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U42");
+    strcpy(item.GBCodeID,"U42");
+    strcpy(item.CodeName,"二硝基苯(总量)");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U43");
+    strcpy(item.GBCodeID,"U43");
+    strcpy(item.CodeName,"2,4二硝基甲苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U44");
+    strcpy(item.GBCodeID,"U44");
+    strcpy(item.CodeName,"2,4,6-三硝基甲苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U45");
+    strcpy(item.GBCodeID,"U45");
+    strcpy(item.CodeName,"硝基氯苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U46");
+    strcpy(item.GBCodeID,"U46");
+    strcpy(item.CodeName,"2,4-二硝基氯苯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U47");
+    strcpy(item.GBCodeID,"U47");
+    strcpy(item.CodeName,"2,4-二氯苯酚");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U48");
+    strcpy(item.GBCodeID,"U48");
+    strcpy(item.CodeName,"2,4,6-三氯苯酚");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U49");
+    strcpy(item.GBCodeID,"U49");
+    strcpy(item.CodeName,"五氯酚");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U50");
+    strcpy(item.GBCodeID,"U50");
+    strcpy(item.CodeName,"苯胺");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U51");
+    strcpy(item.GBCodeID,"U51");
+    strcpy(item.CodeName,"邻苯二甲酸二丁酯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U52");
+    strcpy(item.GBCodeID,"U52");
+    strcpy(item.CodeName,"邻苯二甲酸二(2乙基己基)酯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U53");
+    strcpy(item.GBCodeID,"U53");
+    strcpy(item.CodeName,"四乙基铅");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U54");
+    strcpy(item.GBCodeID,"U54");
+    strcpy(item.CodeName,"丁基黄原酸");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U55");
+    strcpy(item.GBCodeID,"U55");
+    strcpy(item.CodeName,"滴滴涕");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U56");
+    strcpy(item.GBCodeID,"U56");
+    strcpy(item.CodeName,"林丹");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U57");
+    strcpy(item.GBCodeID,"U57");
+    strcpy(item.CodeName,"环氧七氯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U58");
+    strcpy(item.GBCodeID,"U58");
+    strcpy(item.CodeName,"对硫磷");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U59");
+    strcpy(item.GBCodeID,"U59");
+    strcpy(item.CodeName,"甲基对硫磷");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U60");
+    strcpy(item.GBCodeID,"U60");
+    strcpy(item.CodeName,"马拉硫磷");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U61");
+    strcpy(item.GBCodeID,"U61");
+    strcpy(item.CodeName,"乐果");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U62");
+    strcpy(item.GBCodeID,"U62");
+    strcpy(item.CodeName,"敌敌畏");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U63");
+    strcpy(item.GBCodeID,"U63");
+    strcpy(item.CodeName,"敌百虫");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U64");
+    strcpy(item.GBCodeID,"U64");
+    strcpy(item.CodeName,"内吸磷");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U65");
+    strcpy(item.GBCodeID,"U65");
+    strcpy(item.CodeName,"百菌清");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"U66");
+    strcpy(item.GBCodeID,"U66");
+    strcpy(item.CodeName,"溴氰菊酯");
+    paramlist.push_back(item);
+
+    strcpy(item.LHCodeID,"UN2");
+    strcpy(item.GBCodeID,"UN2");
+    strcpy(item.CodeName,"疑似有机物2");
+    paramlist.push_back(item);
+}
+
+//void paramdict::GetCodeList(int iYQTypes)
+//{
+//    m_mapCodeList.clear();
+//    if(iYQTypes == 1 || iYQTypes == 6)
+//    {
+//        if(paramlist.size() >0)
+//        {
+//            paramitem item1;
+//            for(int i=0;i<paramlist.size();i++)
+//            {
+//                item1 = paramlist[i];
+//                m_mapCodeList.insert(QString(item1.LHCodeID),QString(item1.CodeName));
+//            }
+//        }
+//    }
+
+//    if(iYQTypes == 2)
+//    {
+//        if(paramlist2.size() >0)
+//        {
+//            paramitem2 item2;
+//            for(int i=0;i<paramlist2.size();i++)
+//            {
+//                item2 = paramlist2[i];
+//                m_mapCodeList.insert(QString(item2.LHCodeID),QString(item2.CodeName));
+//            }
+//        }
+//    }
+
+//    if(iYQTypes == 3)
+//    {
+//        if(paramlist3.size() >0)
+//        {
+//            paramitem3 item3;
+//            for(int i=0;i<paramlist3.size();i++)
+//            {
+//                item3 = paramlist3[i];
+//                m_mapCodeList.insert(QString(item3.LHCodeID),QString(item3.CodeName));
+//            }
+//        }
+//    }
+
+//    if(iYQTypes == 4)
+//    {
+//        if(paramlist4.size() >0)
+//        {
+//            paramitem4 item4;
+//            for(int i=0;i<paramlist4.size();i++)
+//            {
+//                item4 = paramlist4[i];
+//                m_mapCodeList.insert(QString(item4.LHCodeID),QString(item4.CodeName));
+//            }
+//        }
+//    }
+
+//    if(iYQTypes == 5)
+//    {
+//        if(paramlist5.size() >0)
+//        {
+//            paramitem5 item5;
+//            for(int i=0;i<paramlist5.size();i++)
+//            {
+//                item5 = paramlist5[i];
+//                m_mapCodeList.insert(QString(item5.LHCodeID),QString(item5.CodeName));
+//            }
+//        }
+//    }
+//}

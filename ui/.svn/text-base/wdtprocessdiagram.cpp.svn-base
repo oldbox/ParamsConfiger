@@ -1,0 +1,87 @@
+#include "wdtprocessdiagram.h"
+#include "ui_wdtprocessdiagram.h"
+#include "ui/wdtheavymetalcurve.h"
+#include <iostream>
+#include <QPainter>
+
+WdtProcessDiagram::WdtProcessDiagram(CMainCtrl* pMC,YQType type, QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::WdtProcessDiagram),
+    wdtYQState(NULL),
+    wdtYQRunState(NULL)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    SetProcessDiagram(type);
+    ui->btnYQRunState->raise();
+    ui->btnYQState->raise();
+    ui->btnYQRunState->hide();
+    ui->btnYQState->hide();
+
+}
+
+WdtProcessDiagram::~WdtProcessDiagram()
+{
+    delete ui;
+}
+
+void WdtProcessDiagram::SetProcessDiagram(YQType type)
+{
+    switch(type)
+    {
+    case HEAVY_METAL:
+        SetHeavyMetal();
+        break;
+    case SPECTRUM:
+        SetSpectrumMetal();
+        break;
+//    case other
+    default:
+        break;
+    }
+}
+
+// 设置重金属流路图及运行状态
+void WdtProcessDiagram::SetHeavyMetal()
+{
+    wdtYQState = new WdtHeavyMetalProccessDiagram(this);
+    wdtYQState->setGeometry(QRect(0, 0, 550, 309));//(0, 0, 515, 315)
+    wdtYQState->hide();
+    wdtYQRunState = new WdtHeavyMetalProccessDiagram(this);
+    wdtYQRunState->setGeometry(QRect(0, 0, 550, 309));
+    wdtYQRunState->hide();
+
+    wdtCurveShow = new WdtHeavyMetalCurve(m_pMC,this);
+    wdtCurveShow->setGeometry(QRect(0, 0, 550, 309));//(0, 0, 515, 315)
+    wdtCurveShow->show();
+}
+
+// 设置光谱仪流路图及运行状态
+void WdtProcessDiagram::SetSpectrumMetal()
+{
+ //TO DO.
+}
+
+// 设置其他的仪器流路图及运行状态 ...
+
+void WdtProcessDiagram::on_btnYQState_clicked()
+{
+    wdtYQRunState->hide();
+    wdtYQState->hide();
+    wdtYQState->show();
+}
+
+void WdtProcessDiagram::on_btnYQRunState_clicked()
+{
+    wdtYQRunState->hide();
+    wdtYQState->hide();
+    wdtYQRunState->show();
+}
+void WdtProcessDiagram::ShowCurve(int iProcessType,QDateTime dt,int iKind)
+{
+    wdtCurveShow->ShowCurve(iProcessType,dt,iKind);
+}
+void WdtProcessDiagram::RemoveCurve()
+{
+    wdtCurveShow->RemoveCurve();
+}

@@ -1,0 +1,640 @@
+#include "dlgmodeltest9.h"
+#include "ui_dlgmodeltest9.h"
+#include "dlgremindmessage.h"
+#include <QTextCodec>
+
+dlgmodeltest9::dlgmodeltest9(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::dlgmodeltest9)
+{
+    ui->setupUi(this);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    m_pMC = pMC;
+    m_pYQ = NULL;
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i] && m_pMC->pYQs->pYQ[i]->GetProcessType() == 3)
+        {
+            m_pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+
+    QString qsValue;
+    for(int i = 1;i <= 300;i++)
+    {
+        qsValue.setNum(i);
+        if(i % 5 == 0)
+        {
+            ui->cmbPJJInitTemp->addItem(qsValue);
+            ui->cmbFIDInitTemp->addItem(qsValue);
+            ui->cmbBoxTemp->addItem(qsValue);
+            ui->cmbMXZInitTempt->addItem(qsValue);
+            ui->cmbI->addItem(qsValue);
+        }
+        if(i <= 50)
+        {
+            ui->cmbK->addItem(qsValue);
+        }
+        if(i <= 50)
+        {
+            ui->cmbSpeed->addItem(qsValue);
+        }
+    }
+    for(int i = 1000;i <= 40000;i++)
+    {
+        qsValue.setNum(i);
+        if(i % 200 == 0)
+        {
+            ui->cmbP->addItem(qsValue);
+            ui->cmbD->addItem(qsValue);
+        }
+        if(i < 4095 && i % 5 == 0)
+        {
+            ui->cmbDAValue->addItem(qsValue);
+        }
+    }
+    ui->cmbChannel->addItem("捕集阱[0]");
+    ui->cmbChannel->addItem("毛细柱[1]");
+    ui->cmbChannel->addItem("箱体   [2]");
+    ui->cmbChannel->addItem("FID     [3]");
+    ui->cmbChannel->addItem("通道4 [4]");
+    ui->cmbChannel->addItem("通道5 [5]");
+
+    int nValue = 0;
+    ReadIniFile("PJJTemp_Init",nValue);
+    qsValue.setNum(nValue);
+    ui->cmbPJJInitTemp->setItemText(0,qsValue);
+
+    ReadIniFile("BoxTemp_Init",nValue);
+    qsValue.setNum(nValue);
+    ui->cmbBoxTemp->setItemText(0,qsValue);
+
+    ReadIniFile("FIDTemp_Init",nValue);
+    qsValue.setNum(nValue);
+    ui->cmbFIDInitTemp->setItemText(0,qsValue);
+
+    ReadIniFile("MxzTemp_Init",nValue);
+    qsValue.setNum(nValue);
+    ui->cmbMXZInitTempt->setItemText(0,qsValue);
+}
+
+dlgmodeltest9::~dlgmodeltest9()
+{
+    delete ui;
+}
+//读配置文件
+bool dlgmodeltest9::ReadIniFile(const char czTeam[], int &nValue)
+{
+    nValue = 0;
+    char czValue[64];memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni("VOC_SET",czTeam,czValue))
+    {
+        nValue = atoi(czValue);
+        return true;
+    }
+    return false;
+}
+bool dlgmodeltest9::ReadIniFile(const char czTeam[], const char czItem[], int &nValue)
+{
+    nValue = 0;
+    char czValue[64];memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni(czTeam,czItem,czValue))
+    {
+        nValue = atoi(czValue);
+        return true;
+    }
+    return false;
+}
+void dlgmodeltest9::WriteIniFile(const char czTeam[], const char czItem[], int nValue)
+{
+    char czValue[64];memset(czValue,0,64);
+    sprintf(czValue,"%d",nValue);
+    GetAfxConfig()->SetIni(czTeam,czItem,czValue);
+}
+void dlgmodeltest9::on_pbtStart_PJJJ_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    int16_t wValue = 0;
+    wValue = ui->cmbPJJInitTemp->currentText().toInt() * 10;
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->SetTemptSingle_153(CMD_VOCCoordinate,PJJINIT_TEMP,wValue))
+    {
+        if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->StartTemptSigle_151(CMD_VOCCoordinate,PJJINIT_TEMP,1))
+            ui->lbl_output->setText("操作成功!");
+        else
+             ui->lbl_output->setText("操作失败!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtStop_PJJJ_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->StartTemptSigle_151(CMD_VOCCoordinate,PJJINIT_TEMP,0))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtStart_BOX_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    int16_t wValue = 0;
+    wValue = ui->cmbBoxTemp->currentText().toInt() * 10;
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->SetTemptSingle_153(CMD_VOCCoordinate,BOXINIT_TEMP,wValue))
+    {
+        if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->StartTemptSigle_151(CMD_VOCCoordinate,BOXINIT_TEMP,1))
+            ui->lbl_output->setText("操作成功!");
+        else
+             ui->lbl_output->setText("操作失败!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtStop_BOX_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->StartTemptSigle_151(CMD_VOCCoordinate,BOXINIT_TEMP,0))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtStart_FID_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    int16_t wValue = 0;
+    wValue = ui->cmbFIDInitTemp->currentText().toInt() * 10;
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->SetTemptSingle_153(CMD_VOCCoordinate,FIDINIT_TEMP,wValue))
+    {
+        if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->StartTemptSigle_151(CMD_VOCCoordinate,FIDINIT_TEMP,1))
+            ui->lbl_output->setText("操作成功!");
+        else
+             ui->lbl_output->setText("操作失败!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtStop_FID_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->StartTemptSigle_151(CMD_VOCCoordinate,FIDINIT_TEMP,0))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtStart_MXZInit_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    int16_t wValue = 0;
+    wValue = ui->cmbMXZInitTempt->currentText().toInt() * 10;
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->SetTemptSingle_153(CMD_VOCCoordinate,MXZINIT_TEMP,wValue))
+    {
+        if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->StartTemptSigle_151(CMD_VOCCoordinate,MXZINIT_TEMP,1))
+            ui->lbl_output->setText("操作成功!");
+        else
+             ui->lbl_output->setText("操作失败!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtStop_MXZInit_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->StartTemptSigle_151(CMD_VOCCoordinate,MXZINIT_TEMP,0))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+//高压打开
+void dlgmodeltest9::on_pbtOpen_GY_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->GYOupput_158(CMD_VOCCoordinate,1))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+//高压关闭
+void dlgmodeltest9::on_pbtClose_GY_clicked()
+{
+
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->GYOupput_158(CMD_VOCCoordinate,0))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+//点火
+void dlgmodeltest9::on_pushButton_fire_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->Fire_159(9))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtMXZ_Download_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+    int nChannel = ui->cmbChannel->currentIndex();
+    //升温阶级
+    int nValue = 0;
+    int nTempt1 = 0;
+    int nTempt2 = 0;
+    int nTempt3 = 0;
+    int nTempt4 = 0;
+    int nTempt5 = 0;
+    if(ReadIniFile("DescTemp_1",nValue))
+    {
+        nTempt1 = nValue*10;
+    }
+    if(ReadIniFile("DescTemp_2",nValue))
+    {
+        nTempt2 = nValue*10;
+    }
+    if(ReadIniFile("DescTemp_3",nValue))
+    {
+        nTempt3 = nValue*10;
+    }
+    if(ReadIniFile("DescTemp_4",nValue))
+    {
+        nTempt4 = nValue*10;
+    }
+    if(ReadIniFile("DescTemp_5",nValue))
+    {
+        nTempt5 = nValue*10;
+    }
+
+    if (!(((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->SetLineTemptDesc_154(CMD_VOCCoordinate,nChannel,nTempt1,nTempt2,nTempt3,nTempt4,nTempt5)))  //失败
+    {
+        ui->lbl_output->setText("操作失败!");
+        return ;
+    }
+     //升温斜率下载
+    int nK1,nK2,nK3,nK4,nK5;
+    if(ReadIniFile("TempRate_1",nValue))
+    {
+        nK1 = nValue;
+    }
+    if(ReadIniFile("TempRate_2",nValue))
+    {
+        nK2 = nValue;
+    }
+    if(ReadIniFile("TempRate_3",nValue))
+    {
+        nK3 = nValue;
+    }
+    if(ReadIniFile("TempRate_4",nValue))
+    {
+        nK4 = nValue;
+    }
+    if(ReadIniFile("TempRate_5",nValue))
+    {
+        nK5 = nValue;
+    }
+
+    if (!(((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->SetLineTemptK_155(CMD_VOCCoordinate,nChannel,nK1,nK2,nK3,nK4,nK5)))  //失败
+    {
+        ui->lbl_output->setText("操作失败!");
+        return ;
+    }
+
+    //保留时间下载
+    int nRT1 = 0;
+    int nRT2 = 0;
+    int nRT3 = 0;
+    int nRT4 = 0;
+    int nRT5 = 0;
+    if(ReadIniFile("TempRTime_1",nValue))
+    {
+        nRT1 = nValue;
+    }
+    if(ReadIniFile("TempRTime_2",nValue))
+    {
+        nRT2 = nValue;
+    }
+    if(ReadIniFile("TempRTime_3",nValue))
+    {
+        nRT3 = nValue;
+    }
+    if(ReadIniFile("TempRTime_4",nValue))
+    {
+        nRT4 = nValue;
+    }
+    if(ReadIniFile("TempRTime_5",nValue))
+    {
+        nRT5 = nValue;
+    }
+
+    if (!(((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->SetLineTemptRTime_156(CMD_VOCCoordinate,nChannel,nRT1,nRT2,nRT3,nRT4,nRT5)))  //失败
+    {
+        ui->lbl_output->setText("操作失败!");
+        return ;
+    }
+    else
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+}
+
+void dlgmodeltest9::on_pbtStart_MXZ_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    int nChannel = ui->cmbChannel->currentIndex();
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->StartLineTempt_152(CMD_VOCCoordinate,nChannel,1))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtStop_MXZ_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    int nChannel = ui->cmbChannel->currentIndex();
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->StartLineTempt_152(CMD_VOCCoordinate,nChannel,0))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtPIDSet_clicked()
+{
+    if( CConfig::GetAfxUserType() == 3)
+    {
+        int ret = QMessageBox::information(NULL, "提示信息","确定修改PID参数吗?",QMessageBox::Yes | QMessageBox::No);
+        if(ret == QMessageBox::Yes)
+        {
+            ui->lbl_output->setText("就绪");
+            if(!m_pYQ) return;
+            if(!m_pYQ->m_pProcess->pDriver1)return;
+            int nChannel = ui->cmbChannel->currentIndex();
+            int16_t P,I,D,K;
+            P = ui->cmbP->currentText().toInt();
+            I = ui->cmbI->currentText().toInt();
+            D = ui->cmbD->currentText().toInt();
+            K = ui->cmbK->currentText().toInt();
+
+            if(((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->SetPIDSet_157(CMD_VOCCoordinate,nChannel,P,I,D,K))
+            {
+                ui->lbl_output->setText("操作成功!");
+            }
+            else
+            {
+                ui->lbl_output->setText("操作失败!");
+            }
+            char tmp[64];memset(tmp,0,64);
+            sprintf(tmp,"%d_P",nChannel);
+            WriteIniFile("PIDSET",tmp,P);
+            memset(tmp,0,64);
+            sprintf(tmp,"%d_I",nChannel);
+            WriteIniFile("PIDSET",tmp,I);
+            memset(tmp,0,64);
+            sprintf(tmp,"%d_D",nChannel);
+            WriteIniFile("PIDSET",tmp,D);
+            memset(tmp,0,64);
+            sprintf(tmp,"%d_K",nChannel);
+            WriteIniFile("PIDSET",tmp,K);
+        }
+    }
+    else
+    {
+        dlgRemindMessage pRemind(m_pMC,1);
+        pRemind.exec();
+    }
+}
+
+void dlgmodeltest9::on_pbtDASet_clicked()
+{
+     if( CConfig::GetAfxUserType() == 3)
+     {
+         ui->lbl_output->setText("就绪");
+         if(!m_pYQ) return;
+         if(!m_pYQ->m_pProcess->pDriver1)return;
+         int16_t DAValue = 0;
+         DAValue = ui->cmbDAValue->currentText().toInt();
+         if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->SetDAValue_161(CMD_VOCCoordinate,DAValue))  //失败
+         {
+             ui->lbl_output->setText("操作成功!");
+         }
+         else
+         {
+             ui->lbl_output->setText("操作失败!");
+         }
+     }
+     else
+     {
+         dlgRemindMessage pRemind(m_pMC,1);
+         pRemind.exec();
+     }
+}
+
+void dlgmodeltest9::on_pbtOpen_ECD_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->ECDPower_162(CMD_VOCCoordinate,1))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtClose_ECD_clicked()
+{
+    ui->lbl_output->setText("就绪");
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->ECDPower_162(CMD_VOCCoordinate,0))
+    {
+        ui->lbl_output->setText("操作成功!");
+    }
+    else
+    {
+        ui->lbl_output->setText("操作失败!");
+    }
+}
+
+void dlgmodeltest9::on_pbtSpeed_clicked()
+{
+     if( CConfig::GetAfxUserType() == 3)
+     {
+         ui->lbl_output->setText("就绪");
+         if(!m_pYQ) return;
+         if(!m_pYQ->m_pProcess->pDriver1)return;
+
+         int16_t nSpeed = 0;
+         nSpeed = ui->cmbSpeed->currentText().toInt();
+         if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->DataSpeed_163(CMD_VOCCoordinate,nSpeed))
+         {
+             ui->lbl_output->setText("操作成功!");
+         }
+         else
+         {
+             ui->lbl_output->setText("操作失败!");
+         }
+     }
+     else
+     {
+         dlgRemindMessage pRemind(m_pMC,1);
+         pRemind.exec();
+     }
+}
+
+void dlgmodeltest9::on_btnReadStatus_once_clicked()
+{
+    if(!m_pYQ) return;
+    if(!m_pYQ->m_pProcess->pDriver1)return;
+    int16_t wValue = 0;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    if (((CDriver3*)(m_pYQ->m_pProcess->pDriver1))->ReadComData(9,40047,6,300,bBuff))
+    {
+        char bTemp[256];memset(bTemp,0,256);
+//        sprintf(bTemp,"%02x/%02x/%02x %02x:%02x:%02x",bBuff[0],bBuff[1],bBuff[2],bBuff[3],bBuff[4],bBuff[5]);
+//        ui->litVer->setText(QLatin1String(bTemp));
+
+        wValue = MAKEWORD(bBuff[7],bBuff[6]);
+        sprintf(bTemp,"%d",wValue);
+        ui->litAddress->setText(QLatin1String(bTemp));
+
+        wValue = MAKEWORD(bBuff[9],bBuff[8]);
+        sprintf(bTemp,"%d",wValue);
+        ui->litCode->setText(QLatin1String(bTemp));
+
+        wValue = MAKEWORD(bBuff[11],bBuff[10]);
+        sprintf(bTemp,"%d",wValue);
+        ui->litStatus->setText(QLatin1String(bTemp));
+    }
+}
+
+void dlgmodeltest9::on_cmbChannel_currentIndexChanged(int index)
+{
+    int nValue = 0;
+    QString qsValue = "";
+    char tmp[64];memset(tmp,0,64);
+    sprintf(tmp,"%d_P",index);
+    ReadIniFile("PIDSET",tmp,nValue);
+    qsValue.setNum(nValue);
+    ui->cmbP->setItemText(0,qsValue);
+
+    memset(tmp,0,64);
+    sprintf(tmp,"%d_I",index);
+    ReadIniFile("PIDSET",tmp,nValue);
+    qsValue.setNum(nValue);
+    ui->cmbI->setItemText(0,qsValue);
+
+    memset(tmp,0,64);
+    sprintf(tmp,"%d_D",index);
+    ReadIniFile("PIDSET",tmp,nValue);
+    qsValue.setNum(nValue);
+    ui->cmbD->setItemText(0,qsValue);
+
+    memset(tmp,0,64);
+    sprintf(tmp,"%d_K",index);
+    ReadIniFile("PIDSET",tmp,nValue);
+    qsValue.setNum(nValue);
+    ui->cmbK->setItemText(0,qsValue);
+}

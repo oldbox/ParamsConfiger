@@ -1,0 +1,311 @@
+#include "dlgmodeltest12.h"
+#include "ui_dlgmodeltest12.h"
+#include <QTextCodec>
+#include <QMessageBox>
+#include "bscomm.h"
+
+dlgmodeltest12::dlgmodeltest12(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    m_bIsPthreadRun(false),
+    ui(new Ui::dlgmodeltest12)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    this->setWindowTitle("汞信号检测模块");
+
+    connect(this, SIGNAL(NofityHgSignReadData(int,QString)), this, SLOT(onGetReadData(int,QString)),Qt::QueuedConnection);
+    connect(this, SIGNAL(NofityValue(int)), this, SLOT(onShowValue(int)),Qt::QueuedConnection);
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }   
+
+    int iOddNum = 0;
+    int iEvenNum = 0;
+    float fOddNum = 0;
+    float fEvenNum = 0;
+    QString qsOddText;
+    QString qsEvenText;
+    QString qsOddName;
+    QString qsEvenName;
+    int iOdd = 0;
+    int iEven = 0;
+    for(int i = 0;i < 8;i++)
+    {
+        if(i == 0)
+        {
+            iOddNum = 375;
+            iEvenNum = 250;
+            iEven = iOdd + i;
+        }
+        else
+        {
+            iEven = iOdd + 1;
+            iOddNum = iOddNum * 2;
+            iEvenNum = iEvenNum * 2;
+        }
+        if(iOddNum != 0)
+            fOddNum = (float)iOddNum / 1000;
+        if(iEvenNum != 0)
+            fEvenNum = (float)iEvenNum / 1000;
+        qsEvenName = QString("%1").arg(iEven);
+        iOdd = iEven + 1;
+        qsOddName = QString("%1").arg(iOdd);
+        qsOddText = qsOddName + "(" + QString("%1").arg(fOddNum) + " ms)";
+        qsEvenText = qsEvenName + "(" + QString("%1").arg(fEvenNum) + " ms)";
+
+        ui->cbxReadMode->addItem(qsEvenText, iOdd);
+        ui->cbxReadMode->addItem(qsOddText, iEven);
+
+        ui->litReadCount->setText("10");        
+        m_iFreCount = 0;
+    }
+}
+
+
+dlgmodeltest12::~dlgmodeltest12()
+{
+    ExitRunThread();
+    delete ui;
+}
+
+void dlgmodeltest12::ExitRunThread()
+{
+    bExitThread = true;
+    m_bRunThread = false;
+    if(m_bIsPthreadRun)
+        pthread_join(id_autorun,0);
+}
+
+void dlgmodeltest12::RunThread()
+{
+    if(!bExitThread)
+    {
+        if(!m_bIsPthreadRun)
+        {
+            m_bIsPthreadRun = true;
+            pthread_create(&id_autorun, NULL, AutoRunThread, this);
+        }
+    }
+}
+
+void* dlgmodeltest12::AutoRunThread(void* pParam)
+{
+    dlgmodeltest12* pThis = (dlgmodeltest12*)pParam;
+    //qDebug("Enter thread\n");
+    while(!pThis->bExitThread)
+    {
+        if(pThis->m_bRunThread)
+        {
+          pThis->GetReadData();
+        }
+       usleep(1000);
+    }
+    //qDebug("Exit thread\n");
+    return NULL;
+}
+
+//读取
+void dlgmodeltest12::on_butHgSignReadData_clicked()
+{
+    if(ui->litReadCount->text().length() == 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "请输入读取个数!");
+        return;
+    }
+    m_bRunThread = true;
+    bExitThread = false;
+    this->RunThread();
+}
+
+//停止
+void dlgmodeltest12::on_butHgSignReadStop_clicked()
+{
+    m_bRunThread = false;
+}
+
+void dlgmodeltest12::onShowValue(int iType)
+{
+    if(iType == 1)
+    {
+        ui->txtShowDataList->clear();
+    }
+}
+
+void dlgmodeltest12::onGetReadData(int iFreCount,QString qsValue)
+{
+    ui->lcdFreCount->display(iFreCount);
+    ui->txtShowDataList->setText(qsValue);
+}
+
+void dlgmodeltest12::GetReadData()
+{
+    int iReadSpaceType = ui->cbxReadMode->currentIndex();
+    int iReadCount = atoi(ui->litReadCount->text().toLatin1().data());
+    vector<int> vecValues;
+    bool isResult = this->LinkMercuryModuleReadData(iReadSpaceType,iReadCount,vecValues);
+    if(isResult)
+    {
+        m_iFreCount ++;
+        if(m_iFreCount % 16 == 0)
+        {
+            qsValue.clear();
+        }
+        if(vecValues.size() > 0)
+        {
+            for(int i=0;i<vecValues.size();i++)
+            {
+                qsValue += QString::number(vecValues.at(i)) + " ";
+            }
+            qsValue += "\n";
+        }
+
+        vecValues.clear();
+        emit NofityHgSignReadData(m_iFreCount,qsValue);
+    }
+}
+
+bool dlgmodeltest12::LinkMercuryModuleReadData(int nReadSpaceType,int nCount,vector<int> &vecValue)
+{
+    if(false == judgeYQConnect()) return false;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    int nStartReg = 40100;
+    int iNum = 10;
+    bool bRet = false;
+    int iCount = 0;
+    if(nCount > 20000)
+        iCount = 20000;
+    else
+        iCount = nCount;
+    int iSpaceTime = 0;
+
+    iSpaceTime = bscomm::GetHgSignSpace(nReadSpaceType);
+    int16_t wPrm0 = 210;
+    int16_t wPrm1 = iCount;
+    int16_t wPrm2 = nReadSpaceType;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    bBuff[4] = HIBYTE(wPrm2);
+    bBuff[5] = LOBYTE(wPrm2);
+
+    int iRedSum = 1;
+
+    if(pYQ->m_pProcess->pDriver->WriteModbus(12,40001,1+2,bBuff))  //先write210命令——》工作状态为空闲——》读取数据长度——》再取数据
+    {
+       int iRedLenCou = 0;
+       usleep(iNum * iSpaceTime);
+        while(true)
+        {
+            memset(bBuff,0,MAX_SIZE);
+            if(pYQ->m_pProcess->pDriver->ReadModbus(12,40100,1,bBuff))
+            {
+                iRedLenCou = MAKEWORD(bBuff[1],bBuff[0]);
+                if(iRedLenCou >= iNum * iRedSum)
+                {
+                    iRedSum ++;
+                    break;
+                }
+            }
+        }
+        nStartReg = 40101;
+        while(iCount > 0)
+        {
+            if(pYQ->m_pProcess->pDriver->ReadModbus(12,nStartReg,iNum,10,bBuff))
+            {
+                int iLx = 0;
+                int iRx = 0;
+                for(int i = 0;i<iNum;i++)
+                {
+                    iLx = 2 * i;
+                    iRx = 2 * i + 1;
+                    vecValue.push_back(MAKEWORD(bBuff[iRx],bBuff[iLx]));
+                }
+
+                iCount -= iNum;
+                nStartReg += iNum;
+                bRet = true;
+            }
+            else
+            {
+                bRet = false;
+            }
+        }
+
+//        while(iCount > 0)
+//        {
+//            iRedSum ++;
+
+//            memset(bBuff,0,MAX_SIZE);
+//            if(pYQ->m_pProcess->pDriver->ReadModbus(12,40100,1,bBuff))
+//            {
+//                iRedLenCou = iRedSum * iNum;
+//                iRedLenCou = MAKEWORD(bBuff[1],bBuff[0]);
+//                //cout << "iRedLenCou:" << iRedLenCou << endl;
+//                if(iRedLenCou >= iNum * iRedSum)
+//                {
+//                    if(pYQ->m_pProcess->pDriver->ReadModbus(12,40101,iNum,bBuff))
+//                    {
+//                        int iLx = 0;
+//                        int iRx = 0;
+//                        for(int i = 0;i<iNum;i++)
+//                        {
+//                            iLx = 2 * i;
+//                            iRx = 2 * i + 1;
+//                            vecValue.push_back(MAKEWORD(bBuff[iRx],bBuff[iLx]));
+//                        }
+
+//                        iCount -= iNum;
+//                        nStartReg += iNum;
+//                        bRet = true;
+//                    }
+//                    else
+//                    {
+//                        bRet = false;
+//                    }
+//                }
+//            }
+//            else
+//            {
+
+//            }
+//        }
+    }
+    return bRet;
+}
+
+bool dlgmodeltest12::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息", "仪器获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}

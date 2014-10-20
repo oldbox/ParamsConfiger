@@ -1,0 +1,588 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>dlConsTypeManage</class>
+ <widget class="QDialog" name="dlConsTypeManage">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>480</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog#dlConsTypeManage{border-image: url(:/res/background.png);}</string>
+  </property>
+  <widget class="QComboBox" name="cbxProcessType">
+   <property name="geometry">
+    <rect>
+     <x>282</x>
+     <y>107</y>
+     <width>111</width>
+     <height>30</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblProcessType">
+   <property name="geometry">
+    <rect>
+     <x>220</x>
+     <y>113</y>
+     <width>56</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>仪器类型 </string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="butClose">
+   <property name="geometry">
+    <rect>
+     <x>543</x>
+     <y>249</y>
+     <width>61</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>文泉驿正黑</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>关闭</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="butAdd">
+   <property name="geometry">
+    <rect>
+     <x>346</x>
+     <y>250</y>
+     <width>61</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>文泉驿正黑</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>添加</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="butDel">
+   <property name="geometry">
+    <rect>
+     <x>478</x>
+     <y>249</y>
+     <width>61</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>文泉驿正黑</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>删除</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="litAlarmValue">
+   <property name="geometry">
+    <rect>
+     <x>282</x>
+     <y>177</y>
+     <width>113</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblAlarmValue">
+   <property name="geometry">
+    <rect>
+     <x>220</x>
+     <y>185</y>
+     <width>56</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>报警限值</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblRealValue">
+   <property name="geometry">
+    <rect>
+     <x>436</x>
+     <y>146</y>
+     <width>41</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>当前值</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblWaringValue">
+   <property name="geometry">
+    <rect>
+     <x>220</x>
+     <y>148</y>
+     <width>56</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>警告限值</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblFaultValue">
+   <property name="geometry">
+    <rect>
+     <x>420</x>
+     <y>182</y>
+     <width>56</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>故障限值</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="litMaxValue">
+   <property name="geometry">
+    <rect>
+     <x>484</x>
+     <y>107</y>
+     <width>113</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="litRealValue">
+   <property name="geometry">
+    <rect>
+     <x>484</x>
+     <y>141</y>
+     <width>113</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblMaxValue">
+   <property name="geometry">
+    <rect>
+     <x>435</x>
+     <y>115</y>
+     <width>41</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>最大值</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="litFaultValue">
+   <property name="geometry">
+    <rect>
+     <x>484</x>
+     <y>176</y>
+     <width>113</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="litWaringValue">
+   <property name="geometry">
+    <rect>
+     <x>282</x>
+     <y>144</y>
+     <width>113</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;</string>
+   </property>
+  </widget>
+  <widget class="QTableWidget" name="tabConsumeinfo">
+   <property name="geometry">
+    <rect>
+     <x>8</x>
+     <y>295</y>
+     <width>621</width>
+     <height>171</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
+   </property>
+   <property name="mouseTracking">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <attribute name="horizontalHeaderCascadingSectionResizes">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <widget class="QTreeWidget" name="tvConsList">
+   <property name="geometry">
+    <rect>
+     <x>7</x>
+     <y>6</y>
+     <width>201</width>
+     <height>288</height>
+    </rect>
+   </property>
+   <column>
+    <property name="text">
+     <string notr="true">1</string>
+    </property>
+   </column>
+  </widget>
+  <widget class="QPushButton" name="butUpdate">
+   <property name="geometry">
+    <rect>
+     <x>413</x>
+     <y>250</y>
+     <width>61</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>文泉驿正黑</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>修改</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="butClear">
+   <property name="geometry">
+    <rect>
+     <x>280</x>
+     <y>250</y>
+     <width>61</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>文泉驿正黑</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>清空</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblID">
+   <property name="geometry">
+    <rect>
+     <x>240</x>
+     <y>24</y>
+     <width>41</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>ID编号</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="litID">
+   <property name="geometry">
+    <rect>
+     <x>286</x>
+     <y>17</y>
+     <width>113</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="cbxConsName">
+   <property name="geometry">
+    <rect>
+     <x>470</x>
+     <y>17</y>
+     <width>111</width>
+     <height>30</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblConsName">
+   <property name="geometry">
+    <rect>
+     <x>411</x>
+     <y>23</y>
+     <width>61</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>耗材名称</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="butUpdateType">
+   <property name="geometry">
+    <rect>
+     <x>287</x>
+     <y>54</y>
+     <width>81</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>文泉驿正黑</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+   </property>
+   <property name="text">
+    <string>修改大类</string>
+   </property>
+  </widget>
+  <widget class="QFrame" name="frame_2">
+   <property name="geometry">
+    <rect>
+     <x>213</x>
+     <y>100</y>
+     <width>414</width>
+     <height>191</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(214, 232, 255);</string>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::StyledPanel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+   <widget class="QLabel" name="lblEmployUnit2">
+    <property name="geometry">
+     <rect>
+      <x>184</x>
+      <y>120</y>
+      <width>41</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>(天)</string>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="radUnit_Day">
+    <property name="geometry">
+     <rect>
+      <x>268</x>
+      <y>119</y>
+      <width>35</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>天</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="lblEmployUnit">
+    <property name="geometry">
+     <rect>
+      <x>233</x>
+      <y>119</y>
+      <width>31</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>单位</string>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="radUnit_Hour">
+    <property name="geometry">
+     <rect>
+      <x>308</x>
+      <y>120</y>
+      <width>51</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>小时</string>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="radUnit_Count">
+    <property name="geometry">
+     <rect>
+      <x>363</x>
+      <y>120</y>
+      <width>35</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>次</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QFrame" name="frame_3">
+   <property name="geometry">
+    <rect>
+     <x>213</x>
+     <y>11</y>
+     <width>414</width>
+     <height>81</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(214, 232, 255);</string>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::StyledPanel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+   <widget class="QPushButton" name="butSetLevel">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>44</y>
+      <width>141</width>
+      <height>34</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>文泉驿正黑</family>
+      <pointsize>11</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>液位、液体瓶设置</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QLabel" name="lblQualityDay">
+   <property name="geometry">
+    <rect>
+     <x>232</x>
+     <y>219</y>
+     <width>51</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>保质期</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="litQualityDay">
+   <property name="geometry">
+    <rect>
+     <x>282</x>
+     <y>213</y>
+     <width>113</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border:2px groove gray;</string>
+   </property>
+  </widget>
+  <zorder>frame_3</zorder>
+  <zorder>frame_2</zorder>
+  <zorder>butAdd</zorder>
+  <zorder>cbxProcessType</zorder>
+  <zorder>lblProcessType</zorder>
+  <zorder>butClose</zorder>
+  <zorder>butDel</zorder>
+  <zorder>litAlarmValue</zorder>
+  <zorder>lblAlarmValue</zorder>
+  <zorder>lblRealValue</zorder>
+  <zorder>lblWaringValue</zorder>
+  <zorder>lblFaultValue</zorder>
+  <zorder>litMaxValue</zorder>
+  <zorder>litRealValue</zorder>
+  <zorder>lblMaxValue</zorder>
+  <zorder>litFaultValue</zorder>
+  <zorder>litWaringValue</zorder>
+  <zorder>tabConsumeinfo</zorder>
+  <zorder>tvConsList</zorder>
+  <zorder>butUpdate</zorder>
+  <zorder>butClear</zorder>
+  <zorder>lblID</zorder>
+  <zorder>litID</zorder>
+  <zorder>cbxConsName</zorder>
+  <zorder>lblConsName</zorder>
+  <zorder>butUpdateType</zorder>
+  <zorder>lblQualityDay</zorder>
+  <zorder>litQualityDay</zorder>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

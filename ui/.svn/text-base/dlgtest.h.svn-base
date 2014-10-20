@@ -1,0 +1,58 @@
+#ifndef DLGTEST_H
+#define DLGTEST_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include <QMessageBox>
+
+namespace Ui {
+class DlgTest;
+}
+
+struct struYQTitModNum
+{
+    struYQTitModNum(){titleID = 0;memset(cTitle,0,64);memset(cModNum,0,64);}
+
+    int titleID;
+    char cTitle[64];
+    char cModNum[64];
+};
+
+class DlgTest : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit DlgTest(CMainCtrl* pMC,QWidget *parent = 0);
+    ~DlgTest();
+    
+private slots:
+
+    void on_btnUpdDB_clicked();
+    void on_btnRegister_clicked();
+    void on_btnsave_clicked();
+  //  void on_combcomport_currentIndexChanged(int index);
+
+
+    void on_comboYQ_currentIndexChanged(int index);
+
+    void on_comYQTitle_currentIndexChanged(int index);
+
+    void on_btnExit_clicked();
+
+private:
+    void InitConsume(const char* czPath);
+    void GetYQTitModNum();
+    void mousePressEvent(QMouseEvent *);
+private:
+    Ui::DlgTest *ui;
+    CMainCtrl* m_pMC;
+    //QMap<int,QString> mapYQTitle;
+    vector<struYQTitModNum> vecTitModNumList;
+    int m_nClick;
+    int m_iYQType;
+
+    void WinColShowOrHide(int iYQType);
+};
+
+#endif // DLGTEST_H

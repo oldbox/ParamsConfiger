@@ -1,0 +1,37 @@
+#ifndef WDTHEAVYMETALCURVE_H
+#define WDTHEAVYMETALCURVE_H
+
+#include <QWidget>
+#include <QDateTime>
+#include "../core/cdbbusiness.h"
+#include "mainwindowbase.h"
+namespace Ui {
+class WdtHeavyMetalCurve;
+}
+class MyPlot;
+class CYQ;
+class WdtHeavyMetalCurve : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit WdtHeavyMetalCurve(CMainCtrl* pMC,QWidget *parent = 0);
+    ~WdtHeavyMetalCurve();
+
+public slots:
+    void OnHhValue(int nType,int nTypeID,double fHeight);
+
+private:
+    Ui::WdtHeavyMetalCurve *ui;
+
+    MyPlot *plot;
+
+    QVector<double> m_vtX,m_vtY;
+    CDBBusiness* m_pDB;
+
+public:
+     void ShowCurve(int iProcessType,QDateTime dt,int iKind);
+     void RemoveCurve();
+};
+
+#endif // WDTHEAVYMETALCURVE_H

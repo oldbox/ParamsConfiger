@@ -1,0 +1,52 @@
+#ifndef DLGMODELTEST1_H
+#define DLGMODELTEST1_H
+
+#include <QDialog>
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class dlgmodeltest1;
+}
+
+class dlgmodeltest1 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest1(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest1();
+    
+private slots:
+    void on_chkSingleCtrl_1_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_3_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_2_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_4_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_5_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_6_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_7_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_8_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_9_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_10_stateChanged(int arg1);
+
+    void on_btnStatus_clicked();
+
+
+private:
+    void ReadStatus();
+    bool judgeYQConnect();
+    Ui::dlgmodeltest1 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    int m_nStatus[10];
+};
+
+#endif // DLGMODELTEST1_H

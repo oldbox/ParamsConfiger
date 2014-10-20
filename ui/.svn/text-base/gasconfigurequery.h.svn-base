@@ -1,0 +1,22 @@
+#ifndef GASCONFIGUREQUERY_H
+#define GASCONFIGUREQUERY_H
+
+#include <QDialog>
+
+namespace Ui {
+class gasConfigureQuery;
+}
+
+class gasConfigureQuery : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit gasConfigureQuery(QWidget *parent = 0);
+    ~gasConfigureQuery();
+    
+private:
+    Ui::gasConfigureQuery *ui;
+};
+
+#endif // GASCONFIGUREQUERY_H

@@ -1,0 +1,25 @@
+#ifndef DLGMODELTEST8_H
+#define DLGMODELTEST8_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class dlgmodeltest8;
+}
+
+class dlgmodeltest8 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest8(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest8();
+    
+private:
+    Ui::dlgmodeltest8 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+};
+
+#endif // DLGMODELTEST8_H

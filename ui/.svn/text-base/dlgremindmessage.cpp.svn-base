@@ -1,0 +1,56 @@
+#include "dlgremindmessage.h"
+#include <QTextCodec>
+#include "ui_dlgremindmessage.h"
+
+dlgRemindMessage::dlgRemindMessage(CMainCtrl* pMC,int nType,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgRemindMessage)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    m_pMC = pMC;
+    m_nType = nType;
+    if(1 == nType)
+    {
+        ui->labelmessage->setText("您不具备操作权限，请与管理人员联系!");
+    }else if(2 == nType)
+    {
+        ui->labelmessage->setText("您输入的密码信息有误，请检查后重新输入!");
+    }
+    else if(3 == nType)
+    {
+        ui->labelmessage->setText("请确认是否打开电磁阀或多打开电磁阀!");
+    }else if(4 == nType)
+    {
+        ui->labelmessage->setText("请检查是否插入U盘或SD卡!");
+    }else if(5 == nType)
+    {
+        ui->labelmessage->setText("请确认是否进行初始化!");
+    }
+    else if(6 == nType)
+    {
+        ui->labelmessage->setText("正在测试中，请稍后再操作!");
+    }else if(7 == nType)
+    {
+        ui->labelmessage->setText("请选择要发送的命令!");
+    }
+
+}
+
+dlgRemindMessage::~dlgRemindMessage()
+{
+    delete ui;
+}
+
+void dlgRemindMessage::on_pushButton_clicked()
+{
+    if(5 == m_nType)
+    {
+        m_pMC->SendCmd(CMD_INIT);
+    }
+    this->close();
+}

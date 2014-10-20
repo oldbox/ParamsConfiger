@@ -1,0 +1,59 @@
+#ifndef GASPREHEAT_H
+#define GASPREHEAT_H
+
+#include <QDialog>
+#include <QMovie>
+#include "gasdisptestdata.h"
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class gaspreheat;
+}
+
+class gaspreheat : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit gaspreheat(CMainCtrl* pMC,QWidget *parent = 0);
+    void init();
+    ~gaspreheat();
+    
+private slots:
+    void Closewindow();
+    void refreshTemp(struGasStatusData* data);
+
+public slots:
+    void OnStatusValue(struGasStatusData* pTempValue);
+
+protected:
+     void mousePressEvent(QMouseEvent *);
+
+private:
+    CMainCtrl* m_pMc;
+    bool m_bAirCellFlag;
+    bool m_bSpecFlag;
+    bool m_bLightFlag;
+    QMovie *WordMovie;
+    bool m_bTimeFlag;
+    bool m_bMaxTimeFlag;//预热超过最大时间30分钟，自动跳过此界面
+    bool m_bSpacFlag;
+    QTime m_QTime;
+    bool m_bInitFlag;
+    float m_fLightInitValue;
+    float m_fSpecInitValue;
+    float m_fAirInitValue;//进入预热界面，第一次的温度
+
+    int m_nLightTargetTemp;//光源温度
+    int m_nSpecTargetTemp;//光谱仪温度
+    int m_nGasTargetTemp;
+    QTimer *CloseTimer;
+    Ui::gaspreheat *ui;
+    bool m_bStartTag;
+    int m_nLightClick;
+    int m_nAirCellClick;
+    int m_nSpecClick;
+    int m_nRightUpClick;//右上角点击次数计算
+};
+
+#endif // GASPREHEAT_H

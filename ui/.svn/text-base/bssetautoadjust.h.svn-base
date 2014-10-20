@@ -1,0 +1,38 @@
+#ifndef BSSETAUTOADJUST_H
+#define BSSETAUTOADJUST_H
+
+#include <QDialog>
+#include <QLineEdit>
+#include "../core/cmainctrl.h"
+#include <QDesktopWidget>
+
+namespace Ui {
+class bsSetAutoAdjust;
+}
+
+class bsSetAutoAdjust : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit bsSetAutoAdjust(CMainCtrl* pMC,QWidget *parent = 0);
+    ~bsSetAutoAdjust();
+    
+private slots:
+    void on_butClose_clicked();
+    void on_butSave_clicked();
+    void on_chkQyYqZqTime_clicked(bool checked);
+    void on_chkStaUpStdAbsorbTime_clicked(bool checked);
+    void on_chkStaUpBlankAbsorbTime_clicked(bool checked);
+
+    void on_chkAutoAdjustCyc_clicked(bool checked);
+
+private:
+    Ui::bsSetAutoAdjust *ui;
+    CMainCtrl* m_pMC;
+    void SetControlEnable(bool isFlag);
+    void SetControlBgColor(QLineEdit* qlit, bool isFlag);
+    void GetAutoAdjustValue();
+};
+
+#endif // BSSETAUTOADJUST_H

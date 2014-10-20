@@ -1,0 +1,250 @@
+#include "dlgconfigmanage.h"
+#include "ui_dlgconfigmanage.h"
+#include <QTextCodec>
+
+dlgConfigManage::dlgConfigManage(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgConfigManage)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    this->resize(QSize(640,422));
+    int nYQType = GetAfxYQType();
+    if(6 != nYQType)
+    {
+        ui->labelDCFSource2->hide();
+        ui->SourceValveNO->hide();
+    }
+    ui->labelValveNO_QQ->hide();
+    ui->labelValveNO_KQ->hide();
+    ui->ValveNO_KQ->hide();
+    ui->ValveNO_QQ->hide();
+    if(3 == nYQType)
+    {
+        ui->label_9->hide();
+        ui->frame_5->hide();
+        ui->label_7->hide();
+        ui->label_4->hide();
+        ui->label_3->hide();
+        ui->label_5->hide();
+        ui->label_6->hide();
+        ui->cbxTemptChannel->hide();
+        ui->lineTempValue->hide();
+        ui->lineHeatTime->hide();
+        ui->labelDistilled->hide();
+        ui->DistilledValveNO->hide();
+
+        char tmp[64];memset(tmp,0,64);
+        GetAfxConfig()->GetIni("INFO","Detector",tmp);
+        int nDetector = atoi(tmp);
+        if(nDetector == 0)//FID
+        {
+            ui->label_9->setText("是否关火");
+            ui->groupBox->show();
+            ui->frame_5->show();
+            ui->label_9->show();
+            ui->labelDistilled->show();
+            ui->DistilledValveNO->show();
+
+            memset(tmp,0,64);
+            GetAfxConfig()->GetIni("VOC_SET","FireOnOff",tmp);//测试完后是否关火
+            if(atoi(tmp) == 0)
+            {
+                ui->radioFireOff->setChecked(true);
+            }
+            else
+            {
+                ui->radioFireOn->setChecked(true);
+            }
+
+            ui->labelDistilled->setText("氢气阀地址");
+            ui->labelValveNO_QQ->show();
+            ui->labelValveNO_KQ->show();
+            ui->ValveNO_KQ->show();
+            ui->ValveNO_QQ->show();
+
+            memset(tmp,0,64);
+            GetAfxConfig()->GetIni("VOC_SET","FireAddr",tmp);
+            ui->DistilledValveNO->setCurrentIndex(atoi(tmp)-1);
+
+            memset(tmp,0,64);
+            GetAfxConfig()->GetIni("VOC_SET","FireDCF1",tmp);
+            ui->ValveNO_KQ->setCurrentIndex(atoi(tmp)-1);
+
+            memset(tmp,0,64);
+            GetAfxConfig()->GetIni("VOC_SET","FireDCF2",tmp);
+            ui->ValveNO_QQ->setCurrentIndex(atoi(tmp)-1);
+        }
+        else
+        {
+            ui->frame_5->hide();
+            ui->groupBox->hide();
+        }
+    }
+    else
+    {
+        ui->groupBox->hide();
+    }
+    Init();
+
+}
+
+dlgConfigManage::~dlgConfigManage()
+{
+    delete ui;
+}
+void dlgConfigManage::Init()
+{
+    char cValue[MAX_SIZE];
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ValveNO","ByOrSy",cValue);
+    if(0 == atoi(cValue))
+    {
+        ui->radioWater->setChecked(true);
+    }
+    else if(1 == atoi(cValue))
+    {
+        ui->radioSample->setChecked(true);
+    }
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ValveNO","WaterValveNO",cValue);
+    ui->WaterValveNO->setCurrentIndex(atoi(cValue)-1);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ValveNO","SampleValveNO",cValue);
+    ui->SampleValveNO->setCurrentIndex(atoi(cValue)-1);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ValveNO","DistilledValveNO",cValue);
+    ui->DistilledValveNO->setCurrentIndex(atoi(cValue)-1);
+
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("ValveNO","DCFSource2",cValue);
+    ui->SourceValveNO->setCurrentIndex(atoi(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("TempSet","TempValue",cValue);
+    ui->lineTempValue->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("TempSet","HeatTime",cValue);
+    ui->lineHeatTime->setText(QString::fromUtf8(cValue));
+}
+void dlgConfigManage::SaveSetInfo()
+{
+    char cValue[MAX_SIZE];
+    if(ui->cbxTemptChannel->currentIndex() == 0)
+    {
+         GetAfxConfig()->SetIni("TempSet","TempValue",ui->lineTempValue->text().trimmed().toLatin1().data());
+         GetAfxConfig()->SetIni("TempSet","HeatTime",ui->lineHeatTime->text().trimmed().toLatin1().data());
+    }
+    else if(ui->cbxTemptChannel->currentIndex() == 1)
+    {
+         GetAfxConfig()->SetIni("TempSet","TempValue_2",ui->lineTempValue->text().trimmed().toLatin1().data());
+         GetAfxConfig()->SetIni("TempSet","HeatTime_2",ui->lineHeatTime->text().trimmed().toLatin1().data());
+    }
+    else if(ui->cbxTemptChannel->currentIndex() == 2)
+    {
+         GetAfxConfig()->SetIni("TempSet","TempValue_3",ui->lineTempValue->text().trimmed().toLatin1().data());
+         GetAfxConfig()->SetIni("TempSet","HeatTime_3",ui->lineHeatTime->text().trimmed().toLatin1().data());
+    }
+    memset(cValue,0,MAX_SIZE);
+    sprintf(cValue,"%d",(ui->WaterValveNO->currentIndex()+1));
+    GetAfxConfig()->SetIni("ValveNO","WaterValveNO",cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    sprintf(cValue,"%d",(ui->SampleValveNO->currentIndex()+1));
+    GetAfxConfig()->SetIni("ValveNO","SampleValveNO",cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    sprintf(cValue,"%d",(ui->DistilledValveNO->currentIndex()+1));
+    GetAfxConfig()->SetIni("ValveNO","DistilledValveNO",cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    sprintf(cValue,"%d",(ui->SourceValveNO->currentIndex()));
+    GetAfxConfig()->SetIni("ValveNO","DCFSource2",cValue);
+
+    if(ui->radioWater->isChecked())
+    {
+        GetAfxConfig()->SetIni("ValveNO","ByOrSy","0");
+    }
+    else if(ui->radioSample->isChecked())
+    {
+        GetAfxConfig()->SetIni("ValveNO","ByOrSy","1");
+    }
+
+    if(ui->radioFireOn->isChecked())
+    {
+        GetAfxConfig()->SetIni("VOC_SET","FireOnOff","1");//点火,即不关
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("VOC_SET","FireOnOff","0");//关火
+    }
+
+    if( GetAfxYQType() == 3)
+    {
+        memset(cValue,0,64);
+        sprintf(cValue,"%d",(ui->DistilledValveNO->currentIndex()+1));
+        GetAfxConfig()->SetIni("VOC_SET","FireAddr",cValue);
+        memset(cValue,0,64);
+        sprintf(cValue,"%d",(ui->ValveNO_KQ->currentIndex()+1));
+        GetAfxConfig()->SetIni("VOC_SET","FireDCF1",cValue);
+        memset(cValue,0,64);
+        sprintf(cValue,"%d",(ui->ValveNO_QQ->currentIndex()+1));
+        GetAfxConfig()->SetIni("VOC_SET","FireDCF2",cValue);
+    }
+
+}
+
+void dlgConfigManage::on_btnClose_clicked()
+{
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    this->close();
+    emit EmityParWinClolse();
+}
+
+void dlgConfigManage::on_cbxTemptChannel_currentIndexChanged(int index)
+{
+     char cValue[64];memset(cValue,0,64);
+    if(index == 0)
+    {
+        memset(cValue,0,64);
+        GetAfxConfig()->GetIni("TempSet","TempValue",cValue);
+        ui->lineTempValue->setText(QString::fromUtf8(cValue));
+
+        memset(cValue,0,64);
+        GetAfxConfig()->GetIni("TempSet","HeatTime",cValue);
+        ui->lineHeatTime->setText(QString::fromUtf8(cValue));
+    }else if(index == 1)
+    {
+        memset(cValue,0,64);
+        GetAfxConfig()->GetIni("TempSet","TempValue_2",cValue);
+        ui->lineTempValue->setText(QString::fromUtf8(cValue));
+
+        memset(cValue,0,64);
+        GetAfxConfig()->GetIni("TempSet","HeatTime_2",cValue);
+        ui->lineHeatTime->setText(QString::fromUtf8(cValue));
+    }else if(index == 2)
+    {
+        memset(cValue,0,64);
+        GetAfxConfig()->GetIni("TempSet","TempValue_3",cValue);
+        ui->lineTempValue->setText(QString::fromUtf8(cValue));
+
+        memset(cValue,0,64);
+        GetAfxConfig()->GetIni("TempSet","HeatTime_3",cValue);
+        ui->lineHeatTime->setText(QString::fromUtf8(cValue));
+    }
+}
+
+void dlgConfigManage::on_btnSave_clicked()
+{
+    SaveSetInfo();
+    QMessageBox::information(NULL, "提示信息","保存成功!",QMessageBox::Ok);
+}

@@ -1,0 +1,49 @@
+#include "gasmaintainremind.h"
+#include "ui_gasmaintainremind.h"
+
+gasMaintainRemind::gasMaintainRemind(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::gasMaintainRemind)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMc = pMC;
+    connect(m_pMc->pYQs,SIGNAL(NotifyEnterMaintain()),this,SLOT(OnEnterMaintaion()));
+    WordMovie =  new QMovie(":/res/Movie.gif");
+    WordMovie->start();
+    ui->labelMovie->setMovie(WordMovie);
+    CYQ* pYQ = m_pMc->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        ((CProcess2*)(pYQ->m_pProcess))->SetStartMaintain(true);
+    }
+}
+
+gasMaintainRemind::~gasMaintainRemind()
+{
+    delete ui;
+    delete WordMovie;
+}
+
+void gasMaintainRemind::on_btnClose_clicked()
+{
+    WordMovie->stop();
+    CYQ* pYQ = m_pMc->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        ((CProcess2*)(pYQ->m_pProcess))->SetStartMaintain(false);
+
+    }
+    this->close();
+}
+void gasMaintainRemind::OnEnterMaintaion()
+{
+    this->close();
+    WordMovie->stop();
+    bsAllModelTest *dlgmap = new bsAllModelTest(m_pMc);
+    dlgmap->move((qApp->desktop()->width() - dlgmap->width())/2,(qApp->desktop()->height() - dlgmap->height())/2);
+    dlgmap->exec();
+    delete dlgmap;
+    dlgmap = NULL;
+
+}

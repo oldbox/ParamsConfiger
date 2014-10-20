@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>dlgmodeltest5</class>
+ <widget class="QWidget" name="dlgmodeltest5">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>520</width>
+    <height>430</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QFrame" name="frame">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>520</width>
+     <height>430</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QWidget#frame{border-image: url(:/res/background.png);}</string>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::StyledPanel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+   <widget class="QPushButton" name="btnSend">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>225</y>
+      <width>71</width>
+      <height>34</height>
+     </rect>
+    </property>
+    <property name="focusPolicy">
+     <enum>Qt::NoFocus</enum>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>发送</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="labelname6">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>199</y>
+      <width>122</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>采样脉冲周期(mS)</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="labelname1">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>39</y>
+      <width>122</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>富集电压(mV)</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="labelname5">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>167</y>
+      <width>122</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>采样脉冲宽度(mS)</string>
+    </property>
+   </widget>
+   <widget class="QListWidget" name="listWidget">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>40</y>
+      <width>171</width>
+      <height>201</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border:2px groove gray;</string>
+    </property>
+    <property name="sortingEnabled">
+     <bool>false</bool>
+    </property>
+    <item>
+     <property name="text">
+      <string>富集</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>平置</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>溶出</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>线性扫描</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>控制DAC输出值</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>电极连接电路板控制</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>设置DAC输出值的校准参数</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>设置ADC校准值</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLabel" name="labelname2">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>71</y>
+      <width>122</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>溶出终止电压(mV)</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="labelname3">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>103</y>
+      <width>122</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>溶出电压增量(mV)</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="labelname4">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>135</y>
+      <width>122</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>采样脉冲幅度(mV)</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineprm1">
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>39</y>
+      <width>113</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border:2px groove gray;</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineprm2">
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>71</y>
+      <width>113</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border:2px groove gray;</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineprm3">
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>103</y>
+      <width>113</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border:2px groove gray;</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineprm4">
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>135</y>
+      <width>113</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border:2px groove gray;</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineprm5">
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>167</y>
+      <width>113</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border:2px groove gray;</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineprm6">
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>199</y>
+      <width>113</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border:2px groove gray;</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnStatus">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>375</y>
+      <width>88</width>
+      <height>34</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border:2px groove gray;border-radius:10px;padding:2px 4px;
+background-color: rgb(25, 75, 138);
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>状态查询</string>
+    </property>
+   </widget>
+   <widget class="QFrame" name="frame_4">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>500</width>
+      <height>231</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(214, 232, 255);</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_8">
+    <property name="geometry">
+     <rect>
+      <x>25</x>
+      <y>10</y>
+      <width>80</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">font: 75 12pt &quot;Century Schoolbook L&quot;;
+background-color: rgb(214, 232, 255);</string>
+    </property>
+    <property name="text">
+     <string>命令及参数</string>
+    </property>
+   </widget>
+   <zorder>frame_4</zorder>
+   <zorder>btnSend</zorder>
+   <zorder>labelname6</zorder>
+   <zorder>labelname1</zorder>
+   <zorder>labelname5</zorder>
+   <zorder>listWidget</zorder>
+   <zorder>labelname2</zorder>
+   <zorder>labelname3</zorder>
+   <zorder>labelname4</zorder>
+   <zorder>lineprm1</zorder>
+   <zorder>lineprm2</zorder>
+   <zorder>lineprm3</zorder>
+   <zorder>lineprm4</zorder>
+   <zorder>lineprm5</zorder>
+   <zorder>lineprm6</zorder>
+   <zorder>btnStatus</zorder>
+   <zorder>label_8</zorder>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

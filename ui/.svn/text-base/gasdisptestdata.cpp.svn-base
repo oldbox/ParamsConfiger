@@ -1,0 +1,418 @@
+#include "gasdisptestdata.h"
+#include "ui_gasdisptestdata.h"
+#include <QDateTime>
+#include "gasdataquery.h"
+#include <QDesktopWidget>
+#include "gassetparam.h"
+
+gasdisptestdata::gasdisptestdata(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::gasdisptestdata),
+    m_nCurrYqUIPos(0),
+    m_bFlag(false),
+    CalcTimer(new QTimer),
+    m_bAlarm(false),
+    m_nLoginTime(0)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    m_pMC = pMC;
+    plot = new MyPlot(2,ui->page_2);
+    plot->setGeometry(QRect(20, 20, 580, 290));
+
+    connect(pMC->pYQs,SIGNAL(NotifyStatusValue(struGasStatusData*)),this,SLOT(OnStatusValue(struGasStatusData*)));
+    connect(pMC->pYQs,SIGNAL(NotifyGasResult(float,float,float,float)),this,SLOT(OnGasResult(float,float,float,float)));
+    init();
+}
+
+gasdisptestdata::~gasdisptestdata()
+{
+    delete ui;
+    delete CalcTimer;
+    delete plot;
+}
+void gasdisptestdata::init()
+{
+    char czValue[MAX_SIZE];
+
+    ui->radioChroma->setChecked(true);
+    ui->page_1->show();
+    ui->page_2->hide();
+    //系统时间
+    ui->lineEditSysTime->setText(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss")); //系统时间
+    connect(CalcTimer, SIGNAL(timeout()), this, SLOT(CurrentTimeUpdate()));
+    CalcTimer->start(1000);
+
+    m_vTime.clear();
+    m_vResultZA0.clear();
+    m_vResultZA1.clear();
+    m_vResultZB2.clear();
+    m_vResultZB4.clear();    
+    m_vResultZA0.push_back(0.0);
+    m_vResultZA1.push_back(0.0);
+    m_vResultZB2.push_back(0.0);
+    m_vResultZB4.push_back(0.0);
+    for(int i=0;i<=20;i++)
+    {
+        m_vTime.push_back(i);
+    }
+
+    memset(czValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("GasSetting","ChromaUnit",czValue);
+    if(atoi(czValue))
+    {
+        ui->labelaUnit1->setText("mg/m3");
+        ui->labelUnit2->setText("mg/m3");
+    }
+    else
+    {
+        ui->labelaUnit1->setText("ppm");
+        ui->labelUnit2->setText("ppm");
+    }
+    ui->textLogDisp->clear();
+    //ui->textLogDisp->setFrameStyle(QFrame::NoFrame);//去除qtextedit边框
+    on_radioChroma_clicked();
+    ShowModuleFault();
+}
+void gasdisptestdata::CurrentTimeUpdate()
+{
+    ui->lineEditSysTime->setText(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+
+    if(m_bAlarm)
+    {
+        if(ui->btnAlarm->isHidden())
+        {
+            ui->btnAlarm->show();
+        }
+        else
+        {
+            ui->btnAlarm->hide();
+        }
+    }
+
+    if(m_nLoginTime > 0)
+    {
+        m_nLoginTime--;
+    }
+    else if(0 == m_nLoginTime)
+    {
+        CConfig::setAfxUserType(0);
+        ui->btnenter->setIcon(QIcon(":/res/n1/enter1.png"));
+        m_bFlag = false;
+
+    }else
+    {
+        //do nothing
+    }
+}
+void gasdisptestdata::on_btnQuery_clicked()
+{
+    if( 0 == CConfig::GetAfxUserType())
+    {
+        dlgRemindMessage *pRemind= new dlgRemindMessage(m_pMC,1);
+        pRemind->exec();
+        delete pRemind;
+        pRemind = NULL;
+        return;
+    }
+    else
+    {
+        gasQueryManage* pGasquery = new gasQueryManage(m_pMC);
+        pGasquery->move((qApp->desktop()->width() - pGasquery->width())/2,(qApp->desktop()->height() - pGasquery->height())/2);
+        pGasquery->exec();
+        delete pGasquery;
+    }
+}
+
+void gasdisptestdata::on_BtnAbout_clicked()
+{
+    DlgAbout dlg;
+    dlg.exec();
+}
+
+void gasdisptestdata::on_BtnSetting_clicked()
+{
+    if( 0 == CConfig::GetAfxUserType())
+    {
+        dlgRemindMessage *pRemind= new dlgRemindMessage(m_pMC,1);
+        pRemind->exec();
+        delete pRemind;
+        pRemind = NULL;
+        return;
+    }
+    else
+    {
+        gassetparam *pGasSetting = new gassetparam();
+        pGasSetting->move((qApp->desktop()->width() - pGasSetting->width())/2,(qApp->desktop()->height() - pGasSetting->height())/2);
+        pGasSetting->exec();
+        delete pGasSetting;
+        pGasSetting = NULL;
+    }
+}
+
+void gasdisptestdata::OnGasResult(float fResultZA0, float fResultZA1, float fResultZB2, float fResultZB4)
+{
+    char czValue[MAX_SIZE];
+
+    ShowModuleFault();
+    //处理主界面是否显示负浓度
+    memset(czValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("GasSetting","ShowNegative",czValue);
+    if(!atoi(czValue))
+    {
+        if(fResultZA0 < 0.0)
+        {
+            fResultZA0 = 0.0;
+        }
+
+        if(fResultZB2 < 0.0)
+        {
+            fResultZB2 = 0.0;
+        }
+
+        if(fResultZB4 < 0.0)
+        {
+            fResultZB4 = 0.0;
+        }
+    }
+    //单位切换
+    memset(czValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("GasSetting","ChromaUnit",czValue);
+    if(atoi(czValue))
+    {
+        ui->labelaUnit1->setText("mg/m3");
+        ui->labelUnit2->setText("mg/m3");
+        fResultZA0 = (fResultZA0*30)/22.4;
+        fResultZB2 = (fResultZB2*64)/22.4;
+    }
+    else
+    {
+        ui->labelaUnit1->setText("ppm");
+        ui->labelUnit2->setText("ppm");
+    }
+    m_vResultZA0.push_back(fResultZA0);
+//    m_vResultZA1.push_back(fResultZA1);
+    m_vResultZB2.push_back(fResultZB2);
+    m_vResultZB4.push_back(fResultZB4);
+
+    m_vResultAll.push_back(fResultZA0);
+    m_vResultAll.push_back(fResultZB2);
+    m_vResultAll.push_back(fResultZB4);
+
+    QString Concen;
+    Concen.sprintf("%.1f",fResultZA0);
+    ui->NOConcentration->setText(Concen);
+    Concen.sprintf("%.1f",fResultZB2);
+    ui->SO2Concentration->setText(Concen);
+    Concen.sprintf("%.1f",fResultZB4);
+    ui->O2Concentration->setText(Concen);
+
+    if(m_vResultZA0.size()>20)
+    {
+        m_vResultZA0.remove(0);
+        m_vResultAll.remove(0);
+    }
+//    if(m_vResultZA1.size()>20)
+//    {
+//        m_vResultZA1.remove(0);
+//    }
+    if(m_vResultZB2.size()>20)
+    {
+         m_vResultZB2.remove(0);
+         m_vResultAll.remove(0);
+    }
+    if(m_vResultZB4.size()>20)
+    {
+        m_vResultZB4.remove(0);
+        m_vResultAll.remove(0);
+    }
+
+    plot->RemoveCurve();
+    plot->RefreshAxisY(m_vResultAll);
+    if(m_vResultZA0.size()>0)
+    {
+        plot->AddCurve(QString::fromUtf8("一氧化氮"),m_vTime,m_vResultZA0,Qt::green);
+    }
+    if(m_vResultZB2.size()>0)
+    {
+        plot->AddCurve(QString::fromUtf8("二氧化硫"),m_vTime,m_vResultZB2,Qt::blue);
+    }
+    if(m_vResultZB4.size()>0)
+    {
+        plot->AddCurve(QString::fromUtf8("氧含量"),m_vTime,m_vResultZB4,Qt::red);
+    }
+}
+
+void gasdisptestdata::on_btnenter_clicked()
+{
+    if(m_bFlag)
+    {
+        CConfig::setAfxUserType(0);
+        ui->btnenter->setIcon(QIcon(":/res/n1/enter1.png"));
+        m_bFlag = false;
+    }
+    else
+    {        
+        dlglogin = new dlguserlogin(m_pMC);
+        dlglogin->exec();
+        m_nLoginTime = dlglogin->m_nLoginTime;
+        delete dlglogin;
+
+        CYQ* pYQ = m_pMC->pYQs->GetYQ("ZA0");
+        int nUserType = CConfig::GetAfxUserType();
+        if(0 != nUserType)
+        {
+            ui->btnenter->setIcon(QIcon(":/res/n1/exit.png"));
+            if(1 == nUserType)
+            {
+                ((CProcess2*)(pYQ->m_pProcess))->RecordLog(LOG_NOMAL,"系统","普通用户登录");
+            }
+            else if(2 == nUserType)
+            {
+                ((CProcess2*)(pYQ->m_pProcess))->RecordLog(LOG_NOMAL,"系统","管理员登录");
+            }
+            else if(3 == nUserType)
+            {
+                ((CProcess2*)(pYQ->m_pProcess))->RecordLog(LOG_NOMAL,"系统","超级用户登录");
+            }
+            m_bFlag = true;
+        }
+    }
+}
+
+void gasdisptestdata::on_BtnMaintain_clicked()
+{
+    if(CConfig::GetAfxUserType() <= 1)
+    {
+        dlgRemindMessage *pRemind= new dlgRemindMessage(m_pMC,1);
+        pRemind->exec();
+        delete pRemind;
+        pRemind = NULL;
+        return;
+    }
+    else
+    {
+        gasadminimenu *pGasAdminMenu = new gasadminimenu(m_pMC);
+        pGasAdminMenu->move((qApp->desktop()->width() - pGasAdminMenu->width())/2,(qApp->desktop()->height() - pGasAdminMenu->height())/2);
+        pGasAdminMenu->exec();
+        delete pGasAdminMenu;
+        pGasAdminMenu = NULL;
+    }
+}
+
+void gasdisptestdata::on_btnAdjust_clicked()
+{   
+    if(CConfig::GetAfxUserType() <= 1)
+    {
+        dlgRemindMessage *pRemind= new dlgRemindMessage(m_pMC,1);
+        pRemind->exec();
+        delete pRemind;
+        pRemind = NULL;
+        return;
+    }
+    else
+    {
+        gasadjust *pGasadjust = new gasadjust(m_pMC);
+        pGasadjust->move((qApp->desktop()->width() - pGasadjust->width())/2,(qApp->desktop()->height() - pGasadjust->height())/2);
+        pGasadjust->exec();
+        delete pGasadjust;
+        pGasadjust = NULL;
+    }
+}
+void gasdisptestdata::OnStatusValue(struGasStatusData* data)
+{
+    float fResult02 = 0.0;
+
+    fResult02 = data->fOxygen;
+    QString qResultValue = QString::number(fResult02,'f',1);
+    ui->O2Concentration->setText(qResultValue);
+}
+
+void gasdisptestdata::on_radioChroma_clicked()
+{
+    ui->page_1->show();
+    ui->page_2->hide();
+    ui->page_3->hide();
+}
+
+void gasdisptestdata::on_radioCurve_clicked()
+{
+    ui->page_1->hide();
+    ui->page_2->show();
+    ui->page_3->hide();
+}
+void gasdisptestdata::ShowPage3()
+{
+    ui->page_1->hide();
+    ui->page_2->hide();
+    ui->page_3->show();
+}
+//显示模块通讯故障信息
+void gasdisptestdata::ShowModuleFault()
+{
+    bool bM1Flag = false;
+    bool bM2Flag = false;
+    bool bM3Flag = false;
+    bool bM4Flag = false;
+    bool bM5Flag = false;
+
+    m_bAlarm = false;
+    QString qsContent;
+    CYQ* pYQ = m_pMC->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        bM1Flag = ((CProcess2*)(pYQ->m_pProcess))->m_bM1Flag;
+        bM2Flag = ((CProcess2*)(pYQ->m_pProcess))->m_bM2Flag;
+        bM3Flag = ((CProcess2*)(pYQ->m_pProcess))->m_bM3Flag;
+        bM4Flag = ((CProcess2*)(pYQ->m_pProcess))->m_bM4Flag;
+        bM5Flag = ((CProcess2*)(pYQ->m_pProcess))->m_bM5Flag;
+    }
+    if(bM1Flag||bM2Flag||bM3Flag||bM4Flag||bM5Flag)
+    {
+        m_bAlarm = true;
+        qsContent = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+        qsContent.append("  ");
+        if(bM1Flag)
+        {
+            qsContent.append("M1,");
+        }
+        if(bM2Flag)
+        {
+            qsContent.append("M2,");
+        }
+        if(bM3Flag)
+        {
+            qsContent.append("M3,");
+        }
+        if(bM4Flag)
+        {
+            qsContent.append("M4,");
+        }
+        if(bM5Flag)
+        {
+            qsContent.append("M5");
+        }
+        qsContent.append("模块通讯故障");
+        ui->textLogDisp->append(qsContent);
+    }
+}
+
+void gasdisptestdata::on_btnAlarm_clicked()
+{
+    if(ui->page_3->isHidden())
+    {
+        ShowPage3();
+    }
+    else
+    {
+        if(ui->radioChroma->isChecked())
+        {
+            on_radioChroma_clicked();
+        }
+        else
+        {
+            on_radioCurve_clicked();
+        }
+    }
+}

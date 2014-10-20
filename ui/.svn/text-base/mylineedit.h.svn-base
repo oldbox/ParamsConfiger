@@ -1,0 +1,23 @@
+#ifndef MYLINEEDIT_H
+#define MYLINEEDIT_H
+
+#include <QLineEdit>
+
+class MyLineEdit : public QLineEdit
+{
+    Q_OBJECT
+public:
+    explicit MyLineEdit(QWidget *parent = 0);
+
+protected:
+     virtual void mouseDoubleClickEvent(QMouseEvent *event);
+
+signals:
+    void doubleClicked(QLineEdit *);
+
+public slots:
+
+
+};
+
+#endif // MYLINEEDIT_H

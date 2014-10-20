@@ -1,0 +1,90 @@
+#include "voc_dlgadjustset.h"
+#include "ui_voc_dlgadjustset.h"
+#include "../core/cconfig.h"
+voc_DlgAdjustSet::voc_DlgAdjustSet(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::voc_DlgAdjustSet)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    char tmp[64];memset(tmp,0,64);
+
+    GetAfxConfig()->GetIni("VOC_SET","AdjustOnOff",tmp);
+    ui->checkBox->setChecked(atoi(tmp));
+
+    memset(tmp,0,64);
+    GetAfxConfig()->GetIni("VOC_SET","AdjustMode",tmp);
+    if(atoi(tmp) == 0)
+        ui->radioButton->setChecked(true);
+    else
+        ui->radioButton_2->setChecked(true);
+    memset(tmp,0,64);
+    GetAfxConfig()->GetIni("VOC_SET","AdjustDiff",tmp);
+    ui->lineEdit->setText(QString(tmp));
+
+    memset(tmp,0,64);
+    GetAfxConfig()->GetIni("VOC_SET","Search_UnMaxArea",tmp);
+    ui->lineEdit_UnMaxArea->setText(QString(tmp));
+
+    on_checkBox_clicked();
+}
+
+voc_DlgAdjustSet::~voc_DlgAdjustSet()
+{
+    delete ui;
+}
+
+void voc_DlgAdjustSet::on_checkBox_clicked()
+{
+    if(ui->checkBox->isChecked())
+    {
+        ui->groupBox->setEnabled(true);
+        ui->label->setEnabled(true);
+        ui->label_2->setEnabled(true);
+        ui->lineEdit->setEnabled(true);
+
+    }
+    else
+    {
+         ui->groupBox->setEnabled(false);
+         ui->label->setEnabled(false);
+         ui->label_2->setEnabled(false);
+          ui->lineEdit->setEnabled(false);
+    }
+    if(ui->checkBox->isChecked())
+        GetAfxConfig()->SetIni("VOC_SET","AdjustOnOff","1");
+    else
+        GetAfxConfig()->SetIni("VOC_SET","AdjustOnOff","0");
+}
+
+void voc_DlgAdjustSet::on_pbtClose_clicked()
+{
+    this->close();
+}
+
+void voc_DlgAdjustSet::on_radioButton_clicked()
+{
+    if(ui->radioButton->isChecked())
+        GetAfxConfig()->SetIni("VOC_SET","AdjustMode","0");
+    else
+        GetAfxConfig()->SetIni("VOC_SET","AdjustMode","1");
+}
+
+void voc_DlgAdjustSet::on_radioButton_2_clicked()
+{
+    if(ui->radioButton->isChecked())
+        GetAfxConfig()->SetIni("VOC_SET","AdjustMode","0");
+    else
+        GetAfxConfig()->SetIni("VOC_SET","AdjustMode","1");
+}
+
+void voc_DlgAdjustSet::on_lineEdit_textChanged(const QString &arg1)
+{
+     GetAfxConfig()->SetIni("VOC_SET","AdjustDiff",ui->lineEdit->text().toLatin1().data());
+}
+
+
+void voc_DlgAdjustSet::on_lineEdit_UnMaxArea_textChanged(const QString &arg1)
+{
+    GetAfxConfig()->SetIni("VOC_SET","Search_UnMaxArea",ui->lineEdit_UnMaxArea->text().toLatin1().data());
+}

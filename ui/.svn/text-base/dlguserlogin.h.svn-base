@@ -1,0 +1,45 @@
+#ifndef DLGUSERLOGIN_H
+#define DLGUSERLOGIN_H
+
+#include <QDialog>
+#include "sfkeyboard.h"
+#include "dlgremindmessage.h"
+#include "dlgchangepasswd.h"
+#include "../core/cconfig.h"
+#include "mainwindowbase.h"
+
+namespace Ui {
+class dlguserlogin;
+}
+
+class dlguserlogin : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlguserlogin(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlguserlogin();
+    int m_nLoginTime;
+signals:
+    void NotifyPasswdInfo(int,int);
+    
+private slots:
+//    void on_btnsfkey_clicked();
+
+    void on_btnok_clicked();
+
+    void on_btnpasswd_clicked();
+
+    void on_btncancel_clicked();
+
+private:
+    Ui::dlguserlogin *ui;
+    bool eventFilter(QObject *object, QEvent *event);
+    SfKeyboard* sfkey;
+    QLineEdit *objLit;
+    dlgRemindMessage *pMessage;
+    Dlgchangepasswd *passwd;
+    CMainCtrl* m_pMC;   
+};
+
+#endif // DLGUSERLOGIN_H

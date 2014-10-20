@@ -1,0 +1,64 @@
+#ifndef DLGMODELTEST3_H
+#define DLGMODELTEST3_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+#include <QMap>
+#include <QListWidgetItem>
+#include "dlgremindmessage.h"
+
+namespace Ui {
+class dlgmodeltest3;
+}
+
+class dlgmodeltest3 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest3(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest3();
+    
+private slots:
+    void on_chkSingleCtrl_1_stateChanged(int arg1);
+    void on_chkSingleCtrl_2_stateChanged(int arg1);
+    void on_chkSingleCtrl_3_stateChanged(int arg1);
+    void on_chkSingleCtrl_4_stateChanged(int arg1);
+    void on_chkSingleCtrl_5_stateChanged(int arg1);
+    void on_chkSingleCtrl_6_stateChanged(int arg1);
+    void on_chkSingleCtrl_7_stateChanged(int arg1);
+    void on_chkSingleCtrl_8_stateChanged(int arg1);
+    void on_chkSingleCtrl_9_stateChanged(int arg1);
+    void on_chkSingleCtrl_10_stateChanged(int arg1);
+    void on_chkSingleCtrl_11_stateChanged(int arg1);
+    void on_chkSingleCtrl_12_stateChanged(int arg1);
+    void on_chkSingleCtrl_13_stateChanged(int arg1);
+    void on_chkSingleCtrl_14_stateChanged(int arg1);
+    void on_chkSingleCtrl_15_stateChanged(int arg1);
+    void on_chkSingleCtrl_16_stateChanged(int arg1);
+
+    void on_listWidget_clicked(const QModelIndex &index);
+
+    void on_btnSend_clicked();
+
+    void on_btnStatus_clicked();
+
+
+
+private:
+    Ui::dlgmodeltest3 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    int m_nRow;
+    int m_nStatus[16];
+
+    bool judgeYQConnect();
+    void PlsSelectMdl(QString context);
+    void UpdateParamName();
+    bool SendCmd(int16_t nCmd,int nNum);
+    bool SendSigleCmd(int16_t nCmd);
+    void ReadStatus();
+
+};
+
+#endif // DLGMODELTEST3_H

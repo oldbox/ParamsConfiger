@@ -1,0 +1,19 @@
+#include "wdtheavymetalproccessdiagram.h"
+#include "ui_wdtheavymetalproccessdiagram.h"
+#include <QPainter>
+
+#include <iostream>
+using namespace std;
+
+WdtHeavyMetalProccessDiagram::WdtHeavyMetalProccessDiagram(QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::WdtHeavyMetalProccessDiagram)
+{
+    ui->setupUi(this);
+    ui->frame->setWindowFlags(Qt::FramelessWindowHint);
+}
+
+WdtHeavyMetalProccessDiagram::~WdtHeavyMetalProccessDiagram()
+{
+    delete ui;
+}

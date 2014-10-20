@@ -1,0 +1,75 @@
+#ifndef DLSETLEVEL_H
+#define DLSETLEVEL_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class dlSetLevel;
+}
+
+struct struYQLevel
+{
+    struYQLevel(){fLevel1 = 0.0;fLevel2 = 0.0;fLevel3 = 0.0;fLevel4 = 0.0;fLevel5 = 0.0;fLevel6 = 0.0;}
+
+    float fLevel1;
+    float fLevel2;
+    float fLevel3;
+    float fLevel4;
+    float fLevel5;
+    float fLevel6;
+};
+
+struct struYQJar
+{
+    struYQJar()
+    {
+        memset(cYQjar1,0,64);
+        memset(cYQjar2,0,64);
+        memset(cYQjar3,0,64);
+        memset(cYQjar4,0,64);
+        memset(cYQjar5,0,64);
+        memset(cYQjar6,0,64);
+        memset(cYQjar7,0,64);
+        memset(cYQjar8,0,64);
+        memset(cYQjar9,0,64);
+    }
+
+    char cYQjar1[64];
+    char cYQjar2[64];
+    char cYQjar3[64];
+    char cYQjar4[64];
+    char cYQjar5[64];
+    char cYQjar6[64];
+    char cYQjar7[64];
+    char cYQjar8[64];
+    char cYQjar9[64];
+};
+
+class dlSetLevel : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlSetLevel(QWidget *parent = 0);
+    ~dlSetLevel();
+    
+private slots:
+    void on_butClose_clicked();
+
+    void on_butAdd_clicked();
+
+    void on_tabWidParam_clicked(const QModelIndex &index);
+
+    void on_butSetYwpXY_clicked();
+
+private:
+    Ui::dlSetLevel *ui;
+    CDBBusiness* m_pDB;
+    void Init();
+    void GetParamDictList();
+    void InitYwp();
+    void GetYQYwp();
+};
+
+#endif // DLSETLEVEL_H

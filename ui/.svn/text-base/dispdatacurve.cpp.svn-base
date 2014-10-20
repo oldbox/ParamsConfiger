@@ -1,0 +1,1346 @@
+#include "dispdatacurve.h"
+#include "ui_dispdatacurve.h"
+#include <QMessageBox>
+#include <iostream>
+#include <QTextCodec>
+#include <sys/types.h>
+#include <dirent.h>
+#include "../core/VocArithmetic.h"
+
+using namespace std;
+
+DispDataCurve::DispDataCurve(CMainCtrl* pMC,QString qsTime,int nIndex,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::DispDataCurve),
+    m_pMC(pMC),
+    m_bflag(false),
+    m_fminX(0.0),
+    m_fmaxX(0.0),
+    m_nCurveID(0),
+    zoomer(NULL),
+    m_bViewTempt(false),
+    m_pArithmetic(NULL)
+{
+    ui->setupUi(this);
+    setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    Init();
+    m_qstime = qsTime;
+    m_qsCurveList.clear();
+
+    ui->checkBox->hide();
+    ui->label_X->hide();
+    ui->label_Y->hide();
+    ui->label_Y2->hide();
+    memset(m_czCurveTime,0,64);
+
+    m_nYQType = GetAfxYQType();
+    if(m_nYQType == 1)
+    {
+        plot = new MyPlot(3,ui->widget_curve);
+        ui->tabPeaks->hide();
+        ui->tabDBFile->hide();
+    }
+    else if(m_nYQType == 3)
+    {
+         plot = new MyPlot(5,ui->widget_curve);
+         ui->checkBox->show();
+         on_checkBox_clicked();
+    }
+    else if(m_nYQType == 5)
+    {
+        plot = new MyPlot(3,ui->widget_curve);
+        ui->tabPeaks->hide();
+        ui->tabDBFile->setGeometry(QRect(10,310,180,131));
+    }
+    else if(m_nYQType == 6)
+    {
+        plot = new MyPlot(9,ui->widget_curve);
+        ui->tabPeaks->hide();
+        ui->btnshowbase->hide();
+        ui->tabDBFile->setGeometry(QRect(10,310,188,131));
+    }
+    else
+    {
+        plot = new MyPlot(3,ui->widget_curve);
+    }
+
+    m_pCalc = new CVocArithmetic();
+    m_pArithmetic = new CArithmetic();
+    zoomer = new QwtPlotZoomer( plot->canvas() );
+    //zoomer->setMinSize(40);
+    zoomer->setZoomBase(true);
+    zoomer->setRubberBandPen( QColor( Qt::black ) );
+    zoomer->setTrackerPen( QColor( Qt::black ) );
+    zoomer->setMousePattern( QwtEventPattern::MouseSelect2,
+        Qt::RightButton, Qt::ControlModifier );
+    zoomer->setMousePattern( QwtEventPattern::MouseSelect3,
+        Qt::RightButton );
+    QString time = qsTime.left(qsTime.size() - 3);
+    ShowCurve(time,nIndex);
+    if(m_nYQType != 1)
+    InitDBFile();
+}
+DispDataCurve::DispDataCurve(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::DispDataCurve),
+    m_pMC(NULL),
+    m_bflag(false),
+    m_fminX(0.0),
+    m_fmaxX(0.0),
+    m_nCurveID(0),
+    zoomer(NULL),
+    m_bViewTempt(false),
+    m_pArithmetic(NULL)
+{
+    ui->setupUi(this);
+    setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    Init();
+
+    ui->checkBox->hide();
+    ui->label_X->hide();
+    ui->label_Y->hide();
+    ui->label_Y2->hide();
+
+    memset(m_czCurveTime,0,64);
+    m_nYQType = GetAfxYQType();
+    if(m_nYQType == 1)
+    {
+        plot = new MyPlot(3,ui->widget_curve);
+        ui->tabPeaks->hide();
+        ui->tabDBFile->hide();
+    }
+    else if(m_nYQType == 3)
+    {
+        ui->widget_curve->setGeometry(QRect(20,19,600,291));
+         plot = new MyPlot(5,ui->widget_curve);
+         ui->btnremovebase->setText("清除曲线");
+         ui->btnshowbase->setText("重新寻峰");
+         ui->checkBox->show();
+         on_checkBox_clicked();
+    }
+    else if(m_nYQType == 5)
+    {
+        plot = new MyPlot(3,ui->widget_curve);
+        ui->tabPeaks->hide();
+        ui->tabDBFile->setGeometry(QRect(10,310,180,131));
+    }
+    else if(m_nYQType == 6)
+    {
+        plot = new MyPlot(9,ui->widget_curve);
+        ui->tabPeaks->hide();
+        ui->btnshowbase->hide();
+        ui->tabDBFile->setGeometry(QRect(10,310,188,131));
+    }
+    else
+    {
+        plot = new MyPlot(3,ui->widget_curve);
+    }
+    m_pCalc = new CVocArithmetic();
+   // plot->setGeometry(QRect(20, 20, 580, 300));
+
+    zoomer = new QwtPlotZoomer( plot->canvas() );
+    //zoomer->setMinSize(40);
+    zoomer->setZoomBase(true);
+    zoomer->setRubberBandPen( QColor( Qt::black ) );
+    zoomer->setTrackerPen( QColor( Qt::black ) );
+    zoomer->setMousePattern( QwtEventPattern::MouseSelect2,
+        Qt::RightButton, Qt::ControlModifier );
+    zoomer->setMousePattern( QwtEventPattern::MouseSelect3,
+        Qt::RightButton );
+    if(m_nYQType == 3)
+        InitDBFile();
+}
+DispDataCurve::~DispDataCurve()
+{
+    plot->RemoveCurve();
+    delete ui;
+    delete zoomer;
+    delete plot;
+    delete m_pCalc;
+    if(m_pArithmetic)
+    {
+        delete m_pArithmetic;
+    }
+    m_vtsyX.clear();
+    m_vtsyY.clear();
+    m_vtbyX.clear();
+    m_vtbyY.clear();
+    m_vtallX.clear();
+    m_vtallY.clear();
+    m_basebyX.clear();
+    m_basebyY.clear();
+    m_basesyX.clear();
+    m_basesyY.clear();
+    m_peakbyX.clear();
+    m_peakbyY.clear();
+    m_peaksyX.clear();
+    m_peaksyY.clear();
+}
+void DispDataCurve::Init()
+{
+    m_vtsyX.clear();
+    m_vtsyY.clear();
+    m_vtbyX.clear();
+    m_vtbyY.clear();
+    m_vtallX.clear();
+    m_vtallY.clear();
+
+    ui->labelSample->hide();
+    ui->label_sample->hide();
+    ui->labelWater->hide();
+    ui->label_water->hide();
+}
+void DispDataCurve::ShowCurve(QString qsTime,int nIndex)
+{
+    if(m_nYQType == 1)//电化学
+        ShowCurve_1(qsTime,nIndex);
+    else if(m_nYQType == 3)//有机物
+        ShowCurve_3(qsTime);
+    else if(m_nYQType == 5)//原子荧光
+        ShowCurve_5(qsTime);
+    else if(m_nYQType == 6)//原子荧光
+        ShowCurve_6(qsTime);
+    else
+        ShowCurve_1(qsTime,nIndex);
+}
+void DispDataCurve::ShowCurve_1(QString qsTime,int nIndex)
+{
+    m_vtsyX.clear();
+    m_vtsyY.clear();
+    m_vtbyX.clear();
+    m_vtbyY.clear();
+    m_vtscanX.clear();
+    m_vtscanY.clear();
+    m_vtallX.clear();
+    m_vtallY.clear();
+
+    m_bflag = false;
+    QDateTime qTime;
+    qTime = QDateTime::fromString(qsTime, "yyyy-MM-dd hh:mm");
+    char czDBName[256];memset(czDBName,0,256);
+    char czDBFile[256];memset(czDBFile,0,256);
+
+    //为每次测试创建一个数据库用来保存过程数据
+    sprintf(czDBName,"%04d%02d%02d-%02d%02d.txt",qTime.date().year(),qTime.date().month(),qTime.date().day(),qTime.time().hour(),qTime.time().minute());
+    sprintf(czDBFile,"%s/%d/data/%s",DB_ROOT_PATH,m_nYQType,czDBName);
+    QStringList qsDatalist;
+    if(2 == nIndex)//线性扫描斜率曲线显示
+    {
+         if(GetScanProcessData(czDBFile,qsDatalist))
+         {
+             if(qsDatalist.size() > 0)
+             {
+                 QString qsValue;
+                 int col = 0;
+                 int row = qsDatalist.size()/2;
+                 m_bflag = true;
+                 for(int i = 0;i < row;i++)
+                 {
+                     qsValue = QString(qsDatalist.at(col++));
+                     m_vtscanX.push_back(qsValue.toFloat());
+                     m_vtallX.push_back(qsValue.toFloat());
+                     qsValue = QString(qsDatalist.at(col++));
+                     m_vtscanY.push_back(qsValue.toFloat());
+                     m_vtallY.push_back(qsValue.toFloat());
+                 }
+                 qsDatalist.clear();
+                 Display_1();
+             }
+             else
+             {
+                  QMessageBox::information(NULL, "提示信息","没有过程数据信息！");
+             }
+         }
+    }
+    else
+    {
+        if(GetVocProcessData(czDBFile,qsDatalist))
+        {
+            if(qsDatalist.size() > 0)
+            {
+                QString qsValueX;
+                QString qsValue;
+
+                int col = 0;
+                int row = qsDatalist.size()/3;
+                for(int i = 0;i < row;i++)
+                {
+                    qsValueX = QString(qsDatalist.at(col++));
+                    qsValue = QString(qsDatalist.at(col++));
+                    if(!qsValue.contains("no data",Qt::CaseSensitive))
+                    {
+                        m_vtsyX.push_back(qsValueX.toFloat());
+                        m_vtsyY.push_back(qsValue.toFloat());
+                        m_vtallX.push_back(qsValueX.toFloat());
+                        m_vtallY.push_back(qsValue.toFloat());
+                    }
+
+                    qsValue =  QString(qsDatalist.at(col++));
+                    if(!qsValue.contains("no data",Qt::CaseSensitive))
+                    {
+                        m_vtbyX.push_back(qsValueX.toFloat());
+                        m_vtbyY.push_back(qsValue.toFloat());
+                        m_vtallX.push_back(qsValueX.toFloat());
+                        m_vtallY.push_back(qsValue.toFloat());
+                    }
+                }
+                qsDatalist.clear();
+                Display_1();
+            }
+            else
+            {
+                QMessageBox::information(NULL, "提示信息","没有过程数据信息！");
+            }
+        }
+    }
+}
+void DispDataCurve::ShowCurve_3(QString qsTime)
+{
+    bool bTag = false;
+    m_vtsyX.clear();
+    m_vtsyY.clear();
+    m_vtallX.clear();
+    m_vtallY.clear();
+    m_vtscanX.clear();
+    m_vtscanY.clear();
+
+    QDateTime qTime;
+    qTime = QDateTime::fromString(qsTime, "yyyy-MM-dd hh:mm");
+    char czDBName[256];memset(czDBName,0,256);
+    char czDBFile[256];memset(czDBFile,0,256);
+    //为每次测试创建一个数据库用来保存过程数据
+    sprintf(czDBName,"%04d%02d%02d-%02d%02d.txt",qTime.date().year(),qTime.date().month(),qTime.date().day(),qTime.time().hour(),qTime.time().minute());
+    sprintf(czDBFile,"%s/3/data/%s",DB_ROOT_PATH,czDBName);
+    memset(m_czCurveTime,0,64);
+    sprintf(m_czCurveTime,"%02d:%02d",qTime.time().hour(),qTime.time().minute());
+    QStringList qsDatalist;
+    if(GetVocProcessData(czDBFile,qsDatalist))
+    {
+        if(qsDatalist.size() > 0)
+        {
+            QString qsValue;
+            int col = 0;
+            int row = qsDatalist.size()/3;
+            for(int i = 0;i < row;i++)
+            {
+                qsValue = QString(qsDatalist.at(col++));
+                m_vtsyX.push_back(qsValue.toFloat());
+                m_vtallX.push_back(qsValue.toFloat());//保留时间
+                qsValue = QString(qsDatalist.at(col++));
+                m_vtsyY.push_back(qsValue.toFloat());
+                m_vtallY.push_back(qsValue.toFloat());//AD
+                qsValue =  QString(qsDatalist.at(col++));
+                m_vtscanX.push_back(qsValue.toFloat());
+                m_vtscanY.push_back(qsValue.toFloat());//温度
+            }
+            qsDatalist.clear();
+            Display_3();
+            bTag = true;
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息","没有过程数据信息！");
+        }
+    }
+    if(bTag)
+    {
+        ShowPeaks();
+        on_btnshowbase_clicked();
+    }
+    else
+    {
+        plot->RemoveCurve();
+    }
+}
+void DispDataCurve::ShowCurve_5(QString qsTime)
+{
+    m_vtallX.clear();
+    m_vtallY.clear();
+
+    QDateTime qTime = QDateTime::fromString(qsTime, "yyyy-MM-dd hh:mm");
+    char czDBFile[256];memset(czDBFile,0,256);
+    char czDBName[256];memset(czDBName,0,256);
+
+    sprintf(czDBName,"%04d%02d%02d-%02d%02d.txt",qTime.date().year(),qTime.date().month(),qTime.date().day(),qTime.time().hour(),qTime.time().minute());
+    sprintf(czDBFile,"%s/%d/data/%s",DB_ROOT_PATH,m_nYQType,czDBName);
+
+     QStringList qsDatalist;
+    if(GetAFSProcessData(czDBFile,qsDatalist))
+    {
+        if(qsDatalist.size() > 0)
+        {
+            QString qsValue;
+            int col = 0;
+            int row = qsDatalist.size()/2;
+            for(int i = 0;i < row;i++)
+            {
+                qsValue = QString(qsDatalist.at(col++));
+                m_vtallX.push_back(qsValue.toFloat());//此时m_vtallX表示原子荧光X轴
+
+                qsValue = QString(qsDatalist.at(col++));
+
+                m_vtallY.push_back(qsValue.toFloat());//此时m_vtallY表示原子荧光Y轴
+
+            }
+            qsDatalist.clear();
+            Display_5();
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息","没有过程数据信息！");
+        }
+     }
+
+}
+void DispDataCurve::ShowCurve_6(QString qsTime)
+{
+    m_vtsyX.clear();
+    m_vtsyY.clear();
+    m_vtallX.clear();
+    m_vtallY.clear();
+
+    QDateTime qTime = QDateTime::fromString(qsTime, "yyyy-MM-dd hh:mm");
+    char czDBFile[256];memset(czDBFile,0,256);
+    char czDBName[256];memset(czDBName,0,256);
+
+    sprintf(czDBName,"%04d%02d%02d-%02d%02dAbs.txt",qTime.date().year(),qTime.date().month(),qTime.date().day(),qTime.time().hour(),qTime.time().minute());
+    sprintf(czDBFile,"%s/%d/data/%s",DB_ROOT_PATH,m_nYQType,czDBName);
+    memset(m_czCurveTime,0,64);
+    sprintf(m_czCurveTime,"%02d:%02d",qTime.time().hour(),qTime.time().minute());
+     QStringList qsDatalist;
+    if(GetVocProcessData(czDBFile,qsDatalist))
+    {
+        if(qsDatalist.size() > 0)
+        {
+            QString qsValue;
+            int col = 0;
+            int row = qsDatalist.size()/3;
+            for(int i = 0;i < row;i++)
+            {
+                col++;//序号去掉
+                qsValue = QString(qsDatalist.at(col++));
+                m_vtsyX.push_back(qsValue.toFloat());
+                m_vtallX.push_back(qsValue.toFloat());//保留时间
+                qsValue = QString(qsDatalist.at(col++));
+                m_vtsyY.push_back(qsValue.toFloat());
+                m_vtallY.push_back(qsValue.toFloat());//AD
+            }
+            qsDatalist.clear();
+            Display_3();
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息","没有过程数据信息！");
+        }
+     }
+
+}
+void DispDataCurve::Display_1()
+{
+    CalcMaxMinValue();
+    if(m_bflag)
+    {
+        plot->AddCurve("线性扫描",m_vtscanX,m_vtscanY,Qt::blue);
+    }
+    else
+    {
+        ui->labelSample->show();
+        ui->label_sample->show();
+        ui->labelWater->show();
+        ui->label_water->show();
+        plot->AddCurve("水样",m_vtsyX,m_vtsyY,Qt::blue);
+        plot->AddCurve("标样",m_vtbyX,m_vtbyY,Qt::red);
+    }
+    plot->RefreshAxis(m_vtallX,m_vtallY);
+}
+void DispDataCurve::Display_3()
+{
+    CalcMaxMinValue();
+    if(m_nCurveID == 0)
+    {
+        plot->RemoveCurve();
+        strcat(m_czCurveTime,"_1");
+        plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtsyY,Qt::black);
+        if(m_bViewTempt)
+        {
+            strcat(m_czCurveTime,"T");
+            plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtscanX,Qt::black,1);
+        }
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+        m_nCurveID++;
+    }else if(m_nCurveID == 1)
+    {
+        strcat(m_czCurveTime,"_2");
+        plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtsyY,Qt::green);
+        if(m_bViewTempt)
+        {
+            strcat(m_czCurveTime,"T");
+            plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtscanX,Qt::green,1);
+        }
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+         m_nCurveID++;
+    }else if(m_nCurveID == 2)
+    {
+        strcat(m_czCurveTime,"_3");
+        plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtsyY,Qt::blue);
+        if(m_bViewTempt)
+        {
+            strcat(m_czCurveTime,"T");
+            plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtscanX,Qt::blue,1);
+        }
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+        m_nCurveID++;
+    }else if(m_nCurveID == 3)
+    {
+        strcat(m_czCurveTime,"_4");
+        plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtsyY,Qt::cyan);
+        if(m_bViewTempt)
+        {
+            strcat(m_czCurveTime,"T");
+            plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtscanX,Qt::cyan,1);
+        }
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+        m_nCurveID++;
+    }else if(m_nCurveID == 4)
+    {
+        strcat(m_czCurveTime,"_5");
+        plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtsyY,Qt::blue);
+        if(m_bViewTempt)
+        {
+            strcat(m_czCurveTime,"T");
+            plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtscanX,Qt::blue,1);
+        }
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+        if(m_bViewTempt)//显示温度的时候最多显示5组曲线
+        {
+            m_qsCurveList.clear();
+            m_nCurveID = 0;
+        }
+        else
+        {
+            m_nCurveID++;
+        }
+    }else if(m_nCurveID == 5)
+    {
+        strcat(m_czCurveTime,"_6");
+        plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtsyY,Qt::magenta);
+        if(m_bViewTempt)
+        {
+            strcat(m_czCurveTime,"T");
+            plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtscanX,Qt::magenta,1);
+        }
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+        m_nCurveID++;
+    }else if(m_nCurveID == 6)
+    {
+        strcat(m_czCurveTime,"_7");
+        plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtsyY,Qt::darkRed);
+        if(m_bViewTempt)
+        {
+            strcat(m_czCurveTime,"T");
+            plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtscanX,Qt::darkRed,1);
+        }
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+        m_nCurveID++;
+    }else if(m_nCurveID == 7)
+    {
+        strcat(m_czCurveTime,"_8");
+        plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtsyY,Qt::darkGreen);
+        if(m_bViewTempt)
+        {
+            strcat(m_czCurveTime,"T");
+            plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtscanX,Qt::darkGreen,1);
+        }
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+        m_nCurveID++;
+    }else if(m_nCurveID == 8)
+    {
+        strcat(m_czCurveTime,"_9");
+        plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtsyY,Qt::darkBlue);
+        if(m_bViewTempt)
+        {
+            strcat(m_czCurveTime,"T");
+            plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtscanX,Qt::darkBlue,1);
+        }
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+        m_nCurveID++;
+    }else if(m_nCurveID == 9)
+    {
+        strcat(m_czCurveTime,"_10");
+        plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtsyY,Qt::red);
+        if(m_bViewTempt)
+        {
+            strcat(m_czCurveTime,"T");
+            plot->AddCurve(m_czCurveTime,m_vtsyX,m_vtscanX,Qt::red,1);
+        }
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+        m_qsCurveList.clear();
+        m_nCurveID = 0;
+    }
+    //单位显示
+    if(m_nYQType == 3)
+    {
+        ui->label_X->show();
+        ui->label_Y->show();
+        if(m_bViewTempt)
+            ui->label_Y2->show();
+        else
+            ui->label_Y2->hide();
+    }
+
+}
+void DispDataCurve::Display_5()
+{
+    CalcMaxMinValue();
+    m_qsCurveList.clear();
+    if(m_pArithmetic->Smooth(3,m_vtallY))
+    {
+        m_vtallY.clear();
+        m_vtallY = m_pArithmetic->m_vtnSmoothY;
+        plot->RemoveCurve();
+        plot->AddCurve("水样",m_vtallX,m_vtallY,Qt::blue);
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+    }
+}
+void DispDataCurve::on_btnReturn_clicked()
+{
+    if((m_vtallX.size() > 0)&&(m_vtallY.size() > 0))
+    {
+        CalcMaxMinValue();
+        zoomer->zoom(0);
+        plot->RefreshAxis(m_vtallX,m_vtallY);
+    }
+}
+
+void DispDataCurve::on_btnNarrow_clicked()
+{
+   if((m_vtallX.size() > 0)&&(m_vtallY.size() > 0))
+   {
+       CalcMaxMinValue();
+       zoomer->zoom(-1);
+       int x = plot->axisScaleDiv(QwtPlot::xBottom).upperBound();
+       if(1000 == x)
+       {
+          plot->RefreshAxis(m_vtallX,m_vtallY);
+          return;
+       }
+   }
+}
+
+
+void DispDataCurve::on_btnLeftMove_clicked()
+{
+    float fValue = 0;
+     if(m_nYQType == 6)
+         fValue = 10;
+     else
+         fValue = 0.04;
+    if((m_vtallX.size() > 0)&&(m_vtallY.size() > 0))
+    {
+        m_fmaxX = m_fmaxX + fValue;
+        m_fminX = m_fminX + fValue;
+        plot->setAxisScale(QwtPlot::xBottom, m_fminX, m_fmaxX);
+    }
+
+}
+
+void DispDataCurve::on_btnRightMove_clicked()
+{
+    float fValue = 0;
+     if(m_nYQType == 6)
+         fValue = 10;
+     else
+         fValue = 0.04;
+    if((m_vtallX.size() > 0)&&(m_vtallY.size() > 0))
+    {
+        m_fminX = m_fminX - fValue;
+        m_fmaxX = m_fmaxX - fValue;
+        plot->setAxisScale(QwtPlot::xBottom, m_fminX, m_fmaxX);
+    }
+}
+//计算最大最小值用于左移右移
+void DispDataCurve::CalcMaxMinValue()
+{
+    m_fminX = m_vtallX[0];
+    m_fmaxX = m_vtallX[0];
+    for(int i = 0; i < m_vtallX.size(); i++)
+    {
+        if(m_vtallX[i] < m_fminX)
+            m_fminX = m_vtallX[i];
+        else if(m_vtallX[i] > m_fmaxX)
+            m_fmaxX = m_vtallX[i];
+    }
+}
+
+void DispDataCurve::on_btnremovebase_clicked()
+{
+    if(m_nYQType == 1)
+    {
+        plot->RemoveCurve();
+        if((m_vtallX.size() > 0)&&(m_vtallY.size() > 0))
+        {
+            plot->AddCurve("水样",m_vtsyX,m_vtsyY,Qt::blue);
+            plot->AddCurve("标样",m_vtbyX,m_vtbyY,Qt::red);
+        }
+        ui->btnshowbase->setEnabled(true);
+    }
+    else if(m_nYQType == 3 || m_nYQType == 6)//有机物,重新寻峰
+    {
+         m_qsCurveList.clear();
+         plot->RemoveCurve();
+         ShowPeaks();
+         m_nCurveID = 0;
+
+         ui->label_X->hide();
+         ui->label_Y2->hide();
+         ui->label_Y->hide();
+    }
+    else if(m_nYQType == 5)
+    {
+        m_qsCurveList.clear();
+        plot->RemoveCurve();
+        ShowPeaks();
+         m_nCurveID = 0;
+    }
+}
+
+void DispDataCurve::on_btnshowbase_clicked()
+{
+    if(m_nYQType == 1)
+    {
+        ShowBaseCurve_1();
+        ui->btnshowbase->setEnabled(false);
+    }
+    else if(m_nYQType == 3)//有机物,重新寻峰
+    {
+        if(m_pCalc)
+        {
+            if(m_vtsyX.size() > 0 && m_vtsyY.size() > 0)
+            {
+                SeachPeak();
+            }
+        }
+    }
+    else if(m_nYQType == 5)
+    {
+        ShowBaseCurve_5();
+        ui->btnshowbase->setEnabled(false);
+    }
+}
+bool DispDataCurve::SeachPeak()
+{
+    bool bret = false;
+    float BaseLineK,fModifyB,MinPW,MaxPW,Minimum,MinArea;
+
+    fModifyB = BaseLineK = 0.0;
+    char czValue[64];memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni("VOC_SET","Search_Baseline",czValue))
+    {
+        BaseLineK = atof(czValue);
+    }
+    if(GetAfxConfig()->GetIni("VOC_SET","Search_ModifyB",czValue))
+    {
+        fModifyB = atof(czValue);
+    }
+
+    CDBBusiness*  pDb = new CDBBusiness("yqdata","yq.db");
+    MaxPW = pDb->GetIntegral_MaxPW();
+    Minimum = pDb->GetIntegral_Minimum();
+    MinArea = pDb->GetIntegral_MinArea();
+    MinPW = pDb->GetIntegral_MinPW();
+    delete pDb;
+
+    m_pCalc->SetData(m_vtsyY,m_vtsyX);
+    m_pCalc->SetSeachParam(BaseLineK,fModifyB,MinPW,MaxPW,Minimum,MinArea);
+
+    if(m_pCalc->Calculate())
+    {
+        ShowPeaks();
+        ui->tabPeaks->setRowCount(m_pCalc->m_vtnPeark.size());
+        QString qsValue;
+        int nCol = 0;
+        struPeak  peak;
+        //保存峰组数据
+        for(int i = 0;i < m_pCalc->m_vtnPeark.size();i++)
+        {
+            peak = m_pCalc->m_vtnPeark[i];
+            nCol = 0;
+            //qslColHea.insert(0,"编号");
+            qsValue = QString::number(peak.nId);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+            //qslColHea.insert(1,"保留时间");
+            qsValue = QString::number(peak.fRT,'f',4);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+
+            //qslColHea.insert(2,"面积");
+            qsValue = QString::number(peak.fArea,'f',2);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+            //qslColHea.insert(3,"峰高");
+            qsValue = QString::number(peak.fHight,'f',2);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+
+            //qslColHea.insert(4,"左侧");
+            qsValue = QString::number(peak.fLeftT,'f',4);
+             ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+            //qslColHea.insert(5,"右侧");
+            qsValue = QString::number(peak.fRightT,'f',4);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+
+            //qslColHea.insert(6,"峰宽");
+            qsValue = QString::number(peak.fWidth,'f',4);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+        }
+    }
+    return bret;
+}
+bool DispDataCurve::SeachAFSPeak()
+{
+    bool bret = false;
+    float BaseLineK,fModifyB,MinPW,MaxPW,Minimum,MinArea;
+
+    fModifyB = BaseLineK = 0.0;
+
+    MaxPW = 100.0;
+    Minimum = 0.0;
+    MinArea = 0.0;
+    MinPW = 0.0;
+
+    m_pCalc->SetData(m_vtallY,m_vtallX);
+    m_pCalc->SetSeachParam(BaseLineK,fModifyB,MinPW,MaxPW,Minimum,MinArea);
+
+    if(m_pCalc->Calculate())
+    {
+        ShowPeaks();
+        ui->tabPeaks->setRowCount(m_pCalc->m_vtnPeark.size());
+        QString qsValue;
+        int nCol = 0;
+        struPeak  peak;
+        //保存峰组数据
+        for(int i = 0;i < m_pCalc->m_vtnPeark.size();i++)
+        {
+            peak = m_pCalc->m_vtnPeark[i];
+            nCol = 0;
+            //qslColHea.insert(0,"编号");
+            qsValue = QString::number(peak.nId);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+            //qslColHea.insert(1,"保留时间");
+            qsValue = QString::number(peak.fRT,'f',4);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+
+            //qslColHea.insert(2,"面积");
+            qsValue = QString::number(peak.fArea,'f',2);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+            //qslColHea.insert(3,"峰高");
+            qsValue = QString::number(peak.fHight,'f',2);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+
+            //qslColHea.insert(4,"左侧");
+            qsValue = QString::number(peak.fLeftT,'f',4);
+             ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+            //qslColHea.insert(5,"右侧");
+            qsValue = QString::number(peak.fRightT,'f',4);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+
+            //qslColHea.insert(6,"峰宽");
+            qsValue = QString::number(peak.fWidth,'f',4);
+            ui->tabPeaks->setItem(i,nCol++, new QTableWidgetItem(qsValue));
+        }
+    }
+    return bret;
+}
+void DispDataCurve::ShowPeaks()
+{
+    ui->tabPeaks->clear();
+
+    ui->tabPeaks->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+    ui->tabPeaks->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    ui->tabPeaks->horizontalHeader()->setResizeMode(QHeaderView::Fixed);
+
+    QStringList qslColHea;
+    qslColHea.clear();
+    qslColHea.insert(0,"编号");
+    qslColHea.insert(1,"保留时间");
+    qslColHea.insert(2,"面积");
+    qslColHea.insert(3,"峰高");
+
+    qslColHea.insert(4,"左侧");
+    qslColHea.insert(5,"右侧");
+    qslColHea.insert(6,"峰宽");
+    ui->tabPeaks->setColumnCount(7);
+    ui->tabPeaks->setRowCount(0);
+    ui->tabPeaks->setHorizontalHeaderLabels(qslColHea);
+    ui->tabPeaks->setColumnWidth(0,60);
+
+}
+
+void DispDataCurve::InitDBFile()
+{
+    ui->tabDBFile->clear();
+
+    ui->tabDBFile->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+    ui->tabDBFile->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    ui->tabDBFile->horizontalHeader()->setResizeMode(QHeaderView::ResizeToContents);
+
+//    QStringList qslColHea;
+//    qslColHea.clear();
+//    qslColHea.insert(0,"选择数据文件");
+
+    ui->tabDBFile->setColumnCount(1);
+    ui->tabDBFile->setRowCount(0);
+
+//    ui->tabDBFile->setHorizontalHeaderLabels(qslColHea);
+//    ui->tabDBFile->setColumnWidth(0,128);
+
+    char czDBFile[256];memset(czDBFile,0,256);
+    sprintf(czDBFile,"%s/%d/data",DB_ROOT_PATH,GetAfxYQType());
+
+    m_qslDBFileName.clear();
+    listDir(czDBFile,m_nYQType);
+    if(m_qslDBFileName.size() > 0)
+    {
+        m_qslDBFileName.sort();
+        ui->tabDBFile->setRowCount(m_qslDBFileName.size());
+        for(int i = 0;i < m_qslDBFileName.size();i++)
+            ui->tabDBFile->setItem(i,0, new QTableWidgetItem(m_qslDBFileName.at(i)));
+    }
+}
+void DispDataCurve::listDir(char *path,int nType)
+{
+    DIR              *pDir = NULL ;
+    struct dirent    *ent  ;
+    int               i=0  ;
+    char              childpath[512];
+
+    pDir=opendir(path);
+    if(pDir == NULL)//文件夹不存在
+        return;
+    memset(childpath,0,sizeof(childpath));
+
+    while((ent=readdir(pDir))!=NULL)
+    {
+        if(ent->d_type & DT_DIR)
+        {
+            continue;//只要是文件夹，则返回
+            /*
+            if(strcmp(ent->d_name,".")==0 || strcmp(ent->d_name,"..")==0)
+                continue;
+
+            sprintf(childpath,"%s/%s",path,ent->d_name);
+            printf("path:%s/n",childpath);
+            listDir(childpath);
+            */
+        }
+        else
+        {
+            if(nType == 6)
+            {
+                //只显示txt的
+                if(strstr(ent->d_name,"Abs.txt") != NULL)
+                {
+                    cout<<ent->d_name<<endl;
+                    m_qslDBFileName.append(ent->d_name);
+                }
+            }
+            else
+            {
+                //只显示txt的
+                if(strstr(ent->d_name,".txt") != NULL)
+                {
+                    cout<<ent->d_name<<endl;
+                    m_qslDBFileName.append(ent->d_name);
+                }
+            }
+        }
+    }
+}
+
+void DispDataCurve::on_tabDBFile_itemPressed(QTableWidgetItem *item)
+{
+    int iselRow = item->row();
+    int iselCol = item->column();
+    if(iselCol == 0) //判断选择的不是时间列
+    {
+        QString qsTime;
+        qsTime = ui->tabDBFile->item(iselRow,0)->text();
+
+        if(qsTime.size() > 10 && m_qsCurveList.indexOf(qsTime) < 0)
+        {
+            m_qsCurveList.append(qsTime);
+            QDateTime dt;
+            if(m_nYQType == 6)
+                qsTime = qsTime.left(qsTime.size()-7);
+            else
+                qsTime = qsTime.left(qsTime.size()-4);
+            dt = QDateTime::fromString(qsTime, "yyyyMMdd-hhmm");
+            qsTime =  dt.toString("yyyy-MM-dd hh:mm");
+            if(3 == m_nYQType)
+            {
+                ShowCurve_3(qsTime);
+            }
+            else if(5 == m_nYQType)
+            {
+                ShowCurve_5(qsTime);
+                ui->labelZ07H->setText("");
+                ui->btnshowbase->setEnabled(true);
+            }
+            else if(6 == m_nYQType)
+            {
+                ShowCurve_6(qsTime);
+            }
+            else
+            {
+                //do nothing
+            }
+        }
+    }
+}
+bool DispDataCurve::GetAFSProcessData(const char* czPath,QStringList &ProcessData)
+{
+    ProcessData.clear();
+    bool bRet = false;
+    QFile file(czPath);
+    if ( file.open(QIODevice::ReadOnly | QIODevice::Text) )
+    {
+        QTextStream stream( &file );
+        QString str;
+        QStringList list;
+        stream.readLine();//标题
+        while( !stream.atEnd())
+        {
+            str = stream.readLine();
+            list = str.split("\t");
+            ProcessData.push_back(list.at(0));
+            ProcessData.push_back(list.at(1));
+        }
+        file.close();
+        bRet = true;
+    }
+    return  bRet;
+}
+void DispDataCurve::ShowBaseCurve_1()
+{
+    int nResult = 0;
+    double fH1 = 0.0;
+    double fH2 = 0.0;
+    int nCalcMode = 0;
+    float fSearchDown =0.0;
+    float fSearchUp = 0.0;
+    int nMiddle = 0;
+    int nMin1 = 0;
+    int nMin2 = 0;
+
+    vector<double> m_vtnDataSyX,m_vtnDataSyY,m_vtnDataByX,m_vtnDataByY;
+    m_vtnDataSyX.clear();
+    m_vtnDataSyY.clear();
+    m_vtnDataByX.clear();
+    m_vtnDataByY.clear();
+
+    for(int i=0;i<m_vtsyX.size();i++)
+    {
+        m_vtnDataSyX.push_back(m_vtsyX[i]);
+        m_vtnDataSyY.push_back(m_vtsyY[i]);
+    }
+    for(int i=0;i<m_vtbyX.size();i++)
+    {
+        m_vtnDataByX.push_back(m_vtbyX[i]);
+        m_vtnDataByY.push_back(m_vtbyY[i]);
+    }
+
+    CDBBusiness* db = new CDBBusiness("yqdata","yq.db");
+
+    sqlite_data datalist;
+
+    if(db)
+    {
+        nResult = db->GetEchemDataInfo(m_qstime.toLatin1().data(),datalist);
+    }
+    if( nResult > 0)
+    {
+        if(!datalist.IsEmpty())
+        {
+            for(int i=1;i<=datalist.RowCount();i++)
+            {
+
+                //计算方式
+                nCalcMode = atoi(datalist.GetData(i,5));
+                //左寻峰点
+                fSearchDown = atof(datalist.GetData(i,6));
+                //右寻峰点
+                fSearchUp = atof(datalist.GetData(i,7));
+
+                m_pArithmetic->SetData(m_vtnDataSyY,m_vtnDataSyX);
+                m_pArithmetic->Calculate(nCalcMode,fSearchDown,fSearchUp,fH1,nMiddle,nMin1,nMin2);
+                qDebug("fH1:%f ",fH1);
+                DrawCurve_1(1,nMiddle,nMin1,nMin2);
+
+                m_pArithmetic->SetData(m_vtnDataByY,m_vtnDataByX);
+                m_pArithmetic->Calculate(nCalcMode,fSearchDown,fSearchUp,fH2,nMiddle,nMin1,nMin2);
+                qDebug("fH2:%f ",fH2);
+                DrawCurve_1(2,nMiddle,nMin1,nMin2);
+
+                //h水样峰高  H标样峰高
+                if(!strcmp("Z07",datalist.GetData(i,2)))
+                {
+                    ui->labelPb->setText(QString::fromUtf8("总铅"));
+
+                    QString qsZ07H = "H: ";
+                    qsZ07H.append(QString::number(QString(datalist.GetData(i,4)).toFloat(),'f',4));
+                    ui->labelZ07H->setText(qsZ07H);
+                    QString qsZ07h = "h: ";
+                    qsZ07h.append(QString::number(QString(datalist.GetData(i,3)).toFloat(),'f',4));
+                    ui->labelZ07h->setText(qsZ07h);
+                }else if(!strcmp("Z08",datalist.GetData(i,2)))
+                {
+                    ui->labelCr->setText(QString::fromUtf8("总镉"));
+
+                    QString qsZ08H = "H: ";
+                    qsZ08H.append(QString::number(QString(datalist.GetData(i,4)).toFloat(),'f',4));
+                    ui->labelZ08H->setText(qsZ08H);
+                    QString qsZ08h = "h: ";
+                    qsZ08h.append(QString::number(QString(datalist.GetData(i,3)).toFloat(),'f',4));
+                    ui->labelZ08h->setText(qsZ08h);
+                }else if(!strcmp("Z24",datalist.GetData(i,2)))
+                {
+                    ui->labelZn->setText(QString::fromUtf8("总锌"));
+
+                    QString qsZ24H = "H: ";
+                    qsZ24H.append(QString::number(QString(datalist.GetData(i,4)).toFloat(),'f',4));
+                    ui->labelZ24H->setText(qsZ24H);
+                    QString qsZ24h = "h: ";
+                    qsZ24h.append(QString::number(QString(datalist.GetData(i,3)).toFloat(),'f',4));
+                    ui->labelZ24h->setText(qsZ24h);
+                }else if(!strcmp("Z27",datalist.GetData(i,2)))
+                {
+                    ui->labelCu->setText(QString::fromUtf8("总铜"));
+
+                    QString qsZ27H = "H: ";
+                    qsZ27H.append(QString::number(QString(datalist.GetData(i,4)).toFloat(),'f',4));
+                    ui->labelZ27H->setText(qsZ27H);
+                    QString qsZ27h = "h: ";
+                    qsZ27h.append(QString::number(QString(datalist.GetData(i,3)).toFloat(),'f',4));
+                    ui->labelZ27h->setText(qsZ27h);
+                }else{
+                    //do nothing
+                }
+            }
+            datalist.Free();
+        }
+    }
+}
+void DispDataCurve::ShowBaseCurve_5()
+{
+    float fH1 = 0.0;
+    int nCalcMode = 1;
+    int nSearchDown = 0;
+    int nSearchUp = 0;
+    int nMiddle = 0;
+    int nMin1 = 0;
+    int nMin2 = 0;
+
+    SYQPARAM sYQ;
+    for(int i = 0;i < m_pMC->pYQs->GetYQCount();i++)
+    {
+        m_pMC->pYQs->pYQ[i]->GetYQParam(sYQ);
+        if(!strcmp(sYQ.czID,"Z06"))
+        {
+            nSearchDown = m_pMC->pYQs->pYQ[i]->m_CurveInfo.m_EchemCurve.PeakSearchDown;
+            nSearchUp = m_pMC->pYQs->pYQ[i]->m_CurveInfo.m_EchemCurve.PeakSearchUp;
+            nCalcMode = m_pMC->pYQs->pYQ[i]->m_CurveInfo.CalcMode;
+            break;
+        }
+    }
+    m_pArithmetic->SetData(m_vtallY,m_vtallX);
+    m_pArithmetic->AFSCalculate(nCalcMode,nSearchDown,nSearchUp,fH1,nMiddle,nMin1,nMin2);
+    DrawCurve_5(nMiddle,nMin1,nMin2);
+
+    QString qsZ07H = "H: ";
+    qsZ07H.append(QString("%1").arg(fH1));
+    ui->labelZ07H->setText(qsZ07H);
+
+
+}
+void DispDataCurve::DrawCurve_5(int nMiddle, int nMin1, int nMin2)
+{
+    float nK = 0;
+    float nb =0;
+    float nY = 0.0;
+
+    m_peaksyX.clear();
+    m_peaksyY.clear();
+    m_basesyX.clear();
+    m_basesyY.clear();
+
+    if(m_vtallX.size()>0&&m_vtallY.size())
+    {
+        if(m_vtallX[nMin1] == m_vtallX[nMin2])
+        {
+            nK = 0;nb = m_vtallX[nMin1];
+        }
+        else
+        {
+            nK = (m_vtallY[nMin2]-m_vtallY[nMin1])/(m_vtallX[nMin2]-m_vtallX[nMin1]);
+            nb = -nK*m_vtallX[nMin1]+m_vtallY[nMin1];
+        }
+        m_basesyX.push_back(m_vtallX[nMin1]);
+        m_basesyY.push_back(m_vtallY[nMin1]);
+
+        m_basesyX.push_back(m_vtallX[nMin2]);
+        m_basesyY.push_back(m_vtallY[nMin2]);
+
+        m_peaksyX.push_back(m_vtallX[nMiddle]);
+        m_peaksyY.push_back(m_vtallY[nMiddle]);
+
+        m_peaksyX.push_back(m_vtallX[nMiddle]);
+        nY = nK*m_vtallX[nMiddle] + nb;
+        m_peaksyY.push_back(nY);
+
+        plot->AddCurve("基线1",m_basesyX,m_basesyY,Qt::yellow);
+        plot->AddCurve("峰线1",m_peaksyX,m_peaksyY,Qt::black);
+    }
+}
+//nType 1表示水样 2表示标样
+void DispDataCurve::DrawCurve_1(int nType,int nMiddle, int nMin1, int nMin2)
+{
+    float nK = 0;
+    float nb =0;
+    float nY = 0.0;
+    m_basebyX.clear();
+    m_basebyY.clear();
+    m_basesyX.clear();
+    m_basesyY.clear();
+    m_peakbyX.clear();
+    m_peakbyY.clear();
+    m_peaksyX.clear();
+    m_peaksyY.clear();
+
+    if(1 == nType)
+    {
+        if(m_vtsyX.size()>0&&m_vtsyY.size())
+        {
+            if(m_vtsyX[nMin1] == m_vtsyX[nMin2])
+            {
+                nK = 0;nb = m_vtsyX[nMin1];
+            }
+            else
+            {
+                nK = (m_vtsyY[nMin2]-m_vtsyY[nMin1])/(m_vtsyX[nMin2]-m_vtsyX[nMin1]);
+                nb = -nK*m_vtsyX[nMin1]+m_vtsyY[nMin1];
+            }
+            m_basesyX.push_back(m_vtsyX[nMin1]);
+            m_basesyY.push_back(m_vtsyY[nMin1]);
+
+            m_basesyX.push_back(m_vtsyX[nMin2]);
+            m_basesyY.push_back(m_vtsyY[nMin2]);
+
+            m_peaksyX.push_back(m_vtsyX[nMiddle]);
+            m_peaksyY.push_back(m_vtsyY[nMiddle]);
+
+            m_peaksyX.push_back(m_vtsyX[nMiddle]);
+            nY = nK*m_vtsyX[nMiddle] + nb;
+            m_peaksyY.push_back(nY);
+
+            plot->AddCurve("基线1",m_basesyX,m_basesyY,Qt::yellow);
+            plot->AddCurve("峰线1",m_peaksyX,m_peaksyY,Qt::black);
+        }
+
+    }
+    else
+    {
+        if(m_vtbyX.size()>0&&m_vtbyY.size())
+        {
+            if(m_vtbyX[nMin1] == m_vtbyX[nMin2])
+            {
+                nK = 0;nb = m_vtbyX[nMin1];
+            }
+            else
+            {
+                nK = (m_vtbyY[nMin2]-m_vtbyY[nMin1])/(m_vtbyX[nMin2]-m_vtbyX[nMin1]);
+                nb = -nK*m_vtbyX[nMin1]+m_vtbyY[nMin1];
+            }
+            m_basebyX.push_back(m_vtbyX[nMin1]);
+            m_basebyY.push_back(m_vtbyY[nMin1]);
+
+            m_basebyX.push_back(m_vtbyX[nMin2]);
+            m_basebyY.push_back(m_vtbyY[nMin2]);
+
+            m_peakbyX.push_back(m_vtbyX[nMiddle]);
+            m_peakbyY.push_back(m_vtbyY[nMiddle]);
+
+            m_peakbyX.push_back(m_vtbyX[nMiddle]);
+            nY = nK*m_vtbyX[nMiddle] + nb;
+            m_peakbyY.push_back(nY);
+
+            plot->AddCurve("基线2",m_basebyX,m_basebyY,Qt::magenta);
+            plot->AddCurve("峰线2",m_peakbyX,m_peakbyY,Qt::blue);
+        }
+    }
+}
+
+
+bool DispDataCurve::GetVocProcessData(const char* czPath,QStringList &ProcessData)
+{
+    ProcessData.clear();
+    bool bRet = false;
+    QFile file(czPath);
+    if ( file.open(QIODevice::ReadOnly | QIODevice::Text) )
+    {
+        QTextStream stream( &file );
+        QString str;
+        QStringList list;
+        stream.readLine();//标题
+        while( !stream.atEnd())
+        {
+            str = stream.readLine();
+            list = str.split("\t");
+            ProcessData.push_back(list.at(0));
+            ProcessData.push_back(list.at(1));
+            ProcessData.push_back(list.at(2));
+        }
+        file.close();
+        bRet = true;
+    }
+    return  bRet;
+}
+bool DispDataCurve::GetScanProcessData(const char* czPath,QStringList &ProcessData)
+{
+    ProcessData.clear();
+    bool bRet = false;
+    QFile file(czPath);
+    if ( file.open(QIODevice::ReadOnly | QIODevice::Text) )
+    {
+        QTextStream stream( &file );
+        QString str;
+        QStringList list;
+        stream.readLine();//标题
+        while( !stream.atEnd())
+        {
+            str = stream.readLine();
+            list = str.split("\t");
+            ProcessData.push_back(list.at(0));
+            ProcessData.push_back(list.at(1));
+        }
+        file.close();
+        bRet = true;
+    }
+    return  bRet;
+}
+
+void DispDataCurve::on_checkBox_clicked()
+{
+     m_bViewTempt = ui->checkBox->isChecked();
+     plot->enableAxis(QwtPlot::yRight,m_bViewTempt);
+     if(m_bViewTempt)
+         ui->label_Y2->show();
+     else
+         ui->label_Y2->hide();
+}

@@ -1,0 +1,915 @@
+#include "gassetparam.h"
+#include "ui_gassetparam.h"
+
+gassetparam::gassetparam(QWidget *parent) :
+    QDialog(parent),
+    m_nClick(0),
+    ui(new Ui::gassetparam)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    connect(ui->radiobtnppm,SIGNAL(clicked()),this,SLOT(changeUnitppm()));
+    connect(ui->radiobtnmgm3,SIGNAL(clicked()),this,SLOT(changeUnitmg()));
+
+    this->Init();
+    //设置界面权限
+    if(1 == CConfig::GetAfxUserType())
+    {
+        ui->stackedWidget->setEnabled(false);
+        ui->btnSave->setEnabled(false);
+    }
+    else if(CConfig::GetAfxUserType() == 2)
+    {
+        ui->page_1->setEnabled(false);
+        ui->page_2->setEnabled(false);
+        ui->page_4->setEnabled(false);
+        SetInputEnabled(false);
+    }
+}
+
+gassetparam::~gassetparam()
+{
+    delete ui;
+}
+
+void gassetparam::Init()
+{
+    char czTmp[MAX_SIZE];
+
+    InitParamSetting();
+    on_btnShow_clicked();
+
+    memset(czTmp,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("GasSetting","YQKind",czTmp);
+    if(!atoi(czTmp))//不装配4-20mA
+    {
+        ui->btn420->hide();
+        ui->lab420->hide();
+        //保证隐藏的4-20mA每个通道设置都不一样，确保可以执行保存操作
+        ui->BoxOutputIO1->setCurrentIndex(0);
+        ui->BoxOutputIO2->setCurrentIndex(1);
+        ui->BoxOutputIO3->setCurrentIndex(2);
+        ui->BoxOutputIO4->setCurrentIndex(3);
+    }
+}
+void gassetparam::on_butClose_clicked()
+{
+    if(!AvoidInputIOSame())
+    {
+        QMessageBox::information(NULL, "提示信息", "输入配置的通道重复设置,请检查");
+        return;
+    }
+    if(!AvoidOutputIOSame())
+    {
+        QMessageBox::information(NULL, "提示信息", "4-20mA配置的通道重复设置,请检查");
+        return;
+    }
+    if(!CompareParamSaveOrNot())
+    {
+        int ret = QMessageBox::information(NULL, "提示信息","有设置项内容未保存.\n"
+                                                  "请确认是否保存?",
+                                               QMessageBox::Yes | QMessageBox::No);
+        switch (ret)
+        {
+          case QMessageBox::Yes:
+                SaveSetParam();
+              break;
+          case QMessageBox::No:
+              break;
+          default:
+              break;
+        }
+    }
+    this->close();
+}
+void gassetparam::mousePressEvent(QMouseEvent * mouseEvent)
+{
+    int x = mouseEvent->pos().x();
+    int y = mouseEvent->pos().y();
+
+    if ((x < 50)&&(y > 440))
+    {
+        m_nClick++;
+        if(m_nClick >4)
+        {
+            m_nClick = 0;
+            DlgNetSetting pDlgNet;
+            pDlgNet.move((qApp->desktop()->width() - pDlgNet.width())/2,(qApp->desktop()->height() - pDlgNet.height())/2);
+            pDlgNet.exec();
+        }
+    }
+
+}
+
+//void gassetparam::on_btnChangeTime_clicked()
+//{
+//    dlgmodifysystime *pSystime = new dlgmodifysystime(1);
+//    pSystime->exec();
+//    delete pSystime;
+//    pSystime = NULL;
+//}
+
+void gassetparam::on_btnSave_clicked()
+{
+    if(!AvoidInputIOSame())
+    {
+        QMessageBox::information(NULL, "提示信息", "输入配置的通道重复设置,请检查");
+        return;
+    }
+    if(!AvoidOutputIOSame())
+    {
+        QMessageBox::information(NULL, "提示信息", "4-20mA配置的通道重复设置,请检查");
+        return;
+    }
+    SaveSetParam();
+}
+void gassetparam::changeUnitppm()
+{
+    ui->comboBoxNO->clear();
+    ui->comboBoxSO2->clear();
+    ui->comboBoxSO2->addItem("250","1");
+    ui->comboBoxSO2->addItem("500","2");
+    ui->comboBoxNO->addItem("250","1");
+    ui->comboBoxNO->addItem("500","2");
+}
+void gassetparam::changeUnitmg()
+{
+    ui->comboBoxNO->clear();
+    ui->comboBoxSO2->clear();
+    ui->comboBoxSO2->addItem("714","1");
+    ui->comboBoxSO2->addItem("1429","2");
+    ui->comboBoxNO->addItem("335","1");
+    ui->comboBoxNO->addItem("670","2");
+}
+//防止两序号出现相同
+void gassetparam::on_BoxOrderS02_currentIndexChanged(int index)
+{
+    if(0 == index)
+    {
+        ui->BoxOrderN0->setCurrentIndex(1);
+    }
+    else
+    {
+        ui->BoxOrderN0->setCurrentIndex(0);
+    }
+}
+//防止两序号出现相同
+void gassetparam::on_BoxOrderN0_currentIndexChanged(int index)
+{
+    if(0 == index)
+    {
+        ui->BoxOrderS02->setCurrentIndex(1);
+    }
+    else
+    {
+        ui->BoxOrderS02->setCurrentIndex(0);
+    }
+}
+void gassetparam::SaveSetParam()
+{
+     char czValue[MAX_SIZE];
+    //是否显示负值
+    if(ui->ShowValue->isChecked())
+    {
+        GetAfxConfig()->SetIni("GasSetting","ShowNegative","1");
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("GasSetting","ShowNegative","0");
+    }
+    //0表示单位是ppm 1表示单位是mg/m3
+    if(ui->radiobtnppm->isChecked())
+    {
+        GetAfxConfig()->SetIni("GasSetting","ChromaUnit","0");
+    }
+    else if(ui->radiobtnmgm3->isChecked())
+    {
+        GetAfxConfig()->SetIni("GasSetting","ChromaUnit","1");
+    }
+    //保存量程信息
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->comboBoxSO2->currentIndex());
+    GetAfxConfig()->SetIni("GasSetting","S02Range",czValue);
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->comboBoxNO->currentIndex());
+    GetAfxConfig()->SetIni("GasSetting","N0Range",czValue);
+    //1表示启用TCP通讯，2表示启用RS232通讯
+    if(ui->radiobtnTcp->isChecked())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","TCPFlag","1");
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("GasCommunication","TCPFlag","2");
+    }
+    //保存RS232信息
+    if(0 == ui->Boxdatabit->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","baudrate","9600");
+    }
+    else if(1 == ui->Boxdatabit->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","baudrate","115200");
+    }
+    if(0 == ui->Boxdatabit->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","databit","6");
+    }
+    else if(1 == ui->Boxdatabit->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","databit","7");
+    }
+    else if(2 == ui->Boxdatabit->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","databit","8");
+    }
+
+    if(0 == ui->Boxstopbit->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","stopbit","1");
+    }
+    else if(1 == ui->Boxstopbit->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","stopbit","1.5");
+    }
+    else if(2 == ui->Boxstopbit->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","stopbit","2");
+    }
+
+    if(0 == ui->Boxparity->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","parity","N");
+    }
+    else if(1 == ui->Boxparity->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","parity","O");
+    }
+    else if(2 == ui->Boxparity->currentIndex())
+    {
+        GetAfxConfig()->SetIni("GasCommunication","parity","E");
+    }
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxChromaType->currentIndex());
+    GetAfxConfig()->SetIni("GasCommunication","ChromaType",czValue);
+    //保存输入配置通道信息，0表示系统维护 1排放源停炉 2跨度校准 3零点校准 4保留
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxInputIO1->currentIndex());
+    GetAfxConfig()->SetIni("GasInputSet","InputIO1",czValue);
+
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxInputIO2->currentIndex());
+    GetAfxConfig()->SetIni("GasInputSet","InputIO2",czValue);
+
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxInputIO3->currentIndex());
+    GetAfxConfig()->SetIni("GasInputSet","InputIO3",czValue);
+
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxInputIO4->currentIndex());
+    GetAfxConfig()->SetIni("GasInputSet","InputIO4",czValue);
+
+    if(ui->checkBoxKeep->isChecked())
+    {
+        GetAfxConfig()->SetIni("GasInputSet","InputKeep","1");
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("GasInputSet","InputKeep","0");
+    }
+
+    //保存输入配置中跨度校准信息
+    GetAfxConfig()->SetIni("GasAutoCali","ChromaS02",ui->lineChromaSO2->text().toLatin1().data());
+    GetAfxConfig()->SetIni("GasAutoCali","ChromaN0",ui->lineChromaNO->text().toLatin1().data());
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxUnitS02->currentIndex());
+    GetAfxConfig()->SetIni("GasAutoCali","UnitS02",czValue);
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxUnitN0->currentIndex());
+    GetAfxConfig()->SetIni("GasAutoCali","UnitN0",czValue);
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",(ui->BoxWaveS02->currentIndex()+1));
+    GetAfxConfig()->SetIni("GasAutoCali","WaveS02",czValue);
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",(ui->BoxWaveN0->currentIndex()+1));
+    GetAfxConfig()->SetIni("GasAutoCali","WaveN0",czValue);
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",(ui->BoxOrderS02->currentIndex()+1));
+    GetAfxConfig()->SetIni("GasAutoCali","OrderS02",czValue);
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",(ui->BoxOrderN0->currentIndex()+1));
+    GetAfxConfig()->SetIni("GasAutoCali","OrderN0",czValue);
+
+    //保存输出配置(4-20mA)通道信息，0表示二氧化硫 1一氧化氮 2氧含量 3保留
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxOutputIO1->currentIndex());
+    GetAfxConfig()->SetIni("GasOutputSet","OutputIO1",czValue);
+
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxOutputIO2->currentIndex());
+    GetAfxConfig()->SetIni("GasOutputSet","OutputIO2",czValue);
+
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxOutputIO3->currentIndex());
+    GetAfxConfig()->SetIni("GasOutputSet","OutputIO3",czValue);
+
+    memset(czValue,0,MAX_SIZE);
+    sprintf(czValue,"%d",ui->BoxOutputIO4->currentIndex());
+    GetAfxConfig()->SetIni("GasOutputSet","OutputIO4",czValue);
+    QMessageBox::information(NULL, "提示信息", "保存成功");
+}
+//关闭窗口时，判断设置内容是否已保存
+bool gassetparam::CompareParamSaveOrNot()
+{
+    char czValue[MAX_SIZE];
+   //是否显示负值
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasSetting","ShowNegative",czValue);
+   if(ui->ShowValue->isChecked())
+   {
+       if(1 != atoi(czValue))
+       {
+           return false;
+       }
+   }
+   else
+   {
+       if(0 != atoi(czValue))
+       {
+           return false;
+       }
+   }
+   //0表示单位是ppm 1表示单位是mg/m3
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasSetting","ChromaUnit",czValue);
+   if(ui->radiobtnppm->isChecked())
+   {
+       if(0 != atoi(czValue))
+       {
+           return false;
+       }
+   }
+   else if(ui->radiobtnmgm3->isChecked())
+   {
+       if(1 != atoi(czValue))
+       {
+           return false;
+       }
+   }
+   //保存量程信息
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasSetting","S02Range",czValue);
+   if(ui->comboBoxSO2->currentIndex() != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasSetting","N0Range",czValue);
+   if(ui->comboBoxNO->currentIndex() != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","TCPFlag",czValue);
+   if(ui->radiobtnTcp->isChecked())
+   {
+       if(1 != atoi(czValue))
+       {
+           return false;
+       }
+   }
+   else
+   {
+       if(2 != atoi(czValue))
+       {
+           return false;
+       }
+   }
+   //保存RS232信息
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","baudrate",czValue);
+   if(0 == ui->Boxbaudrate->currentIndex())
+   {
+       if(strcmp(czValue,"9600"))
+       {
+           return false;
+       }
+   }
+   else if(1 == ui->Boxbaudrate->currentIndex())
+   {
+       if(strcmp(czValue,"115200"))
+       {
+           return false;
+       }
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","databit",czValue);
+   if(0 == ui->Boxdatabit->currentIndex())
+   {
+       if(6 != atoi(czValue))
+       {
+           return false;
+       }
+   }
+   else if(1 == ui->Boxdatabit->currentIndex())
+   {
+       if(7 != atoi(czValue))
+       {
+           return false;
+       }
+   }
+   else if(2 == ui->Boxdatabit->currentIndex())
+   {
+       if(8 != atoi(czValue))
+       {
+           return false;
+       }
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","stopbit",czValue);
+   if(0 == ui->Boxstopbit->currentIndex())
+   {
+       if(strcmp(czValue,"1"))
+       {
+           return false;
+       }
+   }
+   else if(1 == ui->Boxstopbit->currentIndex())
+   {
+       if(strcmp(czValue,"1.5"))
+       {
+           return false;
+       }
+   }
+   else if(2 == ui->Boxstopbit->currentIndex())
+   {
+       if(strcmp(czValue,"2"))
+       {
+           return false;
+       }
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","parity",czValue);
+   if(0 == ui->Boxparity->currentIndex())
+   {
+       if(strcmp(czValue,"N"))
+       {
+           return false;
+       }
+   }
+   else if(1 == ui->Boxparity->currentIndex())
+   {
+       if(strcmp(czValue,"O"))
+       {
+           return false;
+       }
+   }
+   else if(2 == ui->Boxparity->currentIndex())
+   {
+       if(strcmp(czValue,"E"))
+       {
+           return false;
+       }
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","ChromaType",czValue);
+   if(ui->BoxChromaType->currentIndex() != atoi(czValue))
+   {
+       return false;
+   }
+   //保存输入配置通道信息，0表示系统维护 1排放源停炉 2跨度校准 3零点校准 4保留
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasInputSet","InputIO1",czValue);
+   if(ui->BoxInputIO1->currentIndex() != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasInputSet","InputIO2",czValue);
+   if(ui->BoxInputIO2->currentIndex() != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasInputSet","InputIO3",czValue);
+   if(ui->BoxInputIO3->currentIndex() != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasInputSet","InputIO4",czValue);
+   if(ui->BoxInputIO4->currentIndex() != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasInputSet","InputKeep",czValue);
+   if(ui->checkBoxKeep->isChecked())
+   {
+       if(1 !=atoi(czValue))
+       {
+           return false;
+       }
+   }
+   else
+   {
+       if(0 !=atoi(czValue))
+       {
+           return false;
+       }
+   }
+
+   //保存输入配置中跨度校准信息
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","ChromaS02",czValue);
+   if(ui->lineChromaSO2->text() != QString(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","ChromaN0",czValue);
+   if(ui->lineChromaNO->text() != QString(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","UnitS02",czValue);
+   if(ui->BoxUnitS02->currentIndex() != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","UnitN0",czValue);
+   if(ui->BoxUnitN0->currentIndex() != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","WaveS02",czValue);
+   if((ui->BoxWaveS02->currentIndex()+1) != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","WaveN0",czValue);
+   if((ui->BoxWaveN0->currentIndex()+1) != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","OrderS02",czValue);
+   if((ui->BoxOrderS02->currentIndex()+1) != atoi(czValue))
+   {
+       return false;
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","OrderN0",czValue);
+   if((ui->BoxOrderN0->currentIndex()+1) != atoi(czValue))
+   {
+       return false;
+   }
+   // 当YQKind为1时，表示设置4-20mA输出，否则没有4-20mA输出
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasSetting","YQKind",czValue);
+   if(atoi(czValue))
+   {
+       //保存输出配置(4-20mA)通道信息，0表示二氧化硫 1一氧化氮 2氧含量 3保留
+       memset(czValue,0,MAX_SIZE);
+       GetAfxConfig()->GetIni("GasOutputSet","OutputIO1",czValue);
+       if(ui->BoxOutputIO1->currentIndex() != atoi(czValue))
+       {
+           return false;
+       }
+       memset(czValue,0,MAX_SIZE);
+       GetAfxConfig()->GetIni("GasOutputSet","OutputIO2",czValue);
+       if(ui->BoxOutputIO2->currentIndex() != atoi(czValue))
+       {
+           return false;
+       }
+       memset(czValue,0,MAX_SIZE);
+       GetAfxConfig()->GetIni("GasOutputSet","OutputIO3",czValue);
+       if(ui->BoxOutputIO3->currentIndex() != atoi(czValue))
+       {
+           return false;
+       }
+       memset(czValue,0,MAX_SIZE);
+       GetAfxConfig()->GetIni("GasOutputSet","OutputIO4",czValue);
+       if(ui->BoxOutputIO4->currentIndex() != atoi(czValue))
+       {
+           return false;
+       }
+   }
+   return true;
+}
+//进入设置界面，初始化界面信息
+void gassetparam::InitParamSetting()
+{
+    char czValue[MAX_SIZE];
+   //是否显示负值
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasSetting","ShowNegative",czValue);
+   if(atoi(czValue))
+   {
+       ui->ShowValue->setChecked(true);
+   }
+   else
+   {
+       ui->ShowValue->setChecked(false);
+   }
+
+   //0表示单位是ppm 1表示单位是mg/m3
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasSetting","ChromaUnit",czValue);
+   if(atoi(czValue))
+   {
+       ui->radiobtnmgm3->setChecked(true);
+   }
+   else
+   {
+       ui->radiobtnppm->setChecked(true);
+   }
+   //设置量程
+   if(ui->radiobtnppm->isChecked())
+   {
+       changeUnitppm();
+   }
+   else if(ui->radiobtnmgm3->isChecked())
+   {
+       changeUnitmg();
+   }
+
+   //量程信息
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasSetting","S02Range",czValue);
+   ui->comboBoxSO2->setCurrentIndex(atoi(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasSetting","N0Range",czValue);
+   ui->comboBoxNO->setCurrentIndex(atoi(czValue));
+
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","TCPFlag",czValue);
+   if(1 == atoi(czValue))
+   {
+       ui->radiobtnTcp->setChecked(true);
+   }
+   else
+   {
+       ui->radiobtnRS232->setChecked(false);
+   }
+   //RS232信息
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","baudrate",czValue);
+   if(!strcmp(czValue,"9600"))
+   {
+       ui->Boxbaudrate->setCurrentIndex(0);
+   }
+   else if(!strcmp(czValue,"115200"))
+   {
+       ui->Boxbaudrate->setCurrentIndex(1);
+   }
+
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","databit",czValue);
+   if(6 == atoi(czValue))
+   {
+        ui->Boxdatabit->setCurrentIndex(0);
+   }
+   else if(7 == atoi(czValue))
+   {
+        ui->Boxdatabit->setCurrentIndex(1);
+   }
+   else if(8 == atoi(czValue))
+   {
+        ui->Boxdatabit->setCurrentIndex(2);
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","stopbit",czValue);
+   if(!strcmp(czValue,"1"))
+   {
+       ui->Boxstopbit->setCurrentIndex(0);
+   }
+   else if(!strcmp(czValue,"1.5"))
+   {
+        ui->Boxstopbit->setCurrentIndex(1);
+   }
+   else if(!strcmp(czValue,"2"))
+   {
+        ui->Boxstopbit->setCurrentIndex(2);
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","parity",czValue);
+   if(!strcmp(czValue,"N"))
+   {
+       ui->Boxparity->setCurrentIndex(0);
+   }
+   else if(!strcmp(czValue,"O"))
+   {
+        ui->Boxparity->setCurrentIndex(1);
+   }
+   else if(!strcmp(czValue,"E"))
+   {
+       ui->Boxparity->setCurrentIndex(2);
+   }
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasCommunication","ChromaType",czValue);
+   ui->BoxChromaType->setCurrentIndex(atoi(czValue));
+
+   //保存输入配置通道信息，0表示系统维护 1排放源停炉 2跨度校准 3零点校准 4保留
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasInputSet","InputIO1",czValue);
+   ui->BoxInputIO1->setCurrentIndex(atoi(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasInputSet","InputIO2",czValue);
+   ui->BoxInputIO2->setCurrentIndex(atoi(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasInputSet","InputIO3",czValue);
+   ui->BoxInputIO3->setCurrentIndex(atoi(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasInputSet","InputIO4",czValue);
+   ui->BoxInputIO4->setCurrentIndex(atoi(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasInputSet","InputKeep",czValue);
+   if(atoi(czValue))
+   {
+       ui->checkBoxKeep->setChecked(true);
+   }
+   else
+   {
+       ui->checkBoxKeep->setChecked(false);
+   }
+   //保存输入配置中跨度校准信息
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","ChromaS02",czValue);
+   ui->lineChromaSO2->setText(QString(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","ChromaN0",czValue);
+   ui->lineChromaNO->setText(QString(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","UnitS02",czValue);
+   ui->BoxUnitS02->setCurrentIndex(atoi(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","UnitN0",czValue);
+   ui->BoxUnitN0->setCurrentIndex(atoi(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","WaveS02",czValue);
+   ui->BoxWaveS02->setCurrentIndex((atoi(czValue)-1));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","WaveN0",czValue);
+   ui->BoxWaveN0->setCurrentIndex((atoi(czValue)-1));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","OrderS02",czValue);
+   ui->BoxOrderS02->setCurrentIndex((atoi(czValue)-1));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasAutoCali","OrderN0",czValue);
+   ui->BoxOrderN0->setCurrentIndex((atoi(czValue)-1));
+   //保存输出配置(4-20mA)通道信息，0表示二氧化硫 1一氧化氮 2氧含量 3保留
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasOutputSet","OutputIO1",czValue);
+   ui->BoxOutputIO1->setCurrentIndex(atoi(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasOutputSet","OutputIO2",czValue);
+   ui->BoxOutputIO2->setCurrentIndex(atoi(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasOutputSet","OutputIO3",czValue);
+   ui->BoxOutputIO3->setCurrentIndex(atoi(czValue));
+   memset(czValue,0,MAX_SIZE);
+   GetAfxConfig()->GetIni("GasOutputSet","OutputIO4",czValue);
+   ui->BoxOutputIO4->setCurrentIndex(atoi(czValue));
+}
+//避免输入通道设置相同
+bool gassetparam::AvoidInputIOSame()
+{
+    int nIndex1 = ui->BoxInputIO1->currentIndex();
+    int nIndex2 = ui->BoxInputIO2->currentIndex();
+    int nIndex3 = ui->BoxInputIO3->currentIndex();
+    int nIndex4 = ui->BoxInputIO4->currentIndex();
+    //当索引为4时，表示为“保留”，不需判断相同，故给先索引一个唯一值
+    if(4 == nIndex1)
+    {
+       nIndex1 = 5;
+    }
+    if(4 == nIndex2)
+    {
+       nIndex2 = 6;
+    }
+    if(4 == nIndex3)
+    {
+       nIndex3 = 7;
+    }
+    if(4 == nIndex4)
+    {
+       nIndex4 = 8;
+    }
+    if((nIndex1 != nIndex2)&&(nIndex1 != nIndex3)&&(nIndex1 != nIndex4)&&(nIndex2 != nIndex3)&&(nIndex2 != nIndex4)&&(nIndex3 != nIndex4))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+//避免输出通道(4-20mA)设置相同,保留除外
+bool gassetparam::AvoidOutputIOSame()
+{
+    int nIndex1 = ui->BoxOutputIO1->currentIndex();
+    int nIndex2 = ui->BoxOutputIO2->currentIndex();
+    int nIndex3 = ui->BoxOutputIO3->currentIndex();
+    int nIndex4 = ui->BoxOutputIO4->currentIndex();
+    //当索引为3时，表示为“保留”，不需判断相同，故给先索引一个唯一值
+    if(3 == nIndex1)
+    {
+       nIndex1 = 4;
+    }
+    if(3 == nIndex2)
+    {
+       nIndex2 = 5;
+    }
+    if(3 == nIndex3)
+    {
+       nIndex3 = 6;
+    }
+    if(3 == nIndex4)
+    {
+       nIndex4 = 7;
+    }
+    if((nIndex1 != nIndex2)&&(nIndex1 != nIndex3)&&(nIndex1 != nIndex4)&&(nIndex2 != nIndex3)&&(nIndex2 != nIndex4)&&(nIndex3 != nIndex4))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void gassetparam::on_btnShow_clicked()
+{
+    ui->page_1->show();
+    ui->page_1->setGeometry(QRect(0,0,600,320));
+    ui->page_2->hide();
+    ui->page_3->hide();
+    ui->page_4->hide();
+//    ui->btnChangeTime->show();
+    ShowSelWin(1);
+}
+
+void gassetparam::on_btnNet_clicked()
+{
+    ui->page_2->show();
+    ui->page_2->setGeometry(QRect(0,0,600,320));
+    ui->page_1->hide();
+    ui->page_3->hide();
+    ui->page_4->hide();
+//    ui->btnChangeTime->hide();
+    ShowSelWin(2);
+}
+
+void gassetparam::on_btnInput_clicked()
+{
+    ui->page_3->show();
+    ui->page_3->setGeometry(QRect(0,0,600,320));
+    ui->page_2->hide();
+    ui->page_1->hide();
+    ui->page_4->hide();
+//    ui->btnChangeTime->hide();
+    ShowSelWin(3);
+}
+
+void gassetparam::on_btn420_clicked()
+{
+    ui->page_4->show();
+    ui->page_4->setGeometry(QRect(0,0,600,320));
+    ui->page_2->hide();
+    ui->page_1->hide();
+    ui->page_3->hide();
+//    ui->btnChangeTime->hide();
+    ShowSelWin(4);
+}
+void gassetparam::ShowSelWin(int iCMDType)
+{
+    QFrame *fram[4] = {ui->fra1,ui->fra2,ui->fra3,ui->fra4};
+    for(int i = 1;i <= 4;i++)
+    {
+        QFrame *fra = fram[i - 1];
+        if(iCMDType == i)
+            fra->show();
+        else
+            fra->hide();
+    }
+}
+void gassetparam::SetInputEnabled(bool bEnabled)
+{
+    ui->labelinput->setEnabled(bEnabled);
+    ui->labelIO1->setEnabled(bEnabled);
+    ui->labelIO2->setEnabled(bEnabled);
+    ui->labelIO3->setEnabled(bEnabled);
+    ui->labelIO4->setEnabled(bEnabled);
+    ui->BoxInputIO1->setEnabled(bEnabled);
+    ui->BoxInputIO2->setEnabled(bEnabled);
+    ui->BoxInputIO3->setEnabled(bEnabled);
+    ui->BoxInputIO4->setEnabled(bEnabled);
+    ui->checkBoxKeep->setEnabled(bEnabled);
+    ui->frameInput->setEnabled(bEnabled);
+}

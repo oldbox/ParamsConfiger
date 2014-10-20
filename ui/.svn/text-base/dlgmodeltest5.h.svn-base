@@ -1,0 +1,38 @@
+#ifndef DLGMODELTEST5_H
+#define DLGMODELTEST5_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+#include <QMessageBox>
+#include <QListWidgetItem>
+#include "dlgremindmessage.h"
+
+namespace Ui {
+class dlgmodeltest5;
+}
+
+class dlgmodeltest5 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest5(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest5();
+    
+private slots:
+    void on_btnStatus_clicked();
+    void on_listWidget_clicked(const QModelIndex &index);
+    void on_btnSend_clicked();   
+
+private:
+    bool judgeYQConnect();
+    void UpdateParamName();
+    bool SendCmd(int16_t nCmd,int nNum);
+
+    Ui::dlgmodeltest5 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    int m_nRow;
+};
+
+#endif // DLGMODELTEST5_H

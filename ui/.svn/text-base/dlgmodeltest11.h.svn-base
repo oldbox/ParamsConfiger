@@ -1,0 +1,46 @@
+#ifndef DLGMODELTEST11_H
+#define DLGMODELTEST11_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class dlgmodeltest11;
+}
+
+class dlgmodeltest11 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest11(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest11();
+    
+private slots:
+    void on_butOpenMotorSpeed_clicked();
+    void on_butCloseMotorSpeed_clicked();
+    void on_butOpenAirPumpSpeed_clicked();
+    void on_lblCloseAirPumpSpeed_clicked();
+
+    //void on_butKeyboard_clicked();
+
+private:
+    Ui::dlgmodeltest11 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    //SfKeyboard* sfkey;
+    //QLineEdit *objLit;
+    bool judgeYQConnect();
+    //bool eventFilter(QObject *object, QEvent *event);
+
+    //打开搅拌电机
+    bool LinkOpenMotorSpeedModbus(int nMotorSpeedNum);
+    //关闭搅拌电机
+    bool LinkCloseMotorSpeedModbus();
+    //打开气泵
+    bool LinkOpenAirPumpSpeedModbus(int nAirPumpSpeedNum);
+    //关闭气泵
+    bool LinkCloseAirPumpSpeedModbus();
+};
+
+#endif // DLGMODELTEST11_H

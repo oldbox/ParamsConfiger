@@ -1,0 +1,319 @@
+#include "gasdispscopecurve.h"
+#include "ui_gasdispscopecurve.h"
+#include "../core/myplot.h"
+
+gasdispscopecurve::gasdispscopecurve(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::gasdispscopecurve)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    m_nClick = 0;
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    plot = new MyPlot(1,ui->widget);
+    plot->setGeometry(QRect(10, 10, 560, 420));
+    connect(pMC->pYQs,SIGNAL(NotifyScopeData(struGasVector*,int)),this,SLOT(OnScopeData(struGasVector*,int)));
+    connect(ui->rBtnShowCure,SIGNAL(clicked()),this,SLOT(changeShowCurveMode()));
+    connect(ui->rBtnShowData,SIGNAL(clicked()),this,SLOT(changeShowDataMode()));
+    this->Init();
+    struGasVector *pScope = new struGasVector;
+    CYQ* pYQ = m_pMC->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        ((CProcess2*)(pYQ->m_pProcess))->GetScopeData(pScope);//获取光谱数据
+        OnScopeData(pScope,pScope->SpecType);
+        DealDataInfo(pScope);
+    }
+    delete pScope;
+}
+
+gasdispscopecurve::~gasdispscopecurve()
+{
+    delete ui;
+    delete plot;
+    m_vtnLamdba.clear();
+    m_vtnMeasure.clear();
+    m_vtnLight.clear();
+    m_vtnBackground.clear();
+}
+void gasdispscopecurve::Init()
+{
+    char czValue[MAX_SIZE];
+
+    changeShowCurveMode();
+    ui->checkBoxStop->setChecked(false);
+    ui->rBtnShowCure->setChecked(true);
+    memset(czValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("GasSetting","LamdbaMax",czValue);
+    ui->lineEditMax->setText(QString(czValue));
+    memset(czValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("GasSetting","LamdbaMin",czValue);
+    ui->lineEditMin->setText(QString(czValue));
+
+    m_vtnLamdba.clear();
+    m_vtnMeasure.clear();
+    m_vtnLight.clear();
+    m_vtnBackground.clear();
+}
+void gasdispscopecurve::OnScopeData(struGasVector *pScope,int nType)
+{
+    if(!ui->checkBoxStop->isChecked())
+    {
+        DealDataInfo(pScope);
+    }
+    if(1 == nType)
+    {
+         plot->RemoveCurve();
+         plot->AddCurve(QString::fromUtf8("吸收谱"),pScope->m_vtnLamdba, pScope->m_vtnScope,Qt::red);
+    }
+    else if(2 == nType)
+    {
+        plot->RemoveCurve();
+        plot->AddCurve(QString::fromUtf8("背景谱"),pScope->m_vtnLamdba, pScope->m_vtnScope,Qt::black);
+    }
+    else if(3 == nType)
+    {
+        plot->RemoveCurve();
+        plot->AddCurve(QString::fromUtf8("灯谱"),pScope->m_vtnLamdba, pScope->m_vtnScope,Qt::green);
+    }
+    else
+    {
+        //do nothing
+    }
+
+}
+
+void gasdispscopecurve::on_btnclose_clicked()
+{
+    SaveMaxMinLamdba();
+    CYQ* pYQ = m_pMC->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        pYQ->m_pProcess->SetDrawCurve(false);//退出烟气显示光谱曲线界面标志
+    }
+    this->close();
+}
+void gasdispscopecurve::mousePressEvent(QMouseEvent * mouseEvent)
+{
+    int x = mouseEvent->pos().x();
+    int y = mouseEvent->pos().y();
+
+
+    if ((x < 50)&&(y > 440))
+    {
+        m_nClick++;
+        if(m_nClick >4)
+        {
+            m_nClick = 0;
+            DlgTest pDlgTest(m_pMC);
+            pDlgTest.move((qApp->desktop()->width() - pDlgTest.width())/2,(qApp->desktop()->height() - pDlgTest.height())/2);
+            pDlgTest.exec();
+        }
+    }
+}
+void gasdispscopecurve::changeShowCurveMode()
+{
+    ui->page_1->show();
+    ui->page_2->hide();
+}
+void gasdispscopecurve::changeShowDataMode()
+{
+    ui->page_1->hide();
+    ui->page_2->show();
+}
+void gasdispscopecurve::DealDataInfo(struGasVector *pScope)
+{
+    char czValue[MAX_SIZE];
+    float fMax = 0.0;
+    float fMin = 0.0;
+    m_vtnLamdba.clear();
+    if(1 == pScope->SpecType)
+    {
+        m_vtnMeasure.clear();
+    }
+    else if(2 == pScope->SpecType)
+    {
+        m_vtnBackground.clear();
+    }
+    else if(3 == pScope->SpecType)
+    {
+        m_vtnLight.clear();
+    }
+
+    memset(czValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("GasSetting","LamdbaMax",czValue);
+    fMax = atof(czValue);
+    memset(czValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("GasSetting","LamdbaMin",czValue);
+    fMin = atof(czValue);
+
+    for(int i=0;i<pScope->m_vtnLamdba.size();i++)
+    {
+        if(pScope->m_vtnLamdba[i]>=fMin&&pScope->m_vtnLamdba[i]<=fMax)
+        {
+            m_vtnLamdba.push_back(pScope->m_vtnLamdba[i]);
+            if(1 == pScope->SpecType)
+            {
+                m_vtnMeasure.push_back(pScope->m_vtnScope[i]);
+            }
+            else if(2 == pScope->SpecType)
+            {
+                m_vtnBackground.push_back(pScope->m_vtnScope[i]);
+            }
+            else if(3 == pScope->SpecType)
+            {
+                m_vtnLight.push_back(pScope->m_vtnScope[i]);
+            }
+        }
+    }
+    ShowMeasureData(pScope->SpecType);
+}
+//void gasdispscopecurve::ShowLightData(const QVector<double> &xData, const QVector<double> &yData)
+//{
+//    QString qsLamdba;
+//    QString qsScope;
+//    ui->tableLight->clear();
+//    ui->tableLight->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+//    ui->tableLight->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+//    QStringList qslColHea;
+//    qslColHea.clear();
+//    qslColHea.insert(0,"波长");
+//    qslColHea.insert(1,"强度");
+//    ui->tableLight->setColumnCount(2);
+//    ui->tableLight->setRowCount(xData.size());
+//    QHeaderView* headerView = ui->tableLight->verticalHeader();
+//    headerView->setHidden(true);
+//    ui->tableLight->setHorizontalHeaderLabels(qslColHea);
+//    ui->tableLight->setColumnWidth(0,35);
+//    ui->tableLight->setColumnWidth(1,100);
+//    for(int i=0;i<xData.size();i++)
+//    {
+//        ui->tableLight->setRowHeight(i,20);
+//        qsLamdba = QString::number(xData[i],'g',2);
+//        qsScope = QString::number(yData[i],'g',2);
+//        ui->tableLight->setItem(i,0,new QTableWidgetItem(qsLamdba));
+//        ui->tableLight->setItem(i,1, new QTableWidgetItem(qsScope));
+//    }
+//}
+void gasdispscopecurve::ShowMeasureData(int nKind)
+{
+    QString qsLamdba;
+    QString qsMeasure;
+    QString qsBackground;
+    QString qsLight;
+
+    ui->tableMeasure->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
+    ui->tableMeasure->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+    ui->tableMeasure->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    ui->tableMeasure->setRowCount(m_vtnLamdba.size());
+
+    ui->tableMeasure->setColumnWidth(0,148);
+    ui->tableMeasure->setColumnWidth(1,148);
+    ui->tableMeasure->setColumnWidth(2,148);
+    ui->tableMeasure->setColumnWidth(3,148);
+    for(int i=0;i<m_vtnLamdba.size();i++)
+    {
+        ui->tableMeasure->setRowHeight(i,20);
+        qsLamdba = QString::number(m_vtnLamdba[i],'g',2);
+        ui->tableMeasure->setItem(i,0,new QTableWidgetItem(qsLamdba));
+        if(1 == nKind)
+        {
+            qsMeasure = QString::number(m_vtnMeasure[i],'g',2);
+            ui->tableMeasure->setItem(i,1, new QTableWidgetItem(qsMeasure));
+        }
+        else if(2 == nKind)
+        {
+            qsBackground = QString::number(m_vtnBackground[i],'g',2);
+            ui->tableMeasure->setItem(i,2, new QTableWidgetItem(qsBackground));
+        }
+        else if(3 == nKind)
+        {
+            qsLight = QString::number(m_vtnLight[i],'g',2);
+            ui->tableMeasure->setItem(i,3, new QTableWidgetItem(qsLight));
+        }
+    }
+}
+//void gasdispscopecurve::ShowBackgroundData(const QVector<double> &xData, const QVector<double> &yData)
+//{
+//    QString qsLamdba;
+//    QString qsScope;
+
+//    ui->tableBackground->clear();
+//    ui->tableBackground->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+//    ui->tableBackground->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+//    QStringList qslColHea;
+//    qslColHea.clear();
+//    qslColHea.insert(0,"波长");
+//    qslColHea.insert(1,"强度");
+//    ui->tableBackground->setColumnCount(2);
+//    ui->tableBackground->setRowCount(xData.size());
+//    QHeaderView* headerView = ui->tableMeasure->verticalHeader();
+//    headerView->setHidden(true);
+//    ui->tableBackground->setHorizontalHeaderLabels(qslColHea);
+//    ui->tableBackground->setColumnWidth(0,35);
+//    ui->tableBackground->setColumnWidth(1,100);
+//    for(int i=0;i<xData.size();i++)
+//    {
+//        ui->tableBackground->setRowHeight(i,20);
+//        qsLamdba = QString::number(xData[i],'g',2);
+//        qsScope = QString::number(yData[i],'g',2);
+//        ui->tableBackground->setItem(i,0,new QTableWidgetItem(qsLamdba));
+//        ui->tableBackground->setItem(i,1, new QTableWidgetItem(qsScope));
+//    }
+//}
+
+void gasdispscopecurve::on_btnMinUp_clicked()
+{
+    int nMax = ui->lineEditMax->text().toInt();
+    int nMin = ui->lineEditMin->text().toInt();
+    nMin += 5;
+    if(nMin>=nMax)
+    {
+        return;
+    }
+    ui->lineEditMin->setText(QString::number(nMin));
+}
+
+void gasdispscopecurve::on_btnMinDown_clicked()
+{
+    int nMin = ui->lineEditMin->text().toInt();
+    if(nMin<=185)
+    {
+        return;
+    }
+    nMin -= 5;
+    ui->lineEditMin->setText(QString::number(nMin));
+}
+
+void gasdispscopecurve::on_btnMaxUp_clicked()
+{
+    int nMax = ui->lineEditMax->text().toInt();
+    if(nMax>=420)
+    {
+        return;
+    }
+    nMax += 5;
+    ui->lineEditMax->setText(QString::number(nMax));
+}
+
+void gasdispscopecurve::on_btnMaxDown_clicked()
+{
+    int nMax = ui->lineEditMax->text().toInt();
+    int nMin = ui->lineEditMin->text().toInt();
+    nMax -= 5;
+    if(nMax<=nMin)
+    {
+        return;
+    }
+    ui->lineEditMax->setText(QString::number(nMax));
+}
+//保存波长取值范围
+void gasdispscopecurve::SaveMaxMinLamdba()
+{
+    GetAfxConfig()->SetIni("GasSetting","LamdbaMax",ui->lineEditMax->text().toLatin1().data());
+    GetAfxConfig()->SetIni("GasSetting","LamdbaMin",ui->lineEditMin->text().toLatin1().data());
+}
+

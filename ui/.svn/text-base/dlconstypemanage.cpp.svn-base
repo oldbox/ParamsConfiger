@@ -1,0 +1,773 @@
+#include "dlconstypemanage.h"
+#include "ui_dlconstypemanage.h"
+#include <QMessageBox>
+#include <QTextCodec>
+#include "dlsetlevel.h"
+
+dlConsTypeManage::dlConsTypeManage(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlConsTypeManage)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    m_pDB = new CDBBusiness("yqdata","yq.db");
+    this->Init();
+    struConsumeInfo model;
+    this->GetConsumeInfoList(&model);
+    ui->litMaxValue->setFocus();
+    ui->litID->setEnabled(false);
+
+
+     ui->radUnit_Day->setChecked(true);
+     ui->lblEmployUnit2->setText("(天)");
+}
+
+dlConsTypeManage::~dlConsTypeManage()
+{
+    delete m_pDB;
+    delete ui;
+}
+
+void dlConsTypeManage::Init()
+{
+    m_vcConsume.clear();
+    ui->cbxProcessType->clear();
+     QString sText;
+     QString sValue;
+
+     sText = "重金属";
+     sValue = "1";
+     ui->cbxProcessType->addItem(sText,sValue);
+
+     sText = "紫外烟气";
+     sValue = "2";
+     ui->cbxProcessType->addItem(sText,sValue);
+
+     sText = "有机物";
+     sValue = "3";
+     ui->cbxProcessType->addItem(sText,sValue);
+
+     sText = "比色法";
+     sValue = "4";
+     ui->cbxProcessType->addItem(sText,sValue);
+
+     sText = "原子荧光";
+     sValue = "5";
+     ui->cbxProcessType->addItem(sText,sValue);
+     sText = "光谱仪";
+     sValue = "6";
+     ui->cbxProcessType->addItem(sText,sValue);
+
+     int iYQType = GetAfxYQType();
+     ui->cbxProcessType->setCurrentIndex(ui->cbxProcessType->findData(iYQType));
+
+     sqlite_data datalist;
+     bool isResult = m_pDB->GetConsume(datalist);
+     if(isResult)
+     {
+         if(!datalist.IsEmpty())
+         {
+             ui->tvConsList->clear();
+             for(int i = 1; i <= datalist.RowCount(); i++)
+             {
+                 QString sID = datalist.GetData(i,1);
+                 QString sParentID = datalist.GetData(i,3);
+                 if(sParentID.length() == 0)
+                 {
+                     QString sConsName = datalist.GetData(i,2);
+                     sConsName += " [" + sID + "]";
+                     QStringList columItemList;
+                     columItemList << sConsName << sID;
+                     QTreeWidgetItem *ParentItem = new QTreeWidgetItem(ui->tvConsList,columItemList);
+                     ParentItem->setIcon(0,QIcon(":/res/node1.gif"));
+
+                     struConsume model;
+                     strcpy(model.cID,datalist.GetData(i,1));
+                     strcpy(model.Name,datalist.GetData(i,2));
+                     strcpy(model.ParentID,datalist.GetData(i,3));
+                     m_vcConsume.push_back(model);
+                     this->InsChildNode(ParentItem,sID,sConsName,datalist);
+                 }
+             }
+         }
+     }
+     datalist.Free();
+
+     ui->tvConsList->setHeaderHidden(true);//取消标题
+     ui->tvConsList->setEditTriggers(0);//取消双击修改
+     ui->tvConsList->setEditTriggers(QAbstractItemView::NoEditTriggers);
+     ui->tvConsList->expandAll(); //结点全部展开
+
+     QStringList qslColHea;
+     qslColHea.clear();
+     qslColHea.insert(0,"ID");
+     qslColHea.insert(1,"耗材名称");
+     qslColHea.insert(2,"仪器类型");
+     qslColHea.insert(3,"最大值");
+     qslColHea.insert(4,"当前值");
+     qslColHea.insert(5,"警告限值");
+     qslColHea.insert(6,"报警限值");
+     qslColHea.insert(7,"故障限值");
+     qslColHea.insert(8,"保质期(天)");
+     qslColHea.insert(9,"使用时间");
+     qslColHea.insert(10,"单位");
+     ui->tabConsumeinfo->setColumnCount(qslColHea.length());
+     ui->tabConsumeinfo->setRowCount(0);
+     ui->tabConsumeinfo->setHorizontalHeaderLabels(qslColHea);
+     ui->tabConsumeinfo->setColumnWidth(0,25);
+     ui->tabConsumeinfo->setColumnWidth(1,75);
+     ui->tabConsumeinfo->setColumnWidth(2,75);
+     ui->tabConsumeinfo->setColumnWidth(3,55);
+     ui->tabConsumeinfo->setColumnWidth(4,53);
+     ui->tabConsumeinfo->setColumnWidth(5,53);
+     ui->tabConsumeinfo->setColumnWidth(6,55);
+     //QDateTime qTime = QDateTime::currentDateTime();
+     //ui->dtModifyTime->setDateTime(qTime);
+     //ui->dtModifyTime->setDisplayFormat("yyyy-MM-dd HH:mm");
+     ui->tabConsumeinfo->setColumnWidth(7,55);
+     ui->tabConsumeinfo->setColumnWidth(8,55);
+     ui->tabConsumeinfo->setColumnWidth(9,130);
+     ui->tabConsumeinfo->setColumnWidth(10,60);
+     ui->tabConsumeinfo->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+     ui->tabConsumeinfo->setEditTriggers(QAbstractItemView::NoEditTriggers);
+     ui->tabConsumeinfo->setRowCount(0);
+}
+
+void dlConsTypeManage::InsChildNode(QTreeWidgetItem *parentItem,QString sID,QString sName,sqlite_data &datalist)
+{
+    for(int i = 1;i <= datalist.RowCount();i++)
+    {
+
+        QString sChildID = datalist.GetData(i,1);
+        QString sConsName = datalist.GetData(i,2);
+        QString sOtherName = sConsName;
+        QString sParentID = datalist.GetData(i,3);
+
+        if(sID == sParentID)
+        {            
+            QStringList columItemList;
+
+            sConsName += " [" + sChildID + "]";
+            columItemList << sConsName << sChildID;
+            QTreeWidgetItem *ChildNode = new QTreeWidgetItem(parentItem,columItemList);
+            if(!sChildID.contains("S") && sID == "SJ")
+                ChildNode->setTextColor(0, QColor(85,0,255));
+
+            parentItem->addChild(ChildNode); //添加子节点
+            if(sName.contains("试剂"))
+                 ChildNode->setIcon(0,QIcon(":/res/node4.gif"));
+            else
+                ChildNode->setIcon(0,QIcon(":/res/node3.gif"));
+
+
+            struConsume model;
+            strcpy(model.cID,datalist.GetData(i,1));
+            strcpy(model.Name,datalist.GetData(i,2));
+            strcpy(model.ParentID,datalist.GetData(i,3));
+            m_vcConsume.push_back(model);
+            if(sID == "SJ")
+                ui->cbxConsName->addItem(sOtherName,sChildID);
+        }
+    }
+}
+
+void dlConsTypeManage::GetConsumeInfoList(struConsumeInfo *model)
+{
+    sqlite_data datalist;
+    bool isResult;
+    if(strlen(model->cID) > 0 || model->ProcessType != 0)
+    {
+        isResult = m_pDB->GetConsumeInfo(model,datalist);
+    }
+    else
+    {
+         isResult = m_pDB->GetConsumeInfo(datalist);
+    }
+    if(isResult)
+    {
+        if(!datalist.IsEmpty())
+        {
+            ui->tabConsumeinfo->setRowCount(datalist.RowCount());
+            for(int i = 1;i <= datalist.RowCount();i++)
+            {
+                ui->tabConsumeinfo->setItem(i-1,0, new QTableWidgetItem(QString(datalist.GetData(i,1))));                
+                ui->tabConsumeinfo->setItem(i-1,1, new QTableWidgetItem(QString(datalist.GetData(i,3))));
+                ui->tabConsumeinfo->setItem(i-1,2, new QTableWidgetItem(this->GetYQName(atoi(datalist.GetData(i,2)))));
+                ui->tabConsumeinfo->setItem(i-1,3, new QTableWidgetItem(QString(datalist.GetData(i,4))));
+                ui->tabConsumeinfo->setItem(i-1,4, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+                ui->tabConsumeinfo->setItem(i-1,5, new QTableWidgetItem(QString(datalist.GetData(i,6))));
+                ui->tabConsumeinfo->setItem(i-1,6, new QTableWidgetItem(QString(datalist.GetData(i,7))));
+                ui->tabConsumeinfo->setItem(i-1,7, new QTableWidgetItem(QString(datalist.GetData(i,8))));
+                ui->tabConsumeinfo->setItem(i-1,8, new QTableWidgetItem(QString(datalist.GetData(i,9))));
+                ui->tabConsumeinfo->setItem(i-1,9, new QTableWidgetItem(QString(datalist.GetData(i,10))));
+                int iEmployUnit = atoi(datalist.GetData(i,11));
+                QString sEmployUnit;
+                if(1 == iEmployUnit)
+                {
+                    sEmployUnit = "天";
+                    ui->lblEmployUnit2->setText("(天)");
+                }
+                else if(2 == iEmployUnit)
+                {
+                    sEmployUnit = "小时";
+                    ui->lblEmployUnit2->setText("(小时)");
+                }
+                else if(3 == iEmployUnit)
+                {
+                    sEmployUnit = "次";
+                    ui->lblEmployUnit2->setText("(次)");
+                }
+                ui->tabConsumeinfo->setItem(i-1,10, new QTableWidgetItem(sEmployUnit));
+            }
+        }
+        else
+        {
+            ui->tabConsumeinfo->setRowCount(0);
+        }
+    }
+    datalist.Free();
+}
+
+QString dlConsTypeManage::GetYQName(int iProcessType)
+{
+    QString sName;
+    if(iProcessType == YQ1)
+        sName = "重金属";
+    else if(iProcessType == YQ2)
+        sName = "紫外烟气";
+    else if(iProcessType == YQ3)
+        sName = "有机物";
+    else if(iProcessType == YQ4)
+        sName = "比色法";
+    else if(iProcessType == YQ5)
+        sName = "原子荧光";
+    else
+        sName = "";
+    return sName;
+}
+
+//关闭
+void dlConsTypeManage::on_butClose_clicked()
+{
+    this->close();
+}
+
+void dlConsTypeManage::ControlClear()
+{
+    ui->litMaxValue->setText("");
+    ui->litAlarmValue->setText("");
+    ui->litFaultValue->setText("");
+    ui->litRealValue->setText("");
+    ui->litWaringValue->setText("");
+    ui->litQualityDay->setText("");
+}
+
+//添加
+void dlConsTypeManage::on_butAdd_clicked()
+{
+    QString qsName = ui->tvConsList->currentIndex().data().toString().trimmed();
+    if(qsName.length() > 0)
+    {
+        QString sParentID;
+        QString sID;
+        if(qsName.indexOf("[") > 0)
+        {
+            QStringList qlName = qsName.split("[");
+            qsName = qlName.at(0).trimmed();
+        }
+        vector<struConsume>::iterator it;
+        for(it=m_vcConsume.begin();it<m_vcConsume.end();it++)
+        {
+            if(qsName == (*it).Name)
+           {
+               sID = (*it).cID;
+               sParentID = (*it).ParentID;
+               break;
+           }
+        }
+        if(sParentID.trimmed().length() == 0)
+        {
+            QMessageBox::information(NULL, "提示信息", "耗材大类不能添加内容，请选择耗材明细再添加!");
+            return;
+        }
+
+        if(sID.length() > 0)
+        {
+            struConsumeInfo model;
+            this->GetConsumeInfoModel(sID,&model);
+            if(model.RealValue > model.MaxValue)
+            {
+                QMessageBox::information(NULL, "提示信息", "余量不能大余最大值!");
+                return;
+            }
+            if(model.WaringValue > model.MaxValue)
+            {
+                QMessageBox::information(NULL, "提示信息", "警告值不能大余最大值!");
+                return;
+            }
+            if(model.AlarmValue > model.MaxValue)
+            {
+                QMessageBox::information(NULL, "提示信息", "报警值不能大余最大值!");
+                return;
+            }
+            if(model.FaultValue > model.MaxValue)
+            {
+                QMessageBox::information(NULL, "提示信息", "故障值不能大余最大值!");
+                return;
+            }
+            bool isResult = false;
+            sqlite_data datalist;
+
+            isResult = m_pDB->GetConsumeInfo(&model,datalist);
+            if(isResult)
+            {
+                if(datalist.IsEmpty())
+                {
+                    isResult = m_pDB->InsConsumeInfo(model);
+                    if(isResult)
+                    {
+                        this->ControlClear();
+                        memset(model.cID,0,16);
+                        model.ProcessType = 0;
+                        this->GetConsumeInfoList(&model);
+                        QMessageBox::information(NULL, "提示信息", "添加成功!");
+                    }
+                    else
+                        QMessageBox::information(NULL, "提示信息", "添加失败!");
+                }
+                else
+                {
+                    QMessageBox::information(NULL, "提示信息", "该记录已插入，不能重复插入记录!");
+                }
+            }
+            datalist.Free();
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息", "耗材类型 ID 不能为空，请选择左侧耗材类型!");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "请选择耗材类型!");
+    }
+}
+
+void dlConsTypeManage::on_butDel_clicked()
+{
+    QTableWidgetItem *item = ui->tabConsumeinfo->currentItem();
+    if(item != NULL)
+    {
+        int iRow = item->row();
+      //  int iCol = item->column();
+        QString sID = ui->tabConsumeinfo->item(iRow,0)->text().trimmed();
+        if(sID.length() > 0)
+        {
+            QMessageBox mess(QMessageBox::Question, "提示", "确定要删除该记录吗？", NULL);
+            QPushButton *cancelButton = mess.addButton(tr("取消"),QMessageBox::RejectRole);
+            QPushButton *okButton = mess.addButton(tr("确定"), QMessageBox::AcceptRole);
+            mess.exec();
+            if ((QPushButton*)mess.clickedButton() == okButton)
+            {
+                struConsumeInfo model;
+                strcpy(model.cID,sID.toLatin1().data());
+                bool isResult = m_pDB->DelConsumeInfo(model);
+                if(isResult)
+                {
+                    struConsumeUpdate item;
+                    strcpy(item.cID,model.cID);
+                    isResult = m_pDB->DelConsumeUpdate(item);
+                    if(isResult)
+                    {
+                        memset(model.cID,0,16);
+                        this->GetConsumeInfoList(&model);
+                        this->ControlClear();
+                        QMessageBox::information(NULL, "提示信息", "删除成功!");
+                    }
+                }
+                else
+                {
+                    QMessageBox::information(NULL, "提示信息", "删除失败!");
+                }
+            }
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "请选择要删除的记录!");
+    }
+}
+
+void dlConsTypeManage::GetConsumeInfoModel(QString sID,struConsumeInfo* model)
+{
+    strcpy(model->cID,sID.toLatin1().data());
+    model->ProcessType = ui->cbxProcessType->itemData(ui->cbxProcessType->currentIndex()).toString().toInt();
+    //最大值
+    if(ui->litMaxValue->text().trimmed().length() > 0)
+    {
+        model->MaxValue = ui->litMaxValue->text().trimmed().toFloat();
+    }
+    else
+    {
+        if(sID == "HC_J")//烟气光源
+            model->MaxValue = 6000;
+        else if(sID == "HC_K")//烟气氧传感器
+            model->MaxValue = 17520;
+        else if(sID == "HC_L")//烟气电机
+            model->MaxValue = 4320;
+        else if(sID == "HC_M")//烟气采样泵
+            model->MaxValue = 6000;
+        else if(sID == "HC_N")//烟气风扇
+            model->MaxValue = 17520;
+        else if(sID == "HC_O")//烟气制冷片
+            model->MaxValue = 8760;
+        else
+            model->MaxValue = 100;
+    }
+    //当前值
+    if(ui->litRealValue->text().trimmed().length() > 0)
+    {
+        model->RealValue = ui->litRealValue->text().trimmed().toFloat();
+    }
+    else
+    {
+        model->RealValue = 10;
+    }
+    //警告限值
+    if(ui->litWaringValue->text().trimmed().length() > 0)
+    {
+        model->WaringValue = ui->litWaringValue->text().trimmed().toFloat();
+    }
+    else
+    {
+        if(sID == "HC_J")//烟气光源
+            model->WaringValue = 720;
+        else if(sID == "HC_K")//烟气氧传感器
+            model->WaringValue = 720;
+        else if(sID == "HC_L")//烟气电机
+            model->WaringValue = 96;
+        else if(sID == "HC_M")//烟气采样泵
+            model->WaringValue = 96;
+        else if(sID == "HC_N")//烟气风扇
+            model->WaringValue = 720;
+        else if(sID == "HC_O")//烟气制冷片
+            model->WaringValue = 720;
+        else
+            model->WaringValue = 40;
+    }
+    //报警限值
+    if(ui->litAlarmValue->text().trimmed().length() > 0)
+    {
+        model->AlarmValue = ui->litAlarmValue->text().trimmed().toFloat();
+    }
+    else
+    {
+        if(sID == "HC_J")//烟气光源
+            model->AlarmValue = 360;
+        else if(sID == "HC_K")//烟气氧传感器
+            model->AlarmValue = 360;
+        else if(sID == "HC_L")//烟气电机
+            model->AlarmValue = 48;
+        else if(sID == "HC_M")//烟气采样泵
+            model->AlarmValue = 48;
+        else if(sID == "HC_N")//烟气风扇
+            model->AlarmValue = 360;
+        else if(sID == "HC_O")//烟气制冷片
+            model->AlarmValue = 360;
+        else
+            model->AlarmValue = 30;
+    }
+    //故障限值
+    if(ui->litFaultValue->text().trimmed().length() > 0)
+    {
+        model->FaultValue = ui->litFaultValue->text().trimmed().toFloat();
+    }
+    else
+    {
+        if(sID == "HC_J")//烟气光源
+            model->FaultValue = 168;
+        else if(sID == "HC_K")//烟气氧传感器
+            model->FaultValue = 168;
+        else if(sID == "HC_L")//烟气电机
+            model->FaultValue = 24;
+        else if(sID == "HC_M")//烟气采样泵
+            model->FaultValue = 24;
+        else if(sID == "HC_N")//烟气风扇
+            model->FaultValue = 168;
+        else if(sID == "HC_O")//烟气制冷片
+            model->FaultValue = 168;
+        else
+            model->FaultValue = 20;
+    }
+    //保质期
+    if(ui->litQualityDay->text().trimmed().length() > 0)
+    {
+        model->QualityDay = ui->litQualityDay->text().trimmed().toInt();
+    }
+    else
+    {
+        if(sID == "HC_J")//烟气光源
+            model->QualityDay = 6000;
+        else if(sID == "HC_K")//烟气氧传感器
+            model->QualityDay = 17520;
+        else if(sID == "HC_L")//烟气电机
+            model->QualityDay = 4320;
+        else if(sID == "HC_M")//烟气采样泵
+            model->QualityDay = 6000;
+        else if(sID == "HC_N")//烟气风扇
+            model->QualityDay = 17520;
+        else if(sID == "HC_O")//烟气制冷片
+            model->QualityDay = 8760;
+        else
+            model->QualityDay = 6;
+    }
+
+    model->ModifyTime = QDateTime::currentDateTime();
+    if(ui->radUnit_Day->isChecked())
+        model->iEmployUnit = 1;
+    else if(ui->radUnit_Hour->isChecked())
+        model->iEmployUnit = 2;
+    else if(ui->radUnit_Count->isChecked())
+        model->iEmployUnit = 3;
+}
+
+void dlConsTypeManage::on_butUpdate_clicked()
+{
+    QTableWidgetItem *item = ui->tabConsumeinfo->currentItem();
+    if(item != NULL)
+    {
+        int iRow = item->row();
+        QString sID = ui->tabConsumeinfo->item(iRow,0)->text().trimmed();
+        if(sID.length() > 0)
+        {
+            struConsumeInfo model;
+            this->GetConsumeInfoModel(sID,&model);
+            bool isResult = m_pDB->UpdateAllConsumeInfo(&model);
+            if(isResult)
+            {
+                //this->ControlClear();
+                memset(model.cID,0,16);
+                model.ProcessType = 0;
+                this->GetConsumeInfoList(&model);
+                QMessageBox::information(NULL, "提示信息", "修改成功!");
+            }
+            else
+                QMessageBox::information(NULL, "提示信息", "修改失败!");
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息", "请选择记录才能修改!");
+        }
+    }
+}
+
+
+void dlConsTypeManage::on_butClear_clicked()
+{
+    ui->litAlarmValue->setText("");
+    ui->litFaultValue->setText("");
+    ui->litMaxValue->setText("");
+    ui->litRealValue->setText("");
+    ui->litWaringValue->setText("");
+    ui->litQualityDay->setText("");
+}
+
+void dlConsTypeManage::on_cbxProcessType_currentIndexChanged(int index)
+{
+    QString sName =  ui->tvConsList->currentIndex().data().toString().trimmed();
+    if(sName.length() > 0)
+    {
+        if(sName.indexOf("[") > 0)
+        {
+            QStringList qlName = sName.split("[");
+            sName = qlName.at(0).trimmed();
+        }
+
+        QString sID;
+        vector<struConsume>::iterator it;
+        for(it=m_vcConsume.begin();it<m_vcConsume.end();it++)
+        {
+           if(sName == (*it).Name)
+           {
+               sID = (*it).cID;
+               break;
+           }
+        }
+
+        if(sID.length() > 0)
+        {
+            struConsumeInfo model;
+           // strcpy(model.cID,sID.toLatin1().data());
+            model.ProcessType = ui->cbxProcessType->itemData(index).toString().trimmed().toInt();
+            this->GetConsumeInfoList(&model);
+        }
+    }
+}
+
+void dlConsTypeManage::SetControlBgColor(QPushButton* qBut, bool isFlag)
+{
+    if(isFlag)
+    {
+        qBut->setStyleSheet("background-color:rgb(25,75,138);border:2px groove gray;border-radius:10px;padding:2px 4px;color: rgb(255, 255, 255);");
+    }
+    else
+    {
+        qBut->setStyleSheet("background-color:rgb(123,163,255);border:2px groove gray;border-radius:10px;padding:2px 4px;color: rgb(255, 255, 255);");
+    }
+}
+
+void dlConsTypeManage::on_tvConsList_clicked(const QModelIndex &index)
+{
+    if(index.row() >= 0)
+    {
+        QString qsName = ui->tvConsList->currentIndex().data().toString().trimmed();
+        if(qsName.length() > 0)
+        {
+            if(qsName.indexOf("[") > 0)
+            {
+                QStringList qlName = qsName.split("[");
+                qsName = qlName.at(0).trimmed();
+            }
+            QString sID;
+            QString sParentID;
+            vector<struConsume>::iterator it;
+            for(it=m_vcConsume.begin();it<m_vcConsume.end();it++)
+            {
+                if(qsName == (*it).Name)
+               {
+                   sID = (*it).cID;
+                   sParentID = (*it).ParentID;
+                   break;
+               }
+            }
+            ui->litID->setText("");
+            if(sParentID == "HC" || sID.contains("S"))
+            {
+                ui->litID->setEnabled(false);
+                ui->cbxConsName->setEnabled(false);
+                ui->butUpdateType->hide();
+                SetControlBgColor(ui->butUpdateType,false);
+            }
+            else
+            {
+               // ui->litID->setEnabled(true);
+                ui->cbxConsName->setEnabled(true);
+                ui->butUpdateType->show();
+                ui->litID->setText(sID);
+                SetControlBgColor(ui->butUpdateType,true);
+            }
+
+            if(sID.length() > 0)
+            {
+                int iCurIndex = ui->cbxConsName->findData(sID);
+                ui->cbxConsName->setCurrentIndex(iCurIndex);
+                struConsumeInfo model;
+                //strcpy(model.cID,sID.toLatin1().data());
+                model.ProcessType = ui->cbxProcessType->itemData(ui->cbxProcessType->currentIndex()).toString().toInt();
+                this->GetConsumeInfoList(&model);
+            }
+        }
+    }
+}
+//修改大类
+void dlConsTypeManage::on_butUpdateType_clicked()
+{
+    struConsume model;
+    strcpy(model.cID,ui->litID->text().trimmed().toLatin1().data());
+    strcpy(model.Name,ui->cbxConsName->currentText().toUtf8().data());
+    bool isResult = m_pDB->UpdateConsume(model);
+    if(isResult)
+    {
+        this->Init();
+        QMessageBox::information(NULL, "提示信息", "修改成功!");
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "修改失败!");
+    }
+}
+
+void dlConsTypeManage::on_tabConsumeinfo_clicked(const QModelIndex &index)
+{
+    QTableWidgetItem *item = ui->tabConsumeinfo->currentItem();
+    if(item != NULL)
+    {
+        int iRow = item->row();
+        QString sID = ui->tabConsumeinfo->item(iRow,0)->text().trimmed();
+        if(sID.length() > 0)
+        {
+            struConsumeInfo model;
+            strcpy(model.cID,sID.toLatin1().data());
+            sqlite_data datalist;
+
+            bool isResult = m_pDB->GetConsumeInfo(&model,datalist);
+            if(isResult)
+            {
+                if(!datalist.IsEmpty())
+                {
+                    model.ProcessType = atoi(datalist.GetData(1,2));
+                    model.MaxValue = atof(datalist.GetData(1,4));
+                    model.RealValue = atof(datalist.GetData(1,5));
+                    model.WaringValue = atof(datalist.GetData(1,6));
+                    model.AlarmValue = atof(datalist.GetData(1,7));
+                    model.FaultValue = atof(datalist.GetData(1,8));
+                    model.QualityDay = atoi(datalist.GetData(1,9));
+                    model.iEmployUnit = atoi(datalist.GetData(1,11));
+
+                    ui->cbxProcessType->setCurrentIndex(model.ProcessType - 1);
+                    ui->litMaxValue->setText(QString("%1").arg(model.MaxValue));
+                    ui->litRealValue->setText(QString("%1").arg(model.RealValue));
+                    ui->litWaringValue->setText(QString("%1").arg(model.WaringValue));
+                    ui->litAlarmValue->setText(QString("%1").arg(model.AlarmValue));
+                    ui->litFaultValue->setText(QString("%1").arg(model.FaultValue));
+                    ui->litQualityDay->setText(QString("%1").arg(model.QualityDay));
+                    if(1 == model.iEmployUnit)
+                    {
+                        ui->radUnit_Day->setChecked(true);
+                        ui->lblEmployUnit2->setText("(天)");
+                    }
+                    else if(2 == model.iEmployUnit)
+                    {
+                        ui->radUnit_Hour->setChecked(true);
+                        ui->lblEmployUnit2->setText("(小时)");
+                    }
+                    else if(3 == model.iEmployUnit)
+                    {
+                        ui->radUnit_Count->setChecked(true);
+                        ui->lblEmployUnit2->setText("(次)");
+                    }
+                }
+            }
+            datalist.Free();
+        }
+    }
+}
+
+void dlConsTypeManage::on_butSetLevel_clicked()
+{
+    dlSetLevel*  dlg = new dlSetLevel();
+    dlg->move((qApp->desktop()->width() - dlg->width())/2,(qApp->desktop()->height() - dlg->height())/2);
+    dlg->exec();
+    delete dlg;
+    dlg = NULL;
+}
+
+void dlConsTypeManage::on_radUnit_Day_clicked()
+{
+    ui->lblEmployUnit2->setText("(天)");
+}
+
+void dlConsTypeManage::on_radUnit_Hour_clicked()
+{
+    ui->lblEmployUnit2->setText("(小时)");
+}
+
+void dlConsTypeManage::on_radUnit_Count_clicked()
+{
+    ui->lblEmployUnit2->setText("(次)");
+}

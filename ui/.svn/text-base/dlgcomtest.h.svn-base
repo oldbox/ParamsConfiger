@@ -1,0 +1,36 @@
+#ifndef DLGCOMTEST_H
+#define DLGCOMTEST_H
+
+#include <QWidget>
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class DlgComTest;
+}
+
+class DlgComTest : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit DlgComTest(CMainCtrl* pMC,QWidget *parent = 0);
+    ~DlgComTest();
+    void SetContent(bool bRead,void* czData,int iLen,int ComX);
+    void ShowData(int ComX);
+
+    Ui::DlgComTest *ui;
+    
+private slots:
+    void on_btnConinue_clicked();
+
+    void on_btnClear_clicked();
+
+    void on_btnClose_clicked();
+
+private:
+    CMainCtrl* m_pMC;
+    bool stateStartStop;
+    int curComx;
+};
+
+#endif // DLGCOMTEST_H

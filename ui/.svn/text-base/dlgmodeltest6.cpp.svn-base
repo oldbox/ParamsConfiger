@@ -1,0 +1,238 @@
+#include "dlgmodeltest6.h"
+#include "ui_dlgmodeltest6.h"
+#include "bsadjustmodtest6.h"
+#include <QTextCodec>
+
+dlgmodeltest6::dlgmodeltest6(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent), 
+    m_bRunThread(false),
+    ui(new Ui::dlgmodeltest6)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    this->SettabWidADListStyle();  
+    connect(this, SIGNAL(NofityHgSignReadData()), this, SLOT(onGetReadData()),Qt::QueuedConnection);
+    m_iRedCou = 0;
+    m_iRow = 0;
+    m_iCol = 0;
+}
+
+dlgmodeltest6::~dlgmodeltest6()
+{
+    this->StopReadLight();
+    ExitSubThread();
+    delete ui;
+}
+
+void dlgmodeltest6::on_butADTest_clicked()
+{
+    if(false == judgeYQConnect()) return;
+
+    if(ui->litReadCyc->text().trimmed().length() == 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "必须填写读取时间间隔!");
+        return;
+    }
+    if(!m_bRunThread)
+    {
+        this->RunSubThread();
+        ui->butADTest->setText("停止");
+    }
+    else
+    {
+        this->StopReadLight();
+        this->ExitSubThread();
+        ui->butADTest->setText("AD测试");
+    }
+
+}
+
+void dlgmodeltest6::ExitSubThread()
+{
+    if(m_bRunThread)
+    {
+        m_bRunThread = false;
+        pthread_join(id_autorun,0);
+        id_autorun = 0;
+    }
+}
+
+void dlgmodeltest6::RunSubThread()
+{
+    if(!m_bRunThread)
+    {
+        m_bRunThread = true;
+        pthread_create(&id_autorun, NULL, AutoRunThread, this);
+    }
+}
+
+void* dlgmodeltest6::AutoRunThread(void* pParam)
+{
+    dlgmodeltest6* pThis = (dlgmodeltest6*)pParam;
+    while(pThis->m_bRunThread)
+    {
+        pThis->GetReadData();
+        int iReadCyc = pThis->GetReadCyc();
+        if(iReadCyc >= 0)
+            sleep(iReadCyc);
+        else
+            sleep(1);
+    }
+    return NULL;
+}
+
+int dlgmodeltest6::GetReadCyc()
+{
+    return ui->litReadCyc->text().toInt();
+}
+
+void dlgmodeltest6::GetReadData()
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 91;
+    int16_t wPrm1 = 1;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(CMD_LightLight,40001,1+1,bBuff))
+    {
+        memset(bBuff,0,MAX_SIZE);
+        sleep(1);
+        if(pYQ->m_pProcess->pDriver->ReadModbus(CMD_LightLight,40056,1,bBuff))
+        {
+            m_iLightVal = 0;
+            m_iLightVal = MAKEWORD(bBuff[1],bBuff[0]);
+            emit NofityHgSignReadData();
+        }
+    }
+}
+
+void dlgmodeltest6::onGetReadData()
+{
+    m_iCol = m_iRedCou;
+    ui->lcdReadCount->display(m_iRedCou + 1);
+    if(m_iRedCou < 10)
+    {
+        ui->tabWidADList->setRowCount(1);
+        ui->tabWidADList->scrollToBottom();
+    }
+    else
+    {
+        ui->tabWidADList->setRowCount((int)m_iRedCou / 10 + 1);
+    }
+    if(m_iRedCou % 10 == 0)
+    {
+        m_iCol = 0;
+        m_iRow++;
+    }
+    ui->tabWidADList->setItem(m_iRow,m_iCol,new QTableWidgetItem(QString::number(m_iLightVal)));
+    m_iCol++;
+    if(m_iRedCou > 100)
+    {
+        ui->tabWidADList->clearContents();
+    }
+    m_iRedCou++;
+}
+
+void dlgmodeltest6::SettabWidADListStyle()
+{
+    ui->tabWidADList->horizontalHeader()->setVisible(true);
+    ui->tabWidADList->verticalHeader()->setVisible(true);
+    ui->tabWidADList->setShowGrid(true); //设置显示格子线
+    ui->tabWidADList->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一行
+    ui->tabWidADList->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tabWidADList->horizontalHeader()->setClickable(false); //设置表头不可点击（默认点击后进行排序）
+    ui->tabWidADList->horizontalHeader()->setStretchLastSection(true); //设置充满表宽度
+    ui->tabWidADList->setStyleSheet("selection-background-color:lightblue;"); //设置选中背景色
+    ui->tabWidADList->setColumnCount(10);
+
+    QHeaderView *pTableHeaderView = ui->tabWidADList->horizontalHeader();
+    if (pTableHeaderView)
+    {
+        pTableHeaderView->setDefaultAlignment (Qt::AlignVCenter); //居中
+        pTableHeaderView->setTextElideMode (Qt::ElideMiddle); //...效果
+        pTableHeaderView->setStretchLastSection (true); //尾不留空白
+    }
+    ui->tabWidADList->setHorizontalHeader(pTableHeaderView);
+
+    QStringList qHeaderName;
+    ui->tabWidADList->horizontalHeader()->setFixedHeight(25);  //修改表头合适的高度
+
+    for(int i=0;i<10;i++)
+    {
+        QString qsColName = "AD" + QString("%1").arg(i+1);
+        qHeaderName << qsColName;
+        ui->tabWidADList->horizontalHeader()->resizeSection(i,50);
+    }
+    ui->tabWidADList->setHorizontalHeaderLabels(qHeaderName);
+}
+
+void dlgmodeltest6::StopReadLight()
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 91;
+    int16_t wPrm1 = 0;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(CMD_LightLight,40001,1+1,bBuff))
+    {
+    }
+}
+
+
+void dlgmodeltest6::on_butIllumAdjust_clicked()
+{    
+    this->StopReadLight();
+    this->ExitSubThread();
+    ui->butADTest->setText("AD测试");
+    bsAdjustModTest6 adjmodtest(m_pMC);
+    adjmodtest.move((qApp->desktop()->width() - adjmodtest.width())/2,(qApp->desktop()->height() - adjmodtest.height())/2);
+    adjmodtest.exec();
+}
+//判断仪器是否正确连接
+bool dlgmodeltest6::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息", "仪器获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+

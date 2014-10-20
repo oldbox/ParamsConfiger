@@ -1,0 +1,245 @@
+#include "dlsetmenu.h"
+#include "ui_dlsetmenu.h"
+#include <QTextCodec>
+#include <QDesktopWidget>
+#include "dlgsetting.h"
+
+dlSetMenu::dlSetMenu(CMainCtrl* pMC,int nUserType,QWidget *parent) :
+    QDialog(parent),
+    obj1(NULL),
+    obj2(NULL),
+    obj3(NULL),
+    obj4(NULL),
+    obj5(NULL),
+    obj6(NULL),
+    obj7(NULL),
+    ui(new Ui::dlSetMenu)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    m_pMC = pMC;
+    m_iUserType = nUserType;
+    int nYQType = GetAfxYQType();
+
+    ui->fra2->hide();
+    ui->fra3->hide();
+    ui->fra4->hide();
+    ui->fra5->hide();
+    ui->fra6->hide();
+
+    if(1 == nYQType)
+    {
+        ui->labVocConfig->setText("高级配置");
+    }
+    else if(3 == nYQType)
+    {
+        //do nothing
+    }
+    else
+    {
+        ui->btnVocConfig->hide();
+        ui->labVocConfig->hide();
+    }
+    DefaultShowWin();//默认刚进入时显示参数设置界面
+
+}
+
+dlSetMenu::~dlSetMenu()
+{
+    if(NULL != obj1)
+    {
+        delete obj1;
+    }
+    if(NULL != obj2)
+    {
+        delete obj2;
+    }
+    if(NULL != obj3)
+    {
+        delete obj3;
+    }
+    if(NULL != obj4)
+    {
+        delete obj4;
+    }
+    if(NULL != obj5)
+    {
+        delete obj5;
+    }
+    if(NULL != obj6)
+    {
+        delete obj6;
+    }
+    if(NULL != obj7)
+    {
+        delete obj7;
+    }
+    delete ui;
+}
+
+void dlSetMenu::DefaultShowWin()
+{
+    ShowSelWin(1);
+}
+
+//参数设置
+void dlSetMenu::on_btnSetParam_clicked()
+{
+    ShowSelWin(1);
+}
+//运行模式设置
+void dlSetMenu::on_btnSetRunModel_clicked()
+{
+    ShowSelWin(2);
+}
+//配置管理
+void dlSetMenu::on_btnConfigure_clicked()
+{
+     ShowSelWin(3);
+}
+//流程文件设置
+void dlSetMenu::on_btnProcessFile_clicked()
+{
+    ShowSelWin(4);
+}
+//通信设置
+void dlSetMenu::on_btnCommSet_clicked()
+{
+    ShowSelWin(5);
+}
+//有机物为温度设置，电化学为高级配置
+void dlSetMenu::on_btnVocConfig_clicked()
+{
+     ShowSelWin(6);
+}
+
+void dlSetMenu::ShowSelWin(int iCMDType)
+{
+    QFrame *fram[6] = {ui->fra1,ui->fra2,ui->fra3,ui->fra4,ui->fra5,ui->fra6};    
+    for(int i = 1;i <= 6;i++)
+    {
+        QFrame *fra = fram[i - 1];       
+        if(iCMDType == i)
+        {
+            fra->show();             
+        }
+        else
+        {
+            fra->hide();           
+        }
+    }
+
+    if(obj1 != NULL)
+    {
+        obj1->hide();
+    }
+    if(obj2 != NULL)
+    {
+        obj2->hide();
+    }
+    if(obj3 != NULL)
+    {
+        obj3->hide();
+    }
+    if(obj4 != NULL)
+    {
+        obj4->hide();
+    }
+    if(obj5 != NULL)
+    {
+        obj5->hide();
+    }
+    if(obj6 != NULL)
+    {
+        obj6->hide();
+    }
+    if(obj7 != NULL)
+    {
+        obj7->hide();
+    }
+    QRect rect(0, 60, 640, 420);
+    if(1 == iCMDType)
+    {
+        if(NULL == obj1)
+        {
+            obj1 = new dlsetparam(m_pMC,this);
+            connect(obj1, SIGNAL(EmityParWinClolse()), this, SLOT(onWinClose()));
+        }
+        obj1->setGeometry(rect);
+        obj1->show();
+    }
+    if(2 == iCMDType)
+    {
+        if(NULL == obj2)
+        {
+             obj2 = new dlrunmodelset(m_pMC,this);
+             connect(obj2, SIGNAL(EmityParWinClolse()), this, SLOT(onWinClose()));
+        }
+         obj2->setGeometry(rect);
+         obj2->show();
+    }
+    if(3 == iCMDType)
+    {
+        if(NULL == obj3)
+        {
+             obj3 = new dlgConfigManage(this);
+             connect(obj3, SIGNAL(EmityParWinClolse()), this, SLOT(onWinClose()));
+        }
+         obj3->setGeometry(rect);
+         obj3->show();
+    }
+    else if(4 == iCMDType)
+    {
+        if(NULL == obj4)
+        {
+             obj4 = new dlgProcessfileChoice(this);
+             connect(obj4, SIGNAL(EmityParWinClolse()), this, SLOT(onWinClose()));
+        }
+         obj4->setGeometry(rect);
+         obj4->show();
+    }
+    else if(5 == iCMDType)
+    {
+        if(NULL == obj5)
+        {
+            obj5 = new dlSetComm(this);
+            connect(obj5, SIGNAL(EmityParWinClolse()), this, SLOT(onWinClose()));
+
+        }
+        obj5->setGeometry(rect);
+        obj5->show();
+    }
+    else if(6 == iCMDType)
+    {
+        if(3 == GetAfxYQType())
+        {
+            if(NULL == obj6)
+            {
+                obj6 = new voc_dlgInfoConfig(this);
+                connect(obj6, SIGNAL(EmityParWinClolse()), this, SLOT(onWinClose()));
+
+            }
+            obj6->setGeometry(rect);
+            obj6->show();
+        }
+        else
+        {
+             if(NULL == obj7)
+             {
+                obj7 = new dlgsetting(this);
+                connect(obj7, SIGNAL(EmityParWinClolse()), this, SLOT(onWinClose()));
+             }
+            obj7->setGeometry(rect);
+            obj7->show();
+        }
+    }
+}
+//关闭父级窗体
+void dlSetMenu::onWinClose()
+{
+    this->close();
+}

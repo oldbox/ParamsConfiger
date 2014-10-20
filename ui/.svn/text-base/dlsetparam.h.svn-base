@@ -1,0 +1,78 @@
+#ifndef DLSETPARAM_H
+#define DLSETPARAM_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include "../core/cdbbusiness.h"
+#include <qmap.h>
+#include "../core/cconfig.h"
+#include <QStandardItemModel>
+#include <QHBoxLayout>
+#include <QTableWidgetItem>
+#include <QCheckBox>
+#include "../ui/dlrunmodelset.h"
+#include "dlghelpinfo.h"
+#include "dlgremindmessage.h"
+
+namespace Ui {
+class dlsetparam;
+}
+
+class dlsetparam : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlsetparam(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlsetparam();
+
+signals:
+   void EmityParWinClolse();
+
+private slots:
+    void on_butSave_clicked();  
+    void changeCheckBox(int,int);
+    void on_tabWidParam_itemClicked(QTableWidgetItem *item);
+    void on_butRestoreDefault_clicked();
+
+    void on_checkBox_All_clicked();
+
+    void on_pushButton_curvemange_clicked();
+
+    void on_butClose_clicked();
+
+    void on_cbxCalcWay_currentIndexChanged(int index);
+
+private:
+    Ui::dlsetparam *ui;
+    QMap<QString,QString> qmCodeList;
+    CMainCtrl* m_pMC; 
+    bool InitCurveManger(int iYQType,const char* czID);
+    //参数列表初始化
+    void GetParamDictList();
+    //void GetParamDictList_3();//有机物
+
+    //添加删除参数
+    void AddOrDelPara(int iYQType,int row, int col);
+    //void AddOrDelPara_3(int row, int col);
+
+    //读取参数信息
+    void getYQsList(QString qsCodeName,int iYQType);
+
+    //保存参数信息
+    bool SaveYQInfo();
+
+    void RestoreDefault_1();
+    void RestoreDefault_5();
+
+    //QStandardItemModel *standardItemModel;
+    //QStandardItem *cbxItem;
+    QTableWidgetItem *checkBox;
+    bool isCheckBox;
+    int m_nYQType;
+    CDBBusiness* m_pDb;
+    bool m_bRemindFlag;
+    int m_nUserType;
+};
+
+#endif // DLSETPARAM_H

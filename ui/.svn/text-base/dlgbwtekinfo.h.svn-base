@@ -1,0 +1,29 @@
+#ifndef DLGBWTEKINFO_H
+#define DLGBWTEKINFO_H
+
+#include <QDialog>
+
+namespace Ui {
+class dlgBwtekInfo;
+}
+
+class dlgBwtekInfo : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgBwtekInfo(QWidget *parent = 0);
+    ~dlgBwtekInfo();
+
+
+
+private slots:
+    void on_pbtClose_clicked();
+
+private:
+    Ui::dlgBwtekInfo *ui;
+
+    void ReadFromIni();
+};
+
+#endif // DLGBWTEKINFO_H

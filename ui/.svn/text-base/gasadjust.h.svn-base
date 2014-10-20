@@ -1,0 +1,96 @@
+#ifndef GASADJUST_H
+#define GASADJUST_H
+
+#include <QDialog>
+#include "sfkeyboard.h"
+#include "dlgdamoremaind.h"
+#include "../core/cconfig.h"
+#include "../core/cmainctrl.h"
+#include <QMovie>
+#include <QMouseEvent>
+
+namespace Ui {
+class gasadjust;
+}
+
+class gasadjust : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit gasadjust(CMainCtrl* pMC,QWidget *parent = 0);
+    ~gasadjust();
+    
+private slots:
+//    void on_btnKeyboard_clicked();
+
+    void on_btnStart_clicked();
+
+    void OnGasResult(float,float,float,float);
+
+    void OnStatusValue(struGasStatusData* data);
+
+    void on_btnSave_clicked();
+
+    void OnGasCoef(float);
+
+    void on_btnClose_clicked();
+
+    void on_btnReset_clicked();
+
+    void on_btnspanN0Unit_clicked();
+
+    void on_btnspanS02Unit_clicked();
+
+    void on_btnZeroN0Unit_clicked();
+
+    void on_btnZeroS02Unit_clicked();
+
+    void on_rdiHandN0_clicked();
+
+    void on_rdiHandS02_clicked();
+
+    void on_rdiHand02_clicked();
+
+    void on_btnHandMode_clicked();
+
+    void on_btnZeroMode_clicked();
+
+    void on_btnFlowMode_clicked();
+
+private:
+    void mousePressEvent(QMouseEvent * mouseEvent);
+    bool eventFilter(QObject *object, QEvent *event);
+    void Init();
+    void SaveStartData();
+    void InitAjustCoef();
+    void ChangeCaliCoef();
+    bool CompareZeroSaveOrNot();
+    bool CompareSpanSaveOrNot();
+    void SaveCaliCoef();
+    bool JudgeCaliType();
+    void setEnabled(bool bEnable);
+    void ShowSelWin(int iCMDType);
+
+    Ui::gasadjust *ui;
+    QLineEdit *objLit;
+    SfKeyboard* sfkey;
+    CMainCtrl* m_pMC;
+    float m_fN0SpanCoef;
+    float m_fNOZeroCoef;
+    float m_fS02SpanCoef;
+    float m_fSO2ZeroCoef;
+    float m_f02SpanCoef;
+    float m_fO2ZeroCoef;
+    float m_fFlowSpanCoef;
+    float m_fFlowZeroCoef;
+    float m_fResultN0;
+    float m_fResultS02;
+    float m_fResult02;
+    int m_nType;
+    QMovie *WordMovie;
+    int m_nClick;
+    int m_nCaliKind;//标记当前选择的是哪种校准
+};
+
+#endif // GASADJUST_H

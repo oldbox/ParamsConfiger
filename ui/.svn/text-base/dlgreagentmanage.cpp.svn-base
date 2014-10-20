@@ -1,0 +1,251 @@
+#include "dlgreagentmanage.h"
+#include "ui_dlgreagentmanage.h"
+
+dlgReagentManage::dlgReagentManage(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgReagentManage)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    for(int i=0;i<NUM_Reagent;i++)
+    {
+        m_nReagentMax[i] = 0;
+        m_nReagentValue[i] = 0;
+    }
+    Init();
+    ui->radioButtonA->setChecked(true);
+}
+
+dlgReagentManage::~dlgReagentManage()
+{
+    delete ui;
+}
+void dlgReagentManage::Init()
+{
+    char czTmp[255];
+    QString TimeInfo = "上次添加试剂时间：";
+
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","ReagentAMAX",czTmp);
+    m_nReagentMax[0] = atoi(czTmp);
+    ui->progressBarA->setMaximum(m_nReagentMax[0]);
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","ReagentA",czTmp);
+    m_nReagentValue[0] = atoi(czTmp);
+    ui->progressBarA->setValue(m_nReagentValue[0]);
+
+
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","ReagentBMAX",czTmp);
+    m_nReagentMax[1] = atoi(czTmp);
+    ui->progressBarB->setMaximum(m_nReagentMax[1]);
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","ReagentB",czTmp);
+    m_nReagentValue[1] = atoi(czTmp);
+    ui->progressBarB->setValue(m_nReagentValue[1]);
+
+
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","ReagentCMAX",czTmp);
+    m_nReagentMax[2] = atoi(czTmp);
+    ui->progressBarC->setMaximum(m_nReagentMax[2]);
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","ReagentC",czTmp);
+    m_nReagentValue[2] = atoi(czTmp);
+    ui->progressBarC->setValue(m_nReagentValue[2]);
+
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","ReagentDMAX",czTmp);
+    m_nReagentMax[3] = atoi(czTmp);
+    ui->progressBarD->setMaximum(m_nReagentMax[3]);
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","ReagentD",czTmp);
+    m_nReagentValue[3] = atoi(czTmp);
+    ui->progressBarD->setValue(m_nReagentValue[3]);
+
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","ReagentEMAX",czTmp);
+    m_nReagentMax[4] = atoi(czTmp);
+    ui->progressBarE->setMaximum(m_nReagentMax[4]);
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","ReagentE",czTmp);
+    m_nReagentValue[4] = atoi(czTmp);
+    ui->progressBarE->setValue(m_nReagentValue[4]);
+
+    memset(czTmp,0,255);
+    GetAfxConfig()->GetIni("Reagents","Time",czTmp);
+    TimeInfo.append((QString)czTmp);
+    ui->labeltime->setText(TimeInfo);
+
+    SetProgressBarStatus();
+
+}
+void dlgReagentManage::on_btnAdd5_clicked()
+{
+    DealReagentValue(5);
+}
+
+void dlgReagentManage::on_btnAdd20_clicked()
+{
+    DealReagentValue(20);
+}
+
+void dlgReagentManage::on_btnAdd100_clicked()
+{
+    DealReagentValue(100);
+}
+
+void dlgReagentManage::on_btnReduce5_clicked()
+{
+    DealReagentValue(-5);
+}
+
+void dlgReagentManage::on_btnReduce20_clicked()
+{
+    DealReagentValue(-20);
+}
+
+void dlgReagentManage::on_btnReduce100_clicked()
+{
+    DealReagentValue(-100);
+}
+
+void dlgReagentManage::on_btnAdd500_clicked()
+{
+    DealReagentValue(500);
+}
+
+void dlgReagentManage::on_btnReduce500_clicked()
+{
+    DealReagentValue(-500);
+}
+
+void dlgReagentManage::on_btnAddAll_clicked()
+{
+    QRadioButton *pRadio[NUM_Reagent] = {ui->radioButtonA, ui->radioButtonB, ui->radioButtonC, ui->radioButtonD,
+                            ui->radioButtonE};
+    QProgressBar *pBar[NUM_Reagent] = {ui->progressBarA, ui->progressBarB, ui->progressBarC, ui->progressBarD,
+                            ui->progressBarE};
+
+     for(int i=0;i<NUM_Reagent;i++)
+     {
+         if(pRadio[i]->isChecked())
+         {
+             m_nReagentValue[i] = m_nReagentMax[i];
+             pBar[i]->setValue(m_nReagentValue[i]);
+         }
+     }
+
+     SetProgressBarStatus();
+}
+void dlgReagentManage::DealReagentValue(int nValue)
+{
+    QRadioButton *pRadio[NUM_Reagent] = {ui->radioButtonA, ui->radioButtonB, ui->radioButtonC, ui->radioButtonD,
+                            ui->radioButtonE};
+    QProgressBar *pBar[NUM_Reagent] = {ui->progressBarA, ui->progressBarB, ui->progressBarC, ui->progressBarD,
+                            ui->progressBarE};
+
+     for(int i=0;i<NUM_Reagent;i++)
+     {
+         if(pRadio[i]->isChecked())
+         {
+             if(ui->checkMax->isChecked())
+             {
+                 m_nReagentMax[i] = m_nReagentMax[i]+nValue;
+                 if(m_nReagentMax[i]<0)
+                 {
+                     m_nReagentMax[i] = 0;
+                 }
+                 pBar[i]->setMaximum(m_nReagentMax[i]);
+             }
+             else
+             {
+                 m_nReagentValue[i] = m_nReagentValue[i]+nValue;
+                 if(m_nReagentValue[i]>m_nReagentMax[i])
+                 {
+                     m_nReagentValue[i] = m_nReagentMax[i];
+                 }
+                 if(m_nReagentValue[i]<0)
+                 {
+                     m_nReagentValue[i] = 0;
+                 }
+                 pBar[i]->setValue(m_nReagentValue[i]);
+             }
+         }
+     }
+
+     SetProgressBarStatus();
+}
+void dlgReagentManage::SetProgressBarStatus()
+{
+    QProgressBar *pBar[NUM_Reagent] = {ui->progressBarA, ui->progressBarB, ui->progressBarC, ui->progressBarD,
+                            ui->progressBarE};
+
+    for(int i=0;i<NUM_Reagent;i++)
+    {
+        if(m_nReagentMax[i]>=0&&m_nReagentValue[i]>0)
+        {
+            int nValue = m_nReagentMax[i]/m_nReagentValue[i];
+            if(nValue >= 5)
+            {
+                pBar[i]->setStyleSheet("QProgressBar::chunk {background-color: red;} QProgressBar{text-align: center;}");
+            }
+            else if((nValue < 5)&&(nValue >= 2))
+            {
+                pBar[i]->setStyleSheet("QProgressBar::chunk {background-color: orange;} QProgressBar{text-align: center;}");
+            }
+            else
+            {
+                pBar[i]->setStyleSheet("QProgressBar::chunk {background-color: blue;} QProgressBar{text-align: center;}");
+            }
+        }
+        else
+        {
+            pBar[i]->setStyleSheet("QProgressBar::chunk {background-color: red;} QProgressBar{text-align: center;}");
+        }
+    }
+}
+void dlgReagentManage::on_btnSave_clicked()
+{
+    char czValue[255];
+
+    memset(czValue,0,255);
+    sprintf(czValue,"%d",m_nReagentMax[0]);
+    GetAfxConfig()->SetIni("Reagents","ReagentAMAX",czValue);
+    memset(czValue,0,255);
+    sprintf(czValue,"%d",m_nReagentValue[0]);
+    GetAfxConfig()->SetIni("Reagents","ReagentA",czValue);
+
+    memset(czValue,0,255);
+    sprintf(czValue,"%d",m_nReagentMax[1]);
+    GetAfxConfig()->SetIni("Reagents","ReagentBMAX",czValue);
+    memset(czValue,0,255);
+    sprintf(czValue,"%d",m_nReagentValue[1]);
+    GetAfxConfig()->SetIni("Reagents","ReagentB",czValue);
+
+    memset(czValue,0,255);
+    sprintf(czValue,"%d",m_nReagentMax[2]);
+    GetAfxConfig()->SetIni("Reagents","ReagentCMAX",czValue);
+    memset(czValue,0,255);
+    sprintf(czValue,"%d",m_nReagentValue[2]);
+    GetAfxConfig()->SetIni("Reagents","ReagentC",czValue);
+
+    memset(czValue,0,255);
+    sprintf(czValue,"%d",m_nReagentMax[3]);
+    GetAfxConfig()->SetIni("Reagents","ReagentDMAX",czValue);
+    memset(czValue,0,255);
+    sprintf(czValue,"%d",m_nReagentValue[3]);
+    GetAfxConfig()->SetIni("Reagents","ReagentD",czValue);
+
+    memset(czValue,0,255);
+    sprintf(czValue,"%d",m_nReagentMax[4]);
+    GetAfxConfig()->SetIni("Reagents","ReagentEMAX",czValue);
+    memset(czValue,0,255);
+    sprintf(czValue,"%d",m_nReagentValue[4]);
+    GetAfxConfig()->SetIni("Reagents","ReagentE",czValue);
+
+    QString qsTime = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+    GetAfxConfig()->SetIni("Reagents","Time",qsTime.toLatin1().data());
+
+    QMessageBox::information(NULL, "提示信息","保存成功!");
+}

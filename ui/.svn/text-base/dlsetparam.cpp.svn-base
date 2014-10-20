@@ -1,0 +1,1006 @@
+#include "dlsetparam.h"
+#include "ui_dlsetparam.h"
+#include <stdio.h>
+#include <iostream>
+#include "../core/paramdict.h"
+#include <QMessageBox>
+#include <vector>
+#include <QTextCodec>
+#include <QCheckBox>
+#include "../ui/dlrunmodelset.h"
+#include "voc_dlgcurvemange.h"
+#include "QDesktopWidget"
+
+using namespace std;
+
+dlsetparam::dlsetparam(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    m_bRemindFlag(false),
+    checkBox(NULL),
+    ui(new Ui::dlsetparam)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    m_nUserType = CConfig::GetAfxUserType();
+    m_pDb = new CDBBusiness("yqdata","yq.db");
+
+    ui->cbxlitUnit->clear();
+    ui->cbxlitUnit->addItem("μg/L","0");
+    ui->cbxlitUnit->addItem("mg/L","1");
+
+    ui->cbxCalcWay->clear();
+    QString sText,sValue;
+    sText = "波长";
+    sValue = "0";
+    ui->cbxCalcWay->addItem(sText,sValue);
+    sText = "峰高";
+    sValue = "1";
+    ui->cbxCalcWay->addItem(sText,sValue);
+    sText = "峰面积";
+    sValue = "2";
+    ui->cbxCalcWay->addItem(sText,sValue);
+    sText = "双波长";
+    sValue = "3";
+    ui->cbxCalcWay->addItem(sText,sValue);
+
+    m_nYQType = GetAfxYQType();
+    ui->lblBaseWave->hide();
+    ui->litBaseWave->hide();
+    ui->checkBox_All->hide();
+    ui->cbxpriority->hide();
+    ui->lblpriority->hide();
+
+    this->GetParamDictList();
+    if(1 == m_nYQType)
+    {
+        ui->lblSampleKind->hide();
+        ui->pushButton_curvemange->hide();
+        ui->cbxlitUnit->hide();
+        ui->litMin->hide();
+        ui->litMax->hide();
+        ui->lblMin->hide();
+        ui->lblMax->hide();
+
+        ui->lblSampleChroma->setGeometry(ui->lblPeakSearchDown->geometry());
+        ui->litSampleChroma->setGeometry(ui->litPeakSearchDown->geometry());
+
+        ui->lblPeakSearchDown->setGeometry(ui->lblMin->geometry());
+        ui->lblPeakSearchUp->setGeometry(ui->lblMax->geometry());
+        ui->litPeakSearchDown->setGeometry(ui->litMin->geometry());
+        ui->litPeakSearchUp->setGeometry(ui->litMax->geometry());
+    }
+    else if(3 == m_nYQType)//有机物
+    {
+        ui->checkBox_All->show();
+        ui->lblSampleChroma_2->hide();
+        ui->litBlankChroma->hide();
+        ui->lblPeakSearchDown->hide();
+        ui->litPeakSearchDown->hide();
+        ui->lblPeakSearchUp->hide();
+        ui->litPeakSearchUp->hide();
+        ui->cbxlitUnit->hide();
+        ui->lblSampleChroma->hide();
+        ui->litSampleChroma->hide();
+
+        ui->lblSampleKind->hide();
+    }
+    else if(4 == m_nYQType||7 == m_nYQType)
+    {    
+        ui->lblMin->setText("量程下限");
+        ui->lblMax->setText("量程上限");
+        ui->pushButton_curvemange->hide();
+        ui->lblSampleKind->setText("单位");
+        ui->cbxCalcWay->clear();
+        ui->cbxCalcWay->addItem("比色法检测","2");
+        ui->cbxCalcWay->addItem("汞信号读取","1");
+        ui->lblPeakSearchDown->hide();
+        ui->litPeakSearchDown->hide();
+        ui->lblPeakSearchUp->hide();
+        ui->litPeakSearchUp->hide();
+        ui->lbladjust->hide();
+        ui->litCompareFactor->hide();
+        ui->cbxlitUnit->setGeometry(ui->litCompareFactor->geometry());
+        ui->lblSampleKind->setGeometry(ui->lbladjust->geometry());
+        ui->lblSampleChroma_2->setGeometry(ui->lblPeakSearchDown->geometry());
+        ui->litBlankChroma->setGeometry(ui->litPeakSearchDown->geometry());
+        ui->lblSampleChroma->setGeometry(ui->lblPeakSearchUp->geometry());
+        ui->litSampleChroma->setGeometry(ui->litPeakSearchUp->geometry());
+
+        if(7 == m_nYQType)
+        {
+            ui->cbxpriority->show();
+            ui->lblpriority->show();
+            ui->lblpriority->setGeometry(ui->lblCheckChroma->geometry());
+            ui->cbxpriority->setGeometry(ui->litCheckChroma->geometry());
+        }
+
+        //隐藏核查标样浓度、标样浓度、空白浓度
+        ui->lblCheckChroma->hide();
+        ui->litCheckChroma->hide();
+        ui->lblSampleChroma->hide();
+        ui->litSampleChroma->hide();
+        ui->lblSampleChroma_2->hide();
+        ui->litBlankChroma->hide();
+    }
+    else if(5 == m_nYQType)//原子荧光
+    {
+        ui->pushButton_curvemange->hide();
+        ui->lblSampleKind->setText("浓度单位");
+    }
+    else if(6 == m_nYQType)
+    {
+        ui->lblSampleKind->hide();
+        ui->pushButton_curvemange->hide();
+        ui->cbxlitUnit->hide();
+        ui->lblPeakSearchDown->setText("左基点");
+        ui->lblPeakSearchUp->setText("右基点");
+        ui->lblBaseWave->show();
+        ui->litBaseWave->show();
+    }
+    connect(ui->tabWidParam, SIGNAL(cellChanged(int,int)), this, SLOT(changeCheckBox(int, int)));
+}
+
+dlsetparam::~dlsetparam()
+{
+   delete ui;
+   delete m_pDb;
+   if(checkBox)
+   {
+      delete checkBox;
+      checkBox = NULL;
+   }
+}
+
+void dlsetparam::on_butSave_clicked()
+{
+     if(NULL == ui->tabWidParam->currentItem())
+     {
+         QMessageBox::information(NULL, "提示信息", "请选择参数!");
+         return;
+     }
+    bool isResult = SaveYQInfo();
+    if(isResult)
+    {
+        QMessageBox::information(NULL, "提示信息", "保存成功!");
+    }
+    //更新修改的配置到仪器对象中
+    m_pMC->pYQs->UpdateYQInfo();
+}
+bool dlsetparam::SaveYQInfo()
+{
+    bool isResult = false;
+    if(NULL != ui->tabWidParam->currentItem())
+    {
+        QString qsCodeName = ui->tabWidParam->currentItem()->text();
+        if(qsCodeName.length() > 0)
+        {
+            paramdict dict;
+            if(dict.paramlist.size() > 0)
+            {
+                QString qsCodeID;
+
+                vector<paramitem>::iterator it;
+                for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+                {
+                   if(qsCodeName == (*it).CodeName)
+                   {
+                       qsCodeID = (*it).LHCodeID;
+                       break;
+                   }
+                }
+
+                if(qsCodeID.length() > 0)
+                {
+                    char czGroup[64];memset(czGroup,0,64);
+                    sprintf(czGroup,"%s_SET",qsCodeID.toLatin1().data());
+
+                    char czItem[64];memset(czItem,0,64);
+                    char czValue[64];memset(czValue,0,64);
+
+
+                    strcpy(czItem,"ProcessType");
+                    sprintf(czValue,"%d",m_nYQType);
+                    GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+
+                    if(qsCodeName.length() > 0)
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        strcpy(czValue,QString((*it).CodeName).toLatin1().data());
+                        strcpy(czItem,"Name");
+                        GetAfxConfig()->SetIni(czGroup,czItem,(*it).CodeName);
+                    }
+
+                    if(ui->litModAddre->text().trimmed().length() > 0)
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        strcpy(czValue,ui->litModAddre->text().trimmed().simplified().toLatin1().data());
+                        strcpy(czItem,"SlaveID");
+                        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                    }
+                    if(ui->litDataDigits->text().trimmed().length() > 0)
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        strcpy(czValue,ui->litDataDigits->text().trimmed().simplified().toLatin1().data());
+                        strcpy(czItem,"DataDigits");
+                        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                    }
+
+                    if(m_nYQType == 4)
+                    {
+                        if(ui->cbxlitUnit->currentText().trimmed().length() > 0)
+                        {
+                            //单位
+                            memset(czItem,0,64);
+                            memset(czValue,0,64);
+                            switch(ui->cbxlitUnit->currentIndex())
+                            {
+                                case 0://微克（μg/L）
+                                    sprintf(czValue,"%d",Unit_WK);
+                                break;
+                                case 1://毫克（mg/L）
+                                    sprintf(czValue,"%d",Unit_HK);
+                                break;
+                            }
+                            strcpy(czItem,"UnitType");
+                            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                        }
+
+                        //根据计算模式判断读取基线值、样品值方式
+                        if(ui->cbxCalcWay->currentIndex() >= 0)
+                        {
+                            memset(czItem,0,64);
+                            memset(czValue,0,64);
+                            int iCalcWay = ui->cbxCalcWay->itemData(ui->cbxCalcWay->currentIndex()).toInt();
+                            sprintf(czValue,"%d",iCalcWay);
+                            strcpy(czItem,"CalcWay");
+                            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                        }
+                    }
+                    else
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        switch(ui->cbxCalcWay->currentIndex())
+                        {
+                            case WaveLen:
+                                sprintf(czValue,"%d",WaveLen);
+                            break;
+                            case PeakHeight:
+                                sprintf(czValue,"%d",PeakHeight);
+                            break;
+                            case PeakArea:
+                                sprintf(czValue,"%d",PeakArea);
+                            break;
+                            case BothWaveLen:
+                                sprintf(czValue,"%d",BothWaveLen);
+                            break;
+                        }
+                        strcpy(czItem,"CalcWay");
+                        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                    }
+
+                    if(ui->litMin->text().trimmed().length() > 0)
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        strcpy(czValue,ui->litMin->text().trimmed().simplified().toLatin1().data());
+                        strcpy(czItem,"Min");
+                        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                    }
+
+                    if(ui->litMax->text().trimmed().length() > 0)
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        strcpy(czValue,ui->litMax->text().trimmed().simplified().toLatin1().data());
+                        strcpy(czItem,"Max");
+                        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                    }
+                    //标样浓度
+                    if(ui->litSampleChroma->text().trimmed().length() > 0)
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        strcpy(czValue,ui->litSampleChroma->text().trimmed().simplified().toLatin1().data());
+                        strcpy(czItem,"SampleChroma");
+                        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                    }
+                    //核查标样浓度
+                    if(ui->litCheckChroma->text().trimmed().length() > 0)
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        strcpy(czValue,ui->litCheckChroma->text().trimmed().simplified().toLatin1().data());
+                        strcpy(czItem,"CheckChroma");
+                        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                    }
+                    if(ui->litCompareFactor->text().trimmed().length() > 0)
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        strcpy(czValue,ui->litCompareFactor->text().trimmed().simplified().toLatin1().data());
+                        strcpy(czItem,"SampleAdjust");
+                        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                    }
+                    if((1 == m_nYQType) || (5 == m_nYQType) ||(6 == m_nYQType))
+                    {
+                        if(ui->litPeakSearchDown->text().trimmed().length() > 0)
+                        {
+                            memset(czItem,0,64);
+                            memset(czValue,0,64);
+                            strcpy(czValue,ui->litPeakSearchDown->text().trimmed().simplified().toLatin1().data());
+                            strcpy(czItem,"PeakSearchDown");
+                            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                        }
+
+                        if(ui->litPeakSearchUp->text().trimmed().length() > 0)
+                        {
+                            memset(czItem,0,64);
+                            memset(czValue,0,64);
+                            strcpy(czValue,ui->litPeakSearchUp->text().trimmed().simplified().toLatin1().data());
+                            strcpy(czItem,"PeakSearchUp");
+                            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                        }
+                        if(6 == m_nYQType)
+                        {
+                            if(ui->litBaseWave->text().trimmed().length() > 0)
+                            {
+                                memset(czItem,0,64);
+                                memset(czValue,0,64);
+                                strcpy(czValue,ui->litBaseWave->text().trimmed().simplified().toLatin1().data());
+                                strcpy(czItem,"BaseWaveLength");
+                                GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                            }
+                        }
+                    }
+                    if(1 == m_nYQType || 4 == m_nYQType)
+                    {
+                        // 空白浓度
+                        if(ui->litBlankChroma->text().trimmed().length() > 0)
+                        {
+                            memset(czItem,0,64);
+                            memset(czValue,0,64);
+                            strcpy(czValue,ui->litBlankChroma->text().trimmed().simplified().toLatin1().data());
+                            strcpy(czItem,"BlankChroma");
+                            GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                        }
+                    }
+                    //检出上限
+                    if(ui->litTopLimit->text().trimmed().length() > 0)
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        strcpy(czValue,ui->litTopLimit->text().trimmed().simplified().toLatin1().data());
+                        strcpy(czItem,"TopLimit");
+                        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                    }
+                    //检出下限
+                    if(ui->litLowerLimit->text().trimmed().length() > 0)
+                    {
+                        memset(czItem,0,64);
+                        memset(czValue,0,64);
+                        strcpy(czValue,ui->litLowerLimit->text().trimmed().simplified().toLatin1().data());
+                        strcpy(czItem,"LowerLimit");
+                        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+                    }
+
+                    isResult = true;
+                }
+            }
+        }
+        else
+        {
+            isResult = false;
+        }
+    }
+    else
+    {
+        isResult = false;
+    }
+    return isResult;
+}
+
+void dlsetparam::GetParamDictList()
+{
+    paramdict dict;
+    int iParamCout = 0;
+    iParamCout = dict.paramlist.size();
+
+    if(iParamCout > 0)
+    {
+        //隐藏表头
+        ui->tabWidParam->horizontalHeader()->setVisible(false);
+        ui->tabWidParam->verticalHeader()->setVisible(false);
+        ui->tabWidParam->setShowGrid(false); //设置不显示格子线
+        ui->tabWidParam->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一行
+        ui->tabWidParam->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        ui->tabWidParam->setRowCount(iParamCout);
+        ui->tabWidParam->setColumnCount(1);
+
+        QHeaderView *pTableHeaderView = ui->tabWidParam->horizontalHeader();
+        if (pTableHeaderView)
+        {
+            pTableHeaderView->setDefaultAlignment (Qt::AlignVCenter); //居中
+            pTableHeaderView->setTextElideMode (Qt::ElideRight); //...效果
+            pTableHeaderView->setStretchLastSection (true); //尾不留空白
+        }
+
+        int iRow = 0;
+        sqlite_data datalist;
+        bool isResult = m_pDb->GetYQCode(datalist);
+
+        vector<paramitem>::iterator it;
+        for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+        {
+            checkBox = new QTableWidgetItem((*it).CodeName);
+            checkBox->setCheckState(Qt::Unchecked);
+
+            if(isResult)
+            {
+                for(int i = 1;i<=datalist.RowCount();i++)
+                {
+                    if(0 == strcmp((*it).LHCodeID,datalist.GetData(i,1)))
+                    {
+                        checkBox->setCheckState(Qt::Checked);
+                        break;
+                    }
+                }
+            }
+            ui->tabWidParam ->setItem(iRow, 0, checkBox);
+            iRow ++;
+        }
+
+        datalist.Free();
+    }
+}
+
+void dlsetparam::changeCheckBox(int row, int col)
+{
+    if(m_nUserType<=2)
+    {
+        if(m_bRemindFlag)
+        {
+            dlgRemindMessage *pRemind= new dlgRemindMessage(m_pMC,1);
+            pRemind->exec();
+            delete pRemind;
+            pRemind = NULL;
+        }
+        return;
+    }
+    int nYQKind = GetAfxYQType();
+    AddOrDelPara(nYQKind,row,col);
+}
+void dlsetparam::AddOrDelPara(int iYQType,int row, int col)
+{
+    if(row >= 0 && col >= 0)
+    {
+        SYQPARAM sYQ;
+        QString strCodeName = ui->tabWidParam->item(row,col)->text().trimmed();//取出字符串
+        if(strCodeName.length() > 0)
+        {
+            paramdict dict;
+            if(dict.paramlist.size() > 0)
+            {
+                vector<paramitem>::iterator it;
+                paramdict dict;
+                for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+                {
+                   if(strCodeName == (*it).CodeName)
+                   {
+                       strcpy(sYQ.czID,(*it).LHCodeID);
+                       break;
+                   }
+                }
+            }
+        }
+        if(ui->tabWidParam->item(row, col)->checkState() == Qt::Checked) //选中
+        {
+            if(0 != strcmp(sYQ.czID,""))
+            {
+                 bool isResult = false;
+                 if(iYQType == 3)
+                     isResult = m_pDb->Voc_InsYQ(sYQ);
+                 else
+                     isResult = m_pDb->InsYQ(sYQ);
+                 if(isResult)
+                 {
+                     if(5 == iYQType || iYQType == 4 || iYQType == 6)
+                     {
+                        isResult = InitCurveManger(iYQType,sYQ.czID);
+                     }
+                     if(isResult)
+                     {
+                        isResult = SaveYQInfo();
+                        QMessageBox::information(NULL, "提示信息", "参数添加成功");
+                     }
+                     else
+                        QMessageBox::information(NULL, "提示信息", "添加失败!");
+                 }
+                 else
+                 {
+                     QMessageBox::information(NULL, "提示信息", "添加失败!");
+                 }
+            }
+        }
+        else if(ui->tabWidParam->item(row, col)->checkState() == Qt::Unchecked)
+        {
+                isCheckBox = true;
+                if(0 != strcmp(sYQ.czID,""))
+                {
+                    bool isResult;
+                    if(iYQType == 3)
+                        isResult = m_pDb->Voc_DelYQ(sYQ);
+                    else
+                        isResult = m_pDb->DelYQ(sYQ);
+                    if(isResult)
+                    {
+
+                        QMessageBox::information(NULL,"提示信息", "删除成功!");
+                    }
+                    else
+                    {
+                        QMessageBox::information(NULL, "提示信息", "删除失败!");
+                    }
+                }
+        }
+    }
+}
+
+void dlsetparam::getYQsList(QString qsCodeName,int iYQType)
+{
+    if(qsCodeName.trimmed().length() > 0)
+    {
+        paramdict dict;
+        int iParamCount = 0;
+        iParamCount = dict.paramlist.size();
+        if(iParamCount > 0)
+        {
+            if(iYQType == 1 || 6 == m_nYQType || 4 == m_nYQType || 7 == m_nYQType)
+            {
+                ui->litModAddre->setText("");
+                ui->litPeakSearchDown->setText("");
+                ui->litPeakSearchUp->setText("");
+                ui->litDataDigits->setText("");
+                ui->litSampleChroma->setText("");
+                ui->litCheckChroma->setText("");
+                ui->cbxCalcWay->setCurrentIndex(1);
+                ui->litMax->setText("");
+                ui->litMin->setText("");
+                ui->litBlankChroma->setText("");
+                ui->litCompareFactor->setText("");
+                ui->litTopLimit->setText("");
+                ui->litLowerLimit->setText("");
+            }
+            else if(iYQType == 3)
+            {
+                ui->litModAddre->setText("");
+                ui->litDataDigits->setText("");
+                ui->litSampleChroma->setText("");
+                ui->litCheckChroma->setText("");
+                ui->cbxCalcWay->setCurrentIndex(1);
+                ui->litMax->setText("");
+                ui->litMin->setText("");
+                ui->litCompareFactor->setText("");
+                ui->litTopLimit->setText("");
+                ui->litLowerLimit->setText("");
+            }
+            else if(iYQType == 5)
+            {
+                ui->litModAddre->setText("");
+                ui->litPeakSearchDown->setText("");
+                ui->litPeakSearchUp->setText("");
+                ui->litDataDigits->setText("");
+                ui->litSampleChroma->setText("");
+                ui->litCheckChroma->setText("");
+                ui->cbxCalcWay->setCurrentIndex(1);
+                ui->litMax->setText("");
+                ui->litMin->setText("");
+                ui->litBlankChroma->setText("");
+                ui->litCompareFactor->setText("");
+                ui->litTopLimit->setText("");
+                ui->litLowerLimit->setText("");
+            }
+
+            QString qsCodeID;
+            if(iYQType == 1 || 6 == m_nYQType)
+            {
+                vector<paramitem>::iterator it;
+                for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+                {
+                   if(qsCodeName == (*it).CodeName)
+                   {
+                       qsCodeID = QString((*it).LHCodeID);
+                       ui->litModAddre->setText(QString("%1").arg((*it).SlaveID));
+                       ui->litPeakSearchDown->setText(QString("%1").arg((*it).parcode1.PeakSearchDown));
+                       ui->litPeakSearchUp->setText(QString("%1").arg((*it).parcode1.PeakSearchUp));
+                       ui->litDataDigits->setText(QString("%1").arg((*it).DataDigits));
+                       ui->litSampleChroma->setText(QString("%1").arg((*it).SampleChroma));
+                       ui->litCheckChroma->setText(QString("%1").arg((*it).CheckChroma));
+                       ui->cbxCalcWay->setCurrentIndex((*it).CalcWay);
+                       ui->litMax->setText(QString("%1").arg((*it).Max));
+                       ui->litMin->setText(QString("%1").arg((*it).Min));
+                       ui->litBlankChroma->setText(QString("%1").arg((*it).BlankChroma));
+                       ui->litCompareFactor->setText(QString("%1").arg((*it).parcode1.SampleAdjust));
+                       ui->litTopLimit->setText(QString("%1").arg((*it).TopLimit));
+                       ui->litLowerLimit->setText(QString("%1").arg((*it).LowerLimit));
+                       break;
+                   }
+                }
+            }
+            else if(iYQType == 3)
+            {
+                vector<paramitem>::iterator it;
+                for(it = dict.paramlist.begin(); it < dict.paramlist.end(); it++)
+                {
+                    if(qsCodeName == (*it).CodeName)
+                    {
+                        qsCodeID = QString((*it).LHCodeID);
+                        ui->litModAddre->setText(QString("%1").arg((*it).SlaveID));
+                        ui->litDataDigits->setText(QString("%1").arg((*it).DataDigits));
+                        ui->litSampleChroma->setText(QString("%1").arg((*it).SampleChroma));
+                        ui->litCheckChroma->setText(QString("%1").arg((*it).CheckChroma));
+                        ui->cbxCalcWay->setCurrentIndex((*it).CalcWay);
+                        ui->litMax->setText(QString("%1").arg((*it).Max));
+                        ui->litMin->setText(QString("%1").arg((*it).Min));
+                        ui->litTopLimit->setText(QString("%1").arg((*it).TopLimit));
+                        ui->litLowerLimit->setText(QString("%1").arg((*it).LowerLimit));
+                        break;
+                    }
+                }
+            }
+            else if(iYQType == 5 || 4 == iYQType || 7 == iYQType)
+            {
+                vector<paramitem>::iterator it;
+                for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+                {
+                   if(qsCodeName == (*it).CodeName)
+                   {
+                       qsCodeID = QString((*it).LHCodeID);
+                       ui->litModAddre->setText(QString("%1").arg((*it).SlaveID));
+                       ui->litPeakSearchDown->setText(QString("%1").arg((*it).parcode1.PeakSearchDown));
+                       ui->litPeakSearchUp->setText(QString("%1").arg((*it).parcode1.PeakSearchUp));
+                       ui->litDataDigits->setText(QString("%1").arg((*it).DataDigits));
+                       ui->litSampleChroma->setText(QString("%1").arg((*it).SampleChroma));
+                       ui->litCheckChroma->setText(QString("%1").arg((*it).CheckChroma));
+                       ui->cbxCalcWay->setCurrentIndex(ui->cbxCalcWay->findData((*it).CalcWay));
+                       ui->litMax->setText(QString("%1").arg((*it).Max));
+                       ui->litMin->setText(QString("%1").arg((*it).Min));
+                       ui->litBlankChroma->setText(QString("%1").arg((*it).BlankChroma));
+                       ui->litCompareFactor->setText(QString("%1").arg((*it).parcode1.SampleAdjust));
+                       ui->cbxlitUnit->setCurrentIndex(ui->cbxlitUnit->findData((*it).parcode4.UnitType));
+                       ui->litTopLimit->setText(QString("%1").arg((*it).TopLimit));
+                       ui->litLowerLimit->setText(QString("%1").arg((*it).LowerLimit));
+                       break;
+                   }
+                }
+            }
+
+            if(qsCodeID.trimmed().length() > 0)
+            {
+                SYQPARAM sYQ;
+                strcpy(sYQ.czID,qsCodeID.toLatin1().data());               
+                CYQ* pYQ = m_pMC->pYQs->GetYQ(sYQ.czID);
+                if(pYQ)
+                {
+                    pYQ->GetYQParam(sYQ);
+                    if(iYQType == 1 || 6 == m_nYQType)
+                    {
+                        ui->litModAddre->setText(QString::number(sYQ.SlaveID));
+                        ui->litPeakSearchDown->setText(QString::number(pYQ->m_CurveInfo.m_EchemCurve.PeakSearchDown));
+                        ui->litPeakSearchUp->setText(QString::number(pYQ->m_CurveInfo.m_EchemCurve.PeakSearchUp));
+                        ui->litBaseWave->setText(QString::number(pYQ->m_CurveInfo.m_EchemCurve.BaseWaveLength));
+                        ui->litDataDigits->setText(QString::number(sYQ.DataDigits));
+                        ui->cbxCalcWay->setCurrentIndex(pYQ->m_CurveInfo.CalcMode);
+                        ui->litMin->setText(QString::number(sYQ.Min));
+                        ui->litMax->setText(QString::number(sYQ.Max));
+                        ui->litSampleChroma->setText(QString::number(pYQ->m_CurveInfo.m_EchemCurve.SouceStandValue));
+                        ui->litCheckChroma->setText(QString::number(pYQ->m_CurveInfo.CheckChroma));
+                        ui->litBlankChroma->setText(QString::number(pYQ->m_CurveInfo.m_EchemCurve.BlankChroma));
+                        ui->litCompareFactor->setText(QString::number(pYQ->m_CurveInfo.SampleAdjust));
+                        ui->litTopLimit->setText(QString("%1").arg(sYQ.TopLimit));
+                        ui->litLowerLimit->setText(QString("%1").arg(sYQ.LowerLimit));
+                    }
+                    else if(iYQType == 3)
+                    {
+                        ui->litModAddre->setText(QString::number(sYQ.SlaveID));
+                        ui->litDataDigits->setText(QString::number(sYQ.DataDigits));
+                        ui->cbxCalcWay->setCurrentIndex(pYQ->m_CurveInfo.CalcMode);
+                        ui->litMin->setText(QString::number(sYQ.Min));
+                        ui->litMax->setText(QString::number(sYQ.Max));
+                        ui->litCheckChroma->setText(QString::number(pYQ->m_CurveInfo.CheckChroma));
+                        ui->litCompareFactor->setText(QString::number(pYQ->m_CurveInfo.SampleAdjust));
+                        ui->litTopLimit->setText(QString("%1").arg(sYQ.TopLimit));
+                        ui->litLowerLimit->setText(QString("%1").arg(sYQ.LowerLimit));
+                    }
+                    else if(iYQType == 5  || 4 == m_nYQType || 7 == m_nYQType)
+                    {
+                        ui->litModAddre->setText(QString::number(sYQ.SlaveID));
+                        ui->litPeakSearchDown->setText(QString::number(pYQ->m_CurveInfo.m_EchemCurve.PeakSearchDown));
+                        ui->litPeakSearchUp->setText(QString::number(pYQ->m_CurveInfo.m_EchemCurve.PeakSearchUp));
+                        ui->litDataDigits->setText(QString::number(sYQ.DataDigits));
+                        ui->cbxCalcWay->setCurrentIndex(ui->cbxCalcWay->findData(pYQ->m_CurveInfo.CalcMode));
+                        ui->litMin->setText(QString::number(sYQ.Min));
+                        ui->litMax->setText(QString::number(sYQ.Max));
+                        ui->litSampleChroma->setText(QString::number(pYQ->m_CurveInfo.m_EchemCurve.SouceStandValue));
+                        ui->litCheckChroma->setText(QString::number(pYQ->m_CurveInfo.CheckChroma));
+                        ui->litBlankChroma->setText(QString::number(pYQ->m_CurveInfo.m_EchemCurve.BlankChroma));
+                        ui->litCompareFactor->setText(QString::number(pYQ->m_CurveInfo.SampleAdjust));
+                        ui->cbxlitUnit->setCurrentIndex(sYQ.UnitType);
+                        ui->litTopLimit->setText(QString("%1").arg(sYQ.TopLimit));
+                        ui->litLowerLimit->setText(QString("%1").arg(sYQ.LowerLimit));
+                    }
+                }
+            }
+        }
+    }
+}
+
+void dlsetparam::on_tabWidParam_itemClicked(QTableWidgetItem *item)
+{
+    if(NULL != item)
+    {
+        m_bRemindFlag = true;
+        QString qsCodeName = item->text().trimmed();
+        if(qsCodeName.length() > 0)
+        {
+            getYQsList(qsCodeName,m_nYQType);
+        }
+    }
+}
+
+//还原默认值
+void dlsetparam::on_butRestoreDefault_clicked()
+{
+    if(1 == m_nYQType)
+    {
+        RestoreDefault_1();
+    }
+    else if(5 == m_nYQType || 4 == m_nYQType || 7 == m_nYQType)
+    {
+        RestoreDefault_5();
+    }
+}
+void dlsetparam::RestoreDefault_1()
+{
+    if(NULL != ui->tabWidParam->currentItem())
+    {
+        QString qsCodeName = ui->tabWidParam->currentItem()->text().trimmed();
+        if(qsCodeName.length() > 0)
+        {
+            paramdict dict;
+            if(dict.paramlist.size() > 0)
+            {
+                vector<paramitem>::iterator it;
+                for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+                {
+                   if(qsCodeName == (*it).CodeName)
+                   {
+                       ui->litModAddre->setText(QString("%1").arg((*it).SlaveID));
+                       ui->litPeakSearchDown->setText(QString("%1").arg((*it).parcode1.PeakSearchDown));
+                       ui->litPeakSearchUp->setText(QString("%1").arg((*it).parcode1.PeakSearchUp));
+                       ui->litDataDigits->setText(QString("%1").arg((*it).DataDigits));
+                       ui->litSampleChroma->setText(QString("%1").arg((*it).SampleChroma));
+                       ui->litCheckChroma->setText(QString("%1").arg((*it).CheckChroma));
+                       ui->cbxCalcWay->setCurrentIndex((*it).CalcWay);
+                       ui->litMax->setText(QString("%1").arg((*it).Max));
+                       ui->litMin->setText(QString("%1").arg((*it).Min));
+                       ui->litBlankChroma->setText(QString("%1").arg((*it).BlankChroma));
+                       ui->litCompareFactor->setText(QString("%1").arg((*it).parcode1.SampleAdjust));
+                       ui->litTopLimit->setText(QString("%1").arg((*it).TopLimit));
+                       ui->litLowerLimit->setText(QString("%1").arg((*it).LowerLimit));
+                       break;
+                   }
+                }
+            }
+        }
+    }
+}
+void dlsetparam::RestoreDefault_5()
+{
+    if(NULL != ui->tabWidParam->currentItem())
+    {
+        QString qsCodeName = ui->tabWidParam->currentItem()->text().trimmed();
+        if(qsCodeName.length() > 0)
+        {
+            paramdict dict;
+            if(dict.paramlist.size() > 0)
+            {
+                vector<paramitem>::iterator it;
+                for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+                {
+                   if(qsCodeName == (*it).CodeName)
+                   {
+                       ui->litModAddre->setText(QString("%1").arg((*it).SlaveID));
+                       ui->litPeakSearchDown->setText(QString("%1").arg((*it).parcode1.PeakSearchDown));
+                       ui->litPeakSearchUp->setText(QString("%1").arg((*it).parcode1.PeakSearchUp));
+                       ui->litDataDigits->setText(QString("%1").arg((*it).DataDigits));
+                       ui->litSampleChroma->setText(QString("%1").arg((*it).SampleChroma));
+                       ui->litCheckChroma->setText(QString("%1").arg((*it).CheckChroma));
+                       ui->cbxCalcWay->setCurrentIndex(ui->cbxCalcWay->findData((*it).CalcWay));
+                       ui->litMax->setText(QString("%1").arg((*it).Max));
+                       ui->litMin->setText(QString("%1").arg((*it).Min));
+                       ui->litBlankChroma->setText(QString("%1").arg((*it).BlankChroma));
+                       ui->litCompareFactor->setText(QString("%1").arg((*it).parcode1.SampleAdjust));
+                       ui->cbxlitUnit->setCurrentIndex(ui->cbxlitUnit->findData((*it).parcode4.UnitType));
+                       break;
+                   }
+                }
+            }
+        }
+    }
+}
+//void dlsetparam::on_btnHelp_clicked()
+//{
+//    dlghelpinfo *pHelpInfo = new dlghelpinfo(2);
+//    pHelpInfo->exec();
+//    delete pHelpInfo;
+//    pHelpInfo = NULL;
+//}
+//全选（针对有机物3,参数多）
+void dlsetparam::on_checkBox_All_clicked()
+{
+    if(ui->checkBox_All->checkState() == Qt::Checked)
+    {
+         paramdict dict;
+         if(dict.paramlist.size() > 0)
+         {
+             SYQPARAM sYQ;
+             vector<paramitem>::iterator it;
+             int Row = 0;
+             for(it = dict.paramlist.begin(); it < dict.paramlist.end(); it++)
+             {
+                 strcpy(sYQ.czID, (*it).LHCodeID);
+                 if(strcmp(sYQ.czID,""))
+                 {
+                     bool isResult = false;
+                     if(ui->tabWidParam->item(Row, 0)->checkState() == Qt::Unchecked)
+                     {
+                         isResult = m_pDb->Voc_InsYQ(sYQ);
+                         if(!isResult)
+                         {
+                              QMessageBox::information(NULL, "提示信息", "添加失败！");
+                              break;
+                         }
+                         else
+                            ui->tabWidParam->item(Row,0)->setCheckState(Qt::Checked);
+                    }
+                 }
+                 Row++;
+            }
+         }
+    }
+    else
+    {
+         paramdict dict;
+         if(dict.paramlist.size() > 0)
+         {
+             SYQPARAM sYQ;
+             vector<paramitem>::iterator it;
+             int Row = 0;
+             for(it = dict.paramlist.begin(); it < dict.paramlist.end(); it++)
+             {
+                strcpy(sYQ.czID, (*it).LHCodeID);
+                if(strcmp(sYQ.czID,""))
+                {
+                    bool isResult = false;
+                    if(ui->tabWidParam->item(Row, 0)->checkState() == Qt::Checked)
+                    {
+                        isResult = m_pDb->Voc_DelYQ(sYQ);
+                        if(!isResult)
+                        {
+                            QMessageBox::information(NULL, "提示信息", "删除失败！");
+                             break;
+                        }
+                        else
+                          ui->tabWidParam->item(Row,0)->setCheckState(Qt::Unchecked);
+                    }
+                 }
+                 Row++;
+              }
+          }
+     }
+}
+
+void dlsetparam::on_pushButton_curvemange_clicked()
+{
+    voc_dlgCurveMange* dlg = new voc_dlgCurveMange();
+    dlg->move((qApp->desktop()->width() - dlg->width())/2,(qApp->desktop()->height() - dlg->height())/2);
+    dlg->exec();
+    delete dlg;
+    dlg = NULL;
+
+    if(m_nYQType == 3)//有机物曲线管理的一些参数保存
+    {
+        //更新仪器参数配置
+        m_pMC->pYQs->UpdateYQInfo();
+    }
+}
+bool dlsetparam::InitCurveManger(int iYQType,const char* czID)
+{
+    bool isResult = false;
+    if(strlen(czID) > 0)
+    {
+        if(iYQType == 6)
+        {
+            for(int i = 0;i < ui->cbxCalcWay->count();i++)
+            {
+                struCurveInfo item2;
+                strcpy(item2.czID,czID);
+                item2.CalcMode = i;
+                item2.DataTime = QDateTime::currentDateTime();
+                item2.R = 0;
+                item2.K = 0;
+                item2.B = 0;
+                item2.MinValue = 0;
+                item2.MaxValue = 100;
+                item2.BlankAbsorb = 0;
+                item2.StdAbsorb = 0;
+
+                BsCurveDotInfo4 item1;
+                strcpy(item1.czID,czID);
+                item1.fChroma = 0;
+                item1.fAbsorbency = 0;
+
+                isResult = m_pDb->InitCurveDataInfo(item1,item2);
+            }
+        }
+        else
+        {
+            struCurveInfo item2;
+            strcpy(item2.czID,czID);
+            item2.CalcMode = WaveLen; // 波长 0
+            item2.DataTime = QDateTime::currentDateTime();
+            item2.R = 0;
+            item2.K = 0;
+            item2.B = 0;
+            item2.MinValue = 0;
+            item2.MaxValue = 100;
+            item2.BlankAbsorb = 0;
+            item2.StdAbsorb = 0;
+
+            BsCurveDotInfo4 item1;
+            strcpy(item1.czID,czID);
+            item1.fChroma = 0;
+            item1.fAbsorbency = 0;
+
+            isResult = m_pDb->InitCurveDataInfo(item1,item2);
+        }
+    }
+    return isResult;
+}
+void dlsetparam::on_butClose_clicked()
+{
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    m_bRemindFlag = false;
+    this->close();
+    emit EmityParWinClolse();
+}
+void dlsetparam::on_cbxCalcWay_currentIndexChanged(int index)
+{
+    if(6 == m_nYQType)
+    {
+        if(index == 0)
+        {
+            ui->lblPeakSearchDown->setText("单波长");
+            ui->lblPeakSearchUp->setEnabled(false);
+             ui->litPeakSearchUp->setEnabled(false);
+        }
+        else
+        {
+            ui->lblPeakSearchDown->setText("左基点");
+            ui->lblPeakSearchUp->setEnabled(true);
+            ui->litPeakSearchUp->setEnabled(true);
+        }
+    }
+}
+

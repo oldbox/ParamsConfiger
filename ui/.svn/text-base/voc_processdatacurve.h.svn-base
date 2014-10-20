@@ -1,0 +1,29 @@
+#ifndef VOC_PROCESSDATACURVE_H
+#define VOC_PROCESSDATACURVE_H
+
+#include <QWidget>
+#include "../core/myplot.h"
+#include <QVector>
+
+namespace Ui {
+class Voc_processDataCurve;
+}
+
+class Voc_processDataCurve : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit Voc_processDataCurve(QWidget *parent = 0);
+    ~Voc_processDataCurve();
+
+    void ShowCurve(QVector<double> m_vtRT,QVector<double> m_vtVol, QVector<double> m_vtTp);
+    void ShowCurve(QVector<double> m_vtRT,QVector<double> m_vtData);
+    void RemoveCurve();
+    
+private:
+    Ui::Voc_processDataCurve *ui;
+    MyPlot *plot;
+};
+
+#endif // VOC_PROCESSDATACURVE_H

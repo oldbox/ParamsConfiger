@@ -1,0 +1,54 @@
+#ifndef DLSETMENU_H
+#define DLSETMENU_H
+
+#include <QDialog>
+
+#include "dlsetcomm.h"
+#include "dlsetparam.h"
+#include "dlrunmodelset.h"
+#include "dlgprocessfilechoice.h"
+#include "dlgconfigmanage.h"
+#include "voc_dlginfoconfig.h"
+
+namespace Ui {
+class dlSetMenu;
+}
+class dlgsetting;
+class dlSetMenu : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlSetMenu(CMainCtrl* pMC,int nUserType,QWidget *parent = 0);
+    ~dlSetMenu();
+
+private slots:
+    void on_btnCommSet_clicked();
+    void on_btnSetParam_clicked();
+    void onWinClose();
+    void on_btnProcessFile_clicked();
+
+    void on_btnSetRunModel_clicked();
+
+    void on_btnConfigure_clicked();
+
+    void on_btnVocConfig_clicked();
+
+private:
+    void ShowSelWin(int iCMDType);
+    void DefaultShowWin();
+
+    Ui::dlSetMenu *ui;
+    dlsetparam *obj1;
+    dlrunmodelset *obj2;
+    dlgConfigManage *obj3;
+    dlgProcessfileChoice *obj4;
+    dlSetComm *obj5;
+    voc_dlgInfoConfig *obj6;
+    dlgsetting *obj7;
+    CMainCtrl* m_pMC;
+    int m_iUserType;
+
+};
+
+#endif // DLSETMENU_H

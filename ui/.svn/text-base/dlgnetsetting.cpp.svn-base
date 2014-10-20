@@ -1,0 +1,285 @@
+#include "dlgnetsetting.h"
+#include "ui_dlgnetsetting.h"
+
+DlgNetSetting::DlgNetSetting(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::DlgNetSetting)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);    
+    qsSysconfList.clear();
+    qsIvrList.clear();
+
+    Init();
+}
+
+DlgNetSetting::~DlgNetSetting()
+{
+    delete ui;
+    qsSysconfList.clear();
+    qsIvrList.clear();
+}
+bool DlgNetSetting::Init()
+{
+   QString qsValue;
+   QStringList qsList;
+   char czSysPath[255];
+   char czIvrPath[255];
+   memset(czSysPath,0,255);
+   memset(czIvrPath,0,255);
+
+   memcpy(czSysPath,INI_ROOT_PATH,strlen(INI_ROOT_PATH));
+   strcat(czSysPath,"/sysconf.ini");
+
+   memcpy(czIvrPath,INI_ROOT_PATH,strlen(INI_ROOT_PATH));
+   strcat(czIvrPath,"/servant/devInks.ivr.ini");
+   if(ReadFile(czSysPath,qsSysconfList))
+   {
+       if(qsSysconfList.size() > 0)
+       {
+           for(int i = 0;i < qsSysconfList.size();i++)
+           {
+               qsValue = qsSysconfList.at(i);
+               if(qsValue.contains("NetMode1",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineNetMode1->setText(qsList.at(1));
+               }
+               else if(qsValue.contains("IpAddr1",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineIpAddr1->setText(qsList.at(1));
+               }
+               else if(qsValue.contains("NetMask1",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineNetMask1->setText(qsList.at(1));
+               }
+               else if(qsValue.contains("GateWay1",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineGateWay1->setText(qsList.at(1));
+               }
+               else if(qsValue.contains("Dns1",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineDns1->setText(qsList.at(1));
+               }
+//               else if(qsValue.contains("MacAddr1",Qt::CaseSensitive))
+//               {
+//                   qsList = qsValue.split("=");
+//                   ui->lineMacAddr1->setText(qsList.at(1));
+//               }
+               else if(qsValue.contains("NetMode2",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineNetMode2->setText(qsList.at(1));
+               }
+               else if(qsValue.contains("IpAddr2",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineIpAddr2->setText(qsList.at(1));
+               }
+               else if(qsValue.contains("NetMask2",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineNetMask2->setText(qsList.at(1));
+               }
+               else if(qsValue.contains("GateWay2",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineGateWay2->setText(qsList.at(1));
+               }
+               else if(qsValue.contains("Dns2",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineDns2->setText(qsList.at(1));
+               }
+//               else if(qsValue.contains("MacAddr2",Qt::CaseSensitive))
+//               {
+//                   qsList = qsValue.split("=");
+//                   ui->lineMacAddr2->setText(qsList.at(1));
+//               }
+               qsList.clear();
+           }
+
+       }
+   }
+   if(ReadFile(czIvrPath,qsIvrList))
+   {
+       if(qsIvrList.size() > 0)
+       {
+           for(int i = 0;i < qsIvrList.size();i++)
+           {
+               qsValue = qsIvrList.at(i);
+               if(qsValue.contains("lt.app.cntMgr.server.user",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->lineID->setText(qsList.at(1));
+               }
+               else if(qsValue.contains("lt.app.cntMgr.server.psw",Qt::CaseSensitive))
+               {
+                   qsList = qsValue.split("=");
+                   ui->linePW->setText(qsList.at(1));
+               }
+
+           }
+       }
+   }
+}
+
+void DlgNetSetting::on_btnSave_clicked()
+{
+    QString qsSysPath = QString(INI_ROOT_PATH);
+    qsSysPath.append("/sysconf.ini");
+
+    QString qsIvrPath = QString(INI_ROOT_PATH);
+    qsIvrPath.append("/servant/devInks.ivr.ini");
+
+    if(qsSysconfList.size() > 0)
+    {
+        //删掉重新建立
+//        QFile file(qsSysPath);
+//        if(!file.remove())
+//        {
+//            return;
+//        }
+        QFile file1(qsSysPath);
+        if(!file1.open(QIODevice::WriteOnly))
+        //if(!file1.open(QFile::ReadWrite))
+        {
+            return;
+        }
+        QTextStream stream(&file1);
+        QString qsSysconf;
+        //重新写
+        for (int i = 0;i < qsSysconfList.size();i++)
+        {
+            qsSysconf = qsSysconfList.at(i);
+            if(qsSysconf.contains("NetMode1",Qt::CaseSensitive))
+            {
+                stream<<"NetMode1="<<ui->lineNetMode1->text()<<"\n";
+            }
+            else if(qsSysconf.contains("IpAddr1",Qt::CaseSensitive))
+            {
+                stream<<"IpAddr1="<<ui->lineIpAddr1->text()<<"\n";
+            }
+            else if(qsSysconf.contains("NetMask1",Qt::CaseSensitive))
+            {
+                stream<<"NetMask1="<<ui->lineNetMask1->text()<<"\n";
+            }
+            else if(qsSysconf.contains("GateWay1",Qt::CaseSensitive))
+            {
+                stream<<"GateWay1="<<ui->lineGateWay1->text()<<"\n";
+            }
+            else if(qsSysconf.contains("Dns1",Qt::CaseSensitive))
+            {
+                stream<<"Dns1="<<ui->lineDns1->text()<<"\n";
+            }
+//            else if(qsSysconf.contains("MacAddr1",Qt::CaseSensitive))
+//            {
+//                stream<<"MacAddr1="<<ui->lineMacAddr1->text()<<"\n";
+//            }
+            else if(qsSysconf.contains("NetMode2",Qt::CaseSensitive))
+            {
+                stream<<"NetMode2="<<ui->lineNetMode2->text()<<"\n";
+            }
+            else if(qsSysconf.contains("IpAddr2",Qt::CaseSensitive))
+            {
+                stream<<"IpAddr2="<<ui->lineIpAddr2->text()<<"\n";
+            }
+            else if(qsSysconf.contains("NetMask2",Qt::CaseSensitive))
+            {
+                stream<<"NetMask2="<<ui->lineNetMask2->text()<<"\n";
+            }
+            else if(qsSysconf.contains("GateWay2",Qt::CaseSensitive))
+            {
+                stream<<"GateWay2="<<ui->lineGateWay2->text()<<"\n";
+            }
+            else if(qsSysconf.contains("Dns2",Qt::CaseSensitive))
+            {
+                stream<<"Dns2="<<ui->lineDns2->text()<<"\n";
+            }
+//            else if(qsSysconf.contains("MacAddr2",Qt::CaseSensitive))
+//            {
+//                stream<<"MacAddr2="<<ui->lineMacAddr2->text()<<"\n";
+//            }
+            else
+            {
+                stream<<qsSysconf<<"\n";
+            }
+        }
+        file1.close();
+    }
+
+    if(qsIvrList.size() > 0)
+    {
+//        QFile file2(qsIvrPath);
+//        if(!file2.remove())
+//        {
+//            return;
+//        }
+        QFile file3(qsIvrPath);
+        //if(!file3.open(QFile::ReadWrite))
+        if(!file3.open(QIODevice::WriteOnly))
+        {
+            return;
+        }
+        QTextStream stream1(&file3);
+        QString qsIvr;
+        for (int i = 0;i < qsIvrList.size();i++)
+        {
+            qsIvr = qsIvrList.at(i);
+            if(qsIvr.contains("lt.app.cntMgr.server.user",Qt::CaseSensitive))
+            {
+                stream1<<"lt.app.cntMgr.server.user="<<ui->lineID->text()<<"\n";
+            }
+            else if(qsIvr.contains("lt.app.cntMgr.server.psw",Qt::CaseSensitive))
+            {
+                stream1<<"lt.app.cntMgr.server.psw="<<ui->linePW->text()<<"\n";
+            }
+            else
+            {
+                stream1<<qsIvr<<"\n";
+            }
+        }
+        file3.close();
+    }
+    QMessageBox::information(NULL, "提示信息", "保存成功!");
+
+}
+bool DlgNetSetting::ReadFile(const char* czPath,QStringList &FileInfo)
+{
+    FileInfo.clear();
+    bool bRet = false;
+    QFile file(czPath);
+    if ( file.open(QIODevice::ReadOnly))// | QIODevice::Text) )
+    {
+        QTextStream stream( &file );
+        QString str;
+        while( !stream.atEnd())
+        {
+            str = stream.readLine();
+            FileInfo.push_back(str);
+        }
+        file.close();
+        bRet = true;
+    }
+    return  bRet;
+}
+
+
+void DlgNetSetting::on_btnChangeTime_clicked()
+{
+    dlgmodifysystime *pSystime = new dlgmodifysystime(1);
+    pSystime->exec();
+    delete pSystime;
+    pSystime = NULL;
+}
+
+void DlgNetSetting::on_butClose_clicked()
+{
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    this->close();
+    emit EmityParWinClolse();
+}

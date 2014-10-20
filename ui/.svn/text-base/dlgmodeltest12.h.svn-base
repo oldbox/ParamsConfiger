@@ -1,0 +1,51 @@
+#ifndef DLGMODELTEST12_H
+#define DLGMODELTEST12_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+
+//汞信号检测模块
+
+namespace Ui {
+class dlgmodeltest12;
+}
+
+class dlgmodeltest12 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest12(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest12();
+    bool m_bRunThread;
+signals:
+    void NofityHgSignReadData(int,QString);
+    void NofityValue(int);
+    
+protected:
+    void RunThread();
+    void ExitRunThread();    
+    static void* AutoRunThread(void* pParam);
+    void GetReadData();
+
+private slots:
+    void on_butHgSignReadData_clicked();
+    void on_butHgSignReadStop_clicked();
+    void onGetReadData(int,QString);
+    void onShowValue(int);   
+
+private:
+    Ui::dlgmodeltest12 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    bool bExitThread;
+    pthread_t id_autorun;
+    vector<int> vectVal;
+    int m_iFreCount;
+    QString qsValue;  
+    bool m_bIsPthreadRun;
+    bool LinkMercuryModuleReadData(int nReadSpaceType,int nCount,vector<int> &vecValue);    
+    bool judgeYQConnect();
+};
+
+#endif // DLGMODELTEST12_H

@@ -1,0 +1,47 @@
+#ifndef MYPLOT_H
+#define MYPLOT_H
+
+#include <QWidget>
+#include <qwt_plot.h>
+#include <qwt_plot_curve.h>
+#include <qwt_plot_grid.h>
+#include <qwt_symbol.h>
+#include <qwt_legend.h>
+#include <qwt_plot_picker.h>
+#include <qwt_plot_zoomer.h>
+#include <qwt_plot_magnifier.h>
+#include <qwt_plot_panner.h>
+#include "qwt_picker_machine.h"
+#include <vector>
+using namespace std;
+class MyPlot : public QwtPlot
+{
+    Q_OBJECT
+public:
+    explicit MyPlot(int nType,QWidget *parent = 0);
+    ~MyPlot();
+    
+signals:
+    
+public slots:
+
+private:
+    QwtPlotGrid *grid;
+    QwtPlotPicker *d_picker;
+    QwtLegend *legend;
+
+    QVector<QwtPlotCurve *> m_vtCurve;
+
+    float m_fminX,m_fmaxX,m_fminY,m_fmaxY;
+
+
+public:
+    void RemoveCurve();
+    int  AddCurve(QString qsName,const QVector<double> &xData,const QVector<double> &yData,Qt::GlobalColor color = Qt::red,int axis = 0);
+    int  AddCurve(QString qsName,const vector<double> &xData,const vector<double> &yData,Qt::GlobalColor color = Qt::red);
+    void  RefreshAxis(const QVector<double> &xData,const QVector<double> &yData);
+    void  RefreshAxisX(const QVector<double> &xData);
+    void  RefreshAxisY(const QVector<double> &yData);
+};
+
+#endif // MYPLOT_H

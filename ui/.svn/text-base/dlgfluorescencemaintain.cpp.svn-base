@@ -1,0 +1,232 @@
+#include "dlgfluorescencemaintain.h"
+#include "ui_dlgfluorescencemaintain.h"
+
+dlgfluorescencemaintain::dlgfluorescencemaintain(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::dlgfluorescencemaintain)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    for(int j = 0;j < 17;j++)
+    {
+        m_bOnOff[j] = true;
+    }
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+}
+
+dlgfluorescencemaintain::~dlgfluorescencemaintain()
+{
+    delete ui;
+}
+
+void dlgfluorescencemaintain::on_btnDCF1_clicked()
+{
+    if(dealSendCtrlCmd(1))
+    {
+        if(!m_bOnOff[1])
+        {
+            ui->btnDCF1->setIcon(QIcon(":/res/bsDcf1_2.png"));
+        }
+        else
+        {
+            ui->btnDCF1->setIcon(QIcon(":/res/bsDcf1_1.png"));
+        }
+    }
+}
+
+void dlgfluorescencemaintain::on_btnDCF2_clicked()
+{
+    if(dealSendCtrlCmd(2))
+    {
+        if(!m_bOnOff[2])
+        {
+            ui->btnDCF2->setIcon(QIcon(":/res/bsDcf1_2.png"));
+        }
+        else
+        {
+            ui->btnDCF2->setIcon(QIcon(":/res/bsDcf1_1.png"));
+        }
+    }
+}
+
+void dlgfluorescencemaintain::on_btnDCF3_clicked()
+{
+    if(dealSendCtrlCmd(3))
+    {
+        if(!m_bOnOff[3])
+        {
+            ui->btnDCF3->setIcon(QIcon(":/res/bsDcf1_2.png"));
+        }
+        else
+        {
+            ui->btnDCF3->setIcon(QIcon(":/res/bsDcf1_1.png"));
+        }
+    }
+}
+
+void dlgfluorescencemaintain::on_btnDCF4_clicked()
+{
+    if(dealSendCtrlCmd(4))
+    {
+        if(!m_bOnOff[4])
+        {
+            ui->btnDCF4->setIcon(QIcon(":/res/bsDcf1_2.png"));
+        }
+        else
+        {
+            ui->btnDCF4->setIcon(QIcon(":/res/bsDcf1_1.png"));
+        }
+    }
+}
+
+void dlgfluorescencemaintain::on_btnDCF9_clicked()
+{
+    if(dealSendCtrlCmd(9))
+    {
+        if(!m_bOnOff[9])
+        {
+            ui->btnDCF9->setIcon(QIcon(":/res/bsDcf2_2.png"));
+        }
+        else
+        {
+            ui->btnDCF9->setIcon(QIcon(":/res/bsDcf2_1.png"));
+        }
+    }
+}
+
+void dlgfluorescencemaintain::on_btnDCF8_clicked()
+{
+    if(dealSendCtrlCmd(8))
+    {
+        if(!m_bOnOff[8])
+        {
+            ui->btnDCF8->setIcon(QIcon(":/res/bsDcf2_2.png"));
+        }
+        else
+        {
+            ui->btnDCF8->setIcon(QIcon(":/res/bsDcf2_1.png"));
+        }
+    }
+}
+
+void dlgfluorescencemaintain::on_btnDCF7_clicked()
+{
+    if(dealSendCtrlCmd(7))
+    {
+        if(!m_bOnOff[7])
+        {
+            ui->btnDCF7->setIcon(QIcon(":/res/bsDcf2_2.png"));
+        }
+        else
+        {
+            ui->btnDCF7->setIcon(QIcon(":/res/bsDcf2_1.png"));
+        }
+    }
+}
+
+void dlgfluorescencemaintain::on_btnDCF6_clicked()
+{
+    if(dealSendCtrlCmd(6))
+    {
+        if(!m_bOnOff[6])
+        {
+            ui->btnDCF6->setIcon(QIcon(":/res/bsDcf2_2.png"));
+        }
+        else
+        {
+            ui->btnDCF6->setIcon(QIcon(":/res/bsDcf2_1.png"));
+        }
+    }
+}
+
+void dlgfluorescencemaintain::on_btnDCF5_clicked()
+{
+    if(dealSendCtrlCmd(5))
+    {
+        if(!m_bOnOff[5])
+        {
+            ui->btnDCF5->setIcon(QIcon(":/res/bsDcf2_2.png"));
+        }
+        else
+        {
+            ui->btnDCF5->setIcon(QIcon(":/res/bsDcf2_1.png"));
+        }
+    }
+}
+
+void dlgfluorescencemaintain::on_btnDCF11_clicked()
+{
+    if(dealSendCtrlCmd(11))
+    {
+        if(!m_bOnOff[11])
+        {
+            ui->btnDCF11->setIcon(QIcon(":/res/bsDcf1_2.png"));
+        }
+        else
+        {
+            ui->btnDCF11->setIcon(QIcon(":/res/bsDcf1_1.png"));
+        }
+    }
+}
+
+void dlgfluorescencemaintain::on_btnDCF10_clicked()
+{
+    if(dealSendCtrlCmd(10))
+    {
+        if(!m_bOnOff[10])
+        {
+            ui->btnDCF10->setIcon(QIcon(":/res/bsDcf1_2.png"));
+        }
+        else
+        {
+            ui->btnDCF10->setIcon(QIcon(":/res/bsDcf1_1.png"));
+        }
+    }
+}
+bool dlgfluorescencemaintain::dealSendCtrlCmd(int nDCF)
+{
+    if(false == judgeYQConnect()) return false;
+    if(pYQ->m_pProcess->pDriver->SendControlCmd(CMD_Linkage,42, nDCF, m_bOnOff[nDCF]))
+    {
+        m_bOnOff[nDCF] = (!m_bOnOff[nDCF]);
+        return true;
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息","通讯故障，请检查!");
+        return false;
+    }
+}
+//判断仪器是否正确连接
+//返回:
+//  --> false 失败
+//  --> true  成功
+bool dlgfluorescencemaintain::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息","仪器信息获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}

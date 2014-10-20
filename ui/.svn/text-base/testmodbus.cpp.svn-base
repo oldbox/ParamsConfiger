@@ -1,0 +1,122 @@
+#include "testmodbus.h"
+#include "ui_testmodbus.h"
+#include <QTextCodec>
+#include "../core/cprocess4.h"
+#include "../core/cyqs.h"
+#include <QMessageBox>
+
+TestModbus::TestModbus(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::TestModbus)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    this->resize(QSize(640,480));
+
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    this->setWindowTitle("测试模块");
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+}
+
+TestModbus::~TestModbus()
+{
+    delete ui;
+}
+
+void TestModbus::on_butTestModbus_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    int16_t wValue = 0;
+    int i41CMD = atoi(ui->lit40001CMD->text().toLatin1().data());
+    //命令字
+    wValue = i41CMD;
+    bBuff[0] = HIBYTE(wValue);
+    bBuff[1] = LOBYTE(wValue);
+
+    if(ui->litParam1->text().length() > 0)
+    {
+        bBuff[2] = HIBYTE(wValue);
+        bBuff[3] = LOBYTE(wValue);
+    }
+    if(ui->litParam2->text().length() > 0)
+    {
+        bBuff[4] = HIBYTE(wValue);
+        bBuff[5] = LOBYTE(wValue);
+    }
+    if(ui->litParam3->text().length() > 0)
+    {
+        bBuff[6] = HIBYTE(wValue);
+        bBuff[7] = LOBYTE(wValue);
+    }
+    if(ui->litParam4->text().length() > 0)
+    {
+        bBuff[8] = HIBYTE(wValue);
+        bBuff[9] = LOBYTE(wValue);
+    }
+    if(ui->litParam5->text().length() > 0)
+    {
+        bBuff[10] = HIBYTE(wValue);
+        bBuff[11] = LOBYTE(wValue);
+    }
+    if(ui->litParam6->text().length() > 0)
+    {
+        bBuff[12] = HIBYTE(wValue);
+        bBuff[13] = LOBYTE(wValue);
+    }
+    int iCMDAdd = atoi(ui->litCMDAdd->text().toLatin1().data());
+    int iParamCou = atoi(ui->litParamCou->text().toLatin1().data());
+
+    //参数
+     bool isResult = pYQ->m_pProcess->pDriver->WriteModbus(iCMDAdd,40001,1+iParamCou,bBuff);
+     if(isResult)
+     {
+         QMessageBox::information(NULL, "提示信息", "成功!");
+     }
+     else
+     {
+         QMessageBox::information(NULL, "提示信息", "失败!");
+     }
+}
+
+void TestModbus::on_btnClose_clicked()
+{
+    this->close();
+}
+//判断仪器是否正确连接
+bool TestModbus::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息", "仪器获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}

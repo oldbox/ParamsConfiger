@@ -1,0 +1,186 @@
+#include "wdtheavymetalcurve.h"
+#include "ui_wdtheavymetalcurve.h"
+#include "../core/myplot.h"
+#include "../core/cmainctrl.h"
+#include <QTextCodec>
+using namespace std;
+WdtHeavyMetalCurve::WdtHeavyMetalCurve(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    m_pDB(NULL),
+    ui(new Ui::WdtHeavyMetalCurve)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    plot = new MyPlot(0,ui->widget);
+    plot->setGeometry(QRect(0, 0, 500, 250));
+    connect(pMC->pYQs,SIGNAL(NotifyHhInfo(int,int,double)),this,SLOT(OnHhValue(int,int,double)));
+}
+
+WdtHeavyMetalCurve::~WdtHeavyMetalCurve()
+{
+    delete plot;
+    delete ui;
+    delete m_pDB;
+    m_vtX.clear();
+    m_vtY.clear();
+}
+void WdtHeavyMetalCurve::ShowCurve(int iProcessType,QDateTime dt,int iKind)
+{
+    m_vtX.clear();
+    m_vtY.clear();
+    //为每次测试创建一个数据库用来保存过程数据
+    char czChildPath[256];memset(czChildPath,0,256);
+    char czDBName[256];memset(czDBName,0,256);
+    sprintf(czChildPath,"%d",iProcessType);
+    sprintf(czDBName,"%04d%02d%02d-%02d%02d.db",dt.date().year(),dt.date().month(),dt.date().day(),dt.time().hour(),dt.time().minute());
+
+    if(m_pDB)
+    {
+        delete m_pDB;
+        m_pDB = NULL;
+    }
+    m_pDB = new CDBBusiness(czChildPath,czDBName);
+    QString qtype;
+    if(iKind == 1)//水样
+        qtype = "sy";
+    else if(iKind == 2)//加标
+        qtype = "by";
+    else if(iKind == 3)//线性扫描
+            qtype = "scan";
+
+    bool bTag = false;
+    sqlite_data datalist;
+    if(m_pDB->GetEchemProcessData(datalist))
+    {
+        if(!datalist.IsEmpty())
+        {
+            QString qsValue;
+            for(int i=1;i<=datalist.RowCount();i++)
+            {
+                if(qtype == QString(datalist.GetData(i,1)))
+                {
+                    qsValue = QString(datalist.GetData(i,2));
+                    m_vtX.push_back(qsValue.toFloat());
+                    qsValue = QString(datalist.GetData(i,3));
+                    m_vtY.push_back(qsValue.toFloat());
+                }
+            }
+            datalist.Free();
+            bTag = true;
+        }
+        else
+        {
+            cout << "Source data empty." << endl;
+        }
+    }
+    if(bTag)
+    {
+         if(iKind == 1)//水样
+             plot->AddCurve("水样",m_vtX, m_vtY,Qt::green);
+         else if(iKind == 2)//加标
+             plot->AddCurve("标样",m_vtX, m_vtY,Qt::red);
+         else if(iKind == 3)//线性扫描
+             plot->AddCurve("线性扫描",m_vtX, m_vtY,Qt::blue);
+    }
+}
+
+void WdtHeavyMetalCurve::RemoveCurve()
+{
+    plot->RemoveCurve();
+}
+void WdtHeavyMetalCurve::OnHhValue(int nType,int nTypeID,double fHeight)
+{
+    if(0 == nType)
+    {
+        if(7 == nTypeID)
+        {
+            QString qsPbh = "h:";
+            ui->labelPb->setText("铅");
+            qsPbh.append(QString::number(fHeight,'g',4));
+            ui->labelPbh->setText(qsPbh);
+
+        }else if(8 == nTypeID)
+        {
+            QString qsCrh = "h:";
+            ui->labelCr->setText("镉");
+            qsCrh.append(QString::number(fHeight,'g',4));
+            ui->labelCrh->setText(qsCrh);
+
+        }else if(24 == nTypeID)
+        {
+            QString qsZnh = "h:";
+            ui->labelZn->setText("锌");
+            qsZnh.append(QString::number(fHeight,'g',4));
+            ui->labelZnh->setText(qsZnh);
+
+        }else if(27 == nTypeID)
+        {
+            QString qsCuh = "h:";
+            ui->labelCu->setText("铜");
+            qsCuh.append(QString::number(fHeight,'g',4));
+            ui->labelCuh->setText(qsCuh);
+
+        }else
+        {
+            //do nothing
+        }
+    }
+    else if(1 == nType)
+    {
+        if(7 == nTypeID)
+        {
+            QString qsPbH = "H:";
+            ui->labelPb->setText("铅");
+            qsPbH.append(QString::number(fHeight,'g',4));
+            ui->labelPbH->setText(qsPbH);
+
+        }else if(8 == nTypeID)
+        {
+            QString qsCrH = "H:";
+            ui->labelCr->setText("镉");
+            qsCrH.append(QString::number(fHeight,'g',4));
+            ui->labelCrH->setText(qsCrH);
+
+        }else if(24 == nTypeID)
+        {
+            QString qsZnH = "H:";
+            ui->labelZn->setText("锌");
+            qsZnH.append(QString::number(fHeight,'g',4));
+            ui->labelZnH->setText(qsZnH);
+
+        }else if(27 == nTypeID)
+        {
+            QString qsCuH = "H:";
+            ui->labelCu->setText("铜");
+            qsCuH.append(QString::number(fHeight,'g',4));
+            ui->labelCuH->setText(qsCuH);
+
+        }else
+        {
+            //do nothing
+        }
+    }else if(2 == nType)
+    {
+        ui->labelCr->setText("");
+        ui->labelCrH->setText("");
+        ui->labelCrh->setText("");
+        ui->labelCu->setText("");
+        ui->labelCuH->setText("");
+        ui->labelCuh->setText("");
+        ui->labelPb->setText("");
+        ui->labelPbH->setText("");
+        ui->labelPbh->setText("");
+        ui->labelZn->setText("");
+        ui->labelZnH->setText("");
+        ui->labelZnh->setText("");
+    }
+    else
+    {
+        //do nothing
+    }
+
+}

@@ -1,0 +1,25 @@
+#ifndef DLGMODELTEST15_H
+#define DLGMODELTEST15_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class dlgmodeltest15;
+}
+
+class dlgmodeltest15 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest15(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest15();
+    
+private:
+    Ui::dlgmodeltest15 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+};
+
+#endif // DLGMODELTEST15_H

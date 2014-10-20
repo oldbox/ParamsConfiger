@@ -1,0 +1,58 @@
+#ifndef DLCONSTYPEMANAGE_H
+#define DLCONSTYPEMANAGE_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include <QTreeWidgetItem>
+
+namespace Ui {
+class dlConsTypeManage;
+}
+
+class dlConsTypeManage : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlConsTypeManage(QWidget *parent = 0);
+    ~dlConsTypeManage();
+    
+private slots:
+    void on_butClose_clicked();
+    void on_butAdd_clicked();
+    void on_butDel_clicked();
+    void on_butUpdate_clicked();
+
+    void on_butClear_clicked();
+
+    void on_tvConsList_clicked(const QModelIndex &index);
+
+    void on_butUpdateType_clicked();
+
+    void on_cbxProcessType_currentIndexChanged(int index);
+
+    void on_tabConsumeinfo_clicked(const QModelIndex &index);
+
+    void on_butSetLevel_clicked();
+
+    void on_radUnit_Day_clicked();
+
+    void on_radUnit_Hour_clicked();
+
+    void on_radUnit_Count_clicked();
+
+private:
+    Ui::dlConsTypeManage *ui;
+    CDBBusiness* m_pDB;
+    vector<struConsume> m_vcConsume;
+
+    void Init();
+    void GetConsumeInfoList(struConsumeInfo *model);
+    void ControlClear();
+    void InsChildNode(QTreeWidgetItem *parentItem,QString sID,QString sName,sqlite_data &datalist);
+    QString GetYQName(int iProcessType); 
+    void SetControlBgColor(QPushButton* qBut, bool isFlag);
+    void GetConsumeInfoModel(QString sID,struConsumeInfo* model);
+};
+
+#endif // DLCONSTYPEMANAGE_H

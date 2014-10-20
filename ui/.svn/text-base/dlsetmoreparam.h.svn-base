@@ -1,0 +1,43 @@
+#ifndef DLSETMOREPARAM_H
+#define DLSETMOREPARAM_H
+
+#include <QDialog>
+#include <QMap>
+#include <QTableWidgetItem>
+#include <QCheckBox>
+#include "QDesktopWidget"
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class dlsetmoreparam;
+}
+
+class dlsetmoreparam : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlsetmoreparam(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlsetmoreparam();
+    
+private slots:
+    void on_butClose_clicked();
+    void on_butSave_clicked();
+    void changeCheckBox(int,int);
+    void on_tabWidParam_itemClicked(QTableWidgetItem *item);
+
+    void on_btnSelParam_clicked();
+
+private:
+    Ui::dlsetmoreparam *ui;
+    CMainCtrl* m_pMC;
+    QMap<int,QString> mapAgreeType;
+    QTableWidgetItem *checkBox;
+    char m_czID[16];
+
+    void GetInterAgreeType();
+    void Init();
+    void SaveIniFile(const char* czGroup,const char* cAgreeName);
+};
+
+#endif // DLSETMOREPARAM_H

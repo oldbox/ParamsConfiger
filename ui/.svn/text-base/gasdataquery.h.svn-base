@@ -1,0 +1,61 @@
+#ifndef GASDATAQUERY_H
+#define GASDATAQUERY_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include "../core/cdbbusiness.h"
+#include "dldispdatacurve.h"
+#include <QDesktopWidget>
+#include "dlgremindmessage.h"
+#include <QFile>
+#include <QMovie>
+
+namespace Ui {
+class gasdataquery;
+}
+
+class gasdataquery : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit gasdataquery(CMainCtrl* pMC,QWidget *parent = 0);
+    ~gasdataquery();
+    
+private slots:    
+    void on_btnStartDown_clicked();
+    void on_btnEndDown_clicked();
+    void on_butQuery_clicked();
+    void on_btnClose_clicked();
+    void on_calendarStartTim_clicked(const QDate &date);
+    void on_calendarEndTim_clicked(const QDate &date);
+    void on_down_clicked();
+//    void on_left_clicked();
+//    void on_right_clicked();
+    void on_up_clicked();
+    void onHeaderClicked(int nRow);
+    void on_butExport_clicked();
+    void OnHideWordMovie();
+    void OnQueryData();
+
+private:
+    void ResultDataQuery();
+    void ResultDataExport(const char* czPath);
+
+    Ui::gasdataquery *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    CDBBusiness* pDB;
+    bool startState;
+    bool endState;
+    QDate qStartTime;
+    QDate qEndTime;
+    QString qsStartDisp;
+    QString qsEndDisp;
+    QStringList qYQIDList;
+    QMovie *WordMovie;
+    QTimer *Timer;
+    QTimer *QueryTimer;
+};
+
+#endif // GASDATAQUERY_H

@@ -1,0 +1,22 @@
+#ifndef WDTHEAVYMETALWORKSTATE_H
+#define WDTHEAVYMETALWORKSTATE_H
+
+#include <QWidget>
+
+namespace Ui {
+class WdtHeavyMetalWorkState;
+}
+
+class WdtHeavyMetalWorkState : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit WdtHeavyMetalWorkState(QWidget *parent = 0);
+    ~WdtHeavyMetalWorkState();
+    
+private:
+    Ui::WdtHeavyMetalWorkState *ui;
+};
+
+#endif // WDTHEAVYMETALWORKSTATE_H

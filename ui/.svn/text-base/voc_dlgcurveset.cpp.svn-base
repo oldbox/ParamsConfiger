@@ -1,0 +1,200 @@
+#include "voc_dlgcurveset.h"
+#include "ui_voc_dlgcurveset.h"
+#include "../core/cconfig.h"
+#include <QMouseEvent>
+
+voc_dlgCurveSet::voc_dlgCurveSet(int nKind,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::voc_dlgCurveSet)
+{
+    ui->setupUi(this);
+     this->setWindowFlags(Qt::FramelessWindowHint);
+
+    ui->lineYmin->setFocus();
+    ui->lineMultiple->setEnabled(false);
+    m_nClick = 0;
+    bInitFinish = false;
+    m_nKind = nKind;
+    m_nResult = 0;
+    int nValue = 0;
+    float fValue = 0;
+    QString qsValue;
+
+    if(m_nKind == 0)
+    {
+        ReadIniFile("Y1axis_Max",nValue);
+        qsValue.setNum(nValue);
+        ui->lineYmax->setText(qsValue);
+
+        ReadIniFile("Y1axis_Min",nValue);
+        qsValue.setNum(nValue);
+        ui->lineYmin->setText(qsValue);
+
+        ReadIniFile("X1axis_Max",nValue);
+        qsValue.setNum(nValue);
+        ui->lineXmax->setText(qsValue);
+
+        ReadIniFile("X1axis_Min",nValue);
+        qsValue.setNum(nValue);
+        ui->lineXmin->setText(qsValue);
+
+        ReadIniFile("Y1Multiple",nValue);
+        qsValue.setNum(nValue);
+        ui->lineMultiple->setText(qsValue);
+    }
+    else
+    {
+        ReadIniFile("Y2axis_Max",nValue);
+        qsValue.setNum(nValue);
+        ui->lineYmax->setText(qsValue);
+
+        ReadIniFile("Y2axis_Min",nValue);
+        qsValue.setNum(nValue);
+        ui->lineYmin->setText(qsValue);
+
+        ReadIniFile("X2axis_Max",nValue);
+        qsValue.setNum(nValue);
+        ui->lineXmax->setText(qsValue);
+
+        ReadIniFile("X2axis_Min",nValue);
+        qsValue.setNum(nValue);
+        ui->lineXmin->setText(qsValue);
+
+        ReadIniFile("Y2Multiple",nValue);
+        qsValue.setNum(nValue);
+        ui->lineMultiple->setText(qsValue);
+
+        ui->lblMultuiple->hide();
+        ui->lineMultiple->hide();
+        ui->lblMultuiple_2->hide();
+    }
+    bInitFinish = true;
+}
+
+voc_dlgCurveSet::~voc_dlgCurveSet()
+{
+    delete ui;
+}
+
+void voc_dlgCurveSet::on_pushButton_clicked()
+{
+    if(m_nKind == 0)
+    {
+        float fValue = 0;
+        QString qsValue;
+        qsValue = ui->lineMultiple->text();
+        fValue = qsValue.toFloat();
+        if(fValue <= 0)
+            fValue = 1;
+        WriteIniFile("Y1Multiple",fValue);
+        qsValue = ui->lineYmax->text();
+        WriteIniFile("Y1axis_Max",qsValue.toFloat());
+        qsValue = ui->lineYmin->text();
+        WriteIniFile("Y1axis_Min",qsValue.toFloat());
+        qsValue = ui->lineXmax->text();
+        WriteIniFile("X1axis_Max",qsValue.toFloat());
+        qsValue = ui->lineXmin->text();
+        WriteIniFile("X1axis_Min",qsValue.toFloat());
+
+
+    }
+    else
+    {
+        QString qsValue;
+        qsValue = ui->lineYmax->text();
+        WriteIniFile("Y2axis_Max",qsValue.toFloat());
+        qsValue = ui->lineYmin->text();
+        WriteIniFile("Y2axis_Min",qsValue.toFloat());
+        qsValue = ui->lineXmax->text();
+        WriteIniFile("X2axis_Max",qsValue.toFloat());
+        qsValue = ui->lineXmin->text();
+        WriteIniFile("X2axis_Min",qsValue.toFloat());
+        qsValue = ui->lineMultiple->text();
+        WriteIniFile("Y2Multiple",qsValue.toFloat());
+    }
+    this->close();
+    m_nResult = 1;
+}
+
+void voc_dlgCurveSet::on_pushButton_2_clicked()
+{
+    this->close();
+    m_nResult = 0;
+}
+bool voc_dlgCurveSet::ReadIniFile(const char czTeam[], float &fValue)
+{
+    fValue = 0.0;
+    char czValue[64];memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni("VOC_SET",czTeam,czValue))
+    {
+        fValue = atof(czValue);
+        return true;
+    }
+    return false;
+}
+bool voc_dlgCurveSet::ReadIniFile(const char czTeam[], int &nValue)
+{
+    char czValue[64];memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni("VOC_SET",czTeam,czValue))
+    {
+        nValue = atoi(czValue);
+        return true;
+    }
+    return false;
+}
+void voc_dlgCurveSet::WriteIniFile(const char czTeam[], int nValue)
+{
+    char czValue[64];memset(czValue,0,64);
+    sprintf(czValue,"%d",nValue);
+    GetAfxConfig()->SetIni("VOC_SET",czTeam,czValue);
+
+}
+void voc_dlgCurveSet::WriteIniFile(const char czTeam[], float fValue)
+{
+    char czValue[64];memset(czValue,0,64);
+    sprintf(czValue,"%f",fValue);
+    GetAfxConfig()->SetIni("VOC_SET",czTeam,czValue);
+
+}
+
+void voc_dlgCurveSet::on_lineMultiple_textChanged(const QString &arg1)
+{
+    if(bInitFinish)
+        ui->lineYmin->setText("0");
+}
+
+
+void voc_dlgCurveSet::on_butDefault_clicked()
+{
+    if(m_nKind == 0)
+    {
+        ui->lineYmax->setText("100000");
+        ui->lineYmin->setText("0");
+        ui->lineXmax->setText("20");
+        ui->lineXmin->setText("0");
+        ui->lineMultiple->setText("10000");
+    }
+    else
+    {
+        ui->lineYmax->setText("300");
+        ui->lineYmin->setText("0");
+        ui->lineXmax->setText("20");
+        ui->lineXmin->setText("0");
+    }
+}
+void voc_dlgCurveSet::mousePressEvent(QMouseEvent * mouseEvent)
+{
+    int x = mouseEvent->pos().x();
+    int y = mouseEvent->pos().y();
+
+
+    if ((x < 70)&&(y > 280))
+    {
+        m_nClick++;
+        if(m_nClick > 4)
+        {
+            m_nClick = 0;
+            ui->lineMultiple->setEnabled(true);
+        }
+    }
+}

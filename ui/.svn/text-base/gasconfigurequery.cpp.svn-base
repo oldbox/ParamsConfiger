@@ -1,0 +1,18 @@
+#include "gasconfigurequery.h"
+#include "ui_gasconfigurequery.h"
+
+gasConfigureQuery::gasConfigureQuery(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::gasConfigureQuery)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    ui->tableWidget->horizontalHeader()->setVisible(true);
+    ui->tableWidget->verticalHeader()->setVisible(false);
+    ui->tableWidget->setColumnWidth(0,140);
+}
+
+gasConfigureQuery::~gasConfigureQuery()
+{
+    delete ui;
+}

@@ -1,0 +1,49 @@
+#ifndef DLGMODELTEST14_H
+#define DLGMODELTEST14_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class dlgmodeltest14;
+}
+
+class dlgmodeltest14 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest14(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest14();
+    
+private slots:
+    void on_btnStatus_clicked();
+
+    void on_chkSingleCtrl_1_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_2_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_3_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_4_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_5_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_6_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_7_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_8_stateChanged(int arg1);
+
+    void on_chkSingleCtrl_9_stateChanged(int arg1);
+
+private:
+    bool judgeYQConnect();
+    bool SendControlCmd(int nAdd,int cmd,int nIO,int nOnOff);
+    Ui::dlgmodeltest14 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    int m_nStatus[7];
+};
+
+#endif // DLGMODELTEST14_H

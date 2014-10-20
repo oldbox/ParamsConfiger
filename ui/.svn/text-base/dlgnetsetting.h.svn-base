@@ -1,0 +1,39 @@
+#ifndef DLGNETSETTING_H
+#define DLGNETSETTING_H
+
+#include <QDialog>
+#include "../core/cconfig.h"
+#include "../core/cmainctrl.h"
+#include <QStringList>
+#include <QSettings>
+#include "dlgmodifysystime.h"
+
+namespace Ui {
+class DlgNetSetting;
+}
+
+class DlgNetSetting : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit DlgNetSetting(QWidget *parent = 0);
+    ~DlgNetSetting();
+
+signals:
+    void EmityParWinClolse();
+
+private slots:
+    void on_btnSave_clicked();
+    void on_btnChangeTime_clicked();
+    void on_butClose_clicked();
+
+private:
+    bool ReadFile(const char* czPath,QStringList &FileInfo);
+    bool Init();   
+    Ui::DlgNetSetting *ui;    
+    QStringList qsSysconfList;
+    QStringList qsIvrList;
+};
+
+#endif // DLGNETSETTING_H

@@ -1,0 +1,142 @@
+#include "dlgdamoremaind.h"
+#include "ui_dlgdamoremaind.h"
+#include <QTextCodec>
+
+dlgdamoremaind::dlgdamoremaind(CMainCtrl* pMC,int nType,int nCaliKind,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgdamoremaind)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMC = pMC;
+    m_nCaliKind =  nCaliKind;//1表示跨度校准 2零点校准 3流程校准
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    if(1 == nType)//打磨电极提醒
+    {
+        ui->label->setText("排干检测池溶液?");
+        ui->btnYesGasAjust->hide();
+    }
+    else if(2 == nType)//烟气校准是否恢复出厂设置提醒
+    {
+        if(1 == m_nCaliKind)
+        {
+            ui->label->setText("跨度校准是否恢复出厂设置?");
+        }
+        else if(2 == m_nCaliKind)
+        {
+            ui->label->setText("零点校准是否恢复出厂设置?");
+        }
+        else if(3 == m_nCaliKind)
+        {
+           ui->label->setText("流速校准是否恢复出厂设置?");
+        }
+        else
+        {
+            ui->label->setText("是否恢复出厂设置?");
+        }
+        ui->btnYes1->hide();
+        ui->btnYes2->hide();
+        ui->btnYes3->hide();
+        ui->btnYesGasAjust->setGeometry(QRect(120,86,51,34));
+    }
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+
+}
+
+dlgdamoremaind::~dlgdamoremaind()
+{
+    delete ui;
+}
+
+void dlgdamoremaind::on_btnYes1_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    bBuff[0] = 0;
+    bBuff[1] = 47;
+    bBuff[2] = 0;
+    bBuff[3] = 11;
+    bBuff[4] = 0;
+    bBuff[5] = 6;
+    bBuff[6] = 0;
+    bBuff[7] = 1;
+    bBuff[8] = 0;
+    bBuff[9] = 0;
+    if(pYQ->m_pProcess->pDriver->WriteModbus(3,40001,5,bBuff))
+    {
+        ui->label->setText("请取出工作电极并打磨清洗电极?");
+        ui->btnYes1->hide();
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "通讯故障，请检查!");
+    }
+
+}
+
+void dlgdamoremaind::on_btnYes2_clicked()
+{
+    ui->label->setText("请确定安装好工作电极后开始镀膜?");
+    ui->btnYes2->hide();
+}
+
+void dlgdamoremaind::on_btnYes3_clicked()
+{
+    m_pMC->SendCmd(CMD_ELECMAINTAIN);
+    this->close();
+}
+//判断仪器是否正确连接
+bool dlgdamoremaind::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息", "仪器获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+void dlgdamoremaind::on_btnYesGasAjust_clicked()
+{
+    CYQ* pYQ = m_pMC->pYQs->GetYQ("ZA0");
+    if(pYQ)
+    {
+        if(1 == m_nCaliKind)
+        {
+            ((CProcess2*)(pYQ->m_pProcess))->SpanCaliRestoreFactorySetting();
+        }
+        else if(2 == m_nCaliKind)
+        {
+            ((CProcess2*)(pYQ->m_pProcess))->ZeroCaliRestoreFactorySetting();
+        }
+        else if(3 == m_nCaliKind)
+        {
+            ((CProcess2*)(pYQ->m_pProcess))->FlowCaliRestoreFactorySetting();
+        }
+    }
+    this->close();
+}

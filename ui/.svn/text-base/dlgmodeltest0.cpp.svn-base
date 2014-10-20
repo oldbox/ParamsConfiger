@@ -1,0 +1,496 @@
+#include "dlgmodeltest0.h"
+#include "ui_dlgmodeltest0.h"
+#include <QDesktopWidget>
+#include <QTextCodec>
+
+dlgmodeltest0::dlgmodeltest0(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgmodeltest0)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+
+    this->Init();
+}
+
+dlgmodeltest0::~dlgmodeltest0()
+{
+    delete ui;
+}
+
+void dlgmodeltest0::Init()
+{
+    ui->cbxModAddress->clear();
+    QString sVal;
+    for(int i = 1;i<= 60;i++)
+    {
+        sVal.clear();
+        sVal.sprintf("%d",i);
+        ui->cbxModAddress->addItem(sVal,sVal);
+    }
+
+    this->SetModTableStyle();
+    this->GetSetAllModel();
+}
+
+void dlgmodeltest0::SetModTableStyle()
+{
+    ui->tabwidData->clear();
+    ui->tabwidData->setFrameShape(QFrame::NoFrame);////设置边框
+    ui->tabwidData->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+    ui->tabwidData->setEditTriggers(QAbstractItemView::NoEditTriggers);//设置不可编辑
+    ui->tabwidData->setAlternatingRowColors(true);//隔行改变颜色
+    ui->tabwidData->horizontalHeader()->setVisible(true);//表头可见
+    ui->tabwidData->resizeColumnsToContents(); //根据内容调整列宽
+    QHeaderView* headerView = ui->tabwidData->horizontalHeader();
+    if(headerView)
+    {
+        headerView->setDefaultAlignment (Qt::AlignVCenter | Qt::AlignHCenter); //居左
+        headerView->setTextElideMode (Qt::ElideRight); //...效果
+        headerView->setStretchLastSection (true); //尾不留空白
+    }
+    ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::Fixed);
+    QStringList slColumnName;
+    slColumnName << "模块名称" << "内部代码"  << "工作状态" << "地址" << "波特率" << "版本号" << "在线状态" ;
+    ui->tabwidData->setColumnCount(slColumnName.size());
+    ui->tabwidData->setRowCount(0);
+    ui->tabwidData->setHorizontalHeaderLabels(slColumnName);
+    ui->tabwidData->verticalHeader()->setDefaultSectionSize(25);
+    for(int i = 0;i < ui->tabwidData->columnCount(); i++ )
+    {
+        if(i == 0)
+            ui->tabwidData->setColumnWidth(i,120);
+        else if(i == 5)
+            ui->tabwidData->setColumnWidth(i,120);
+        else
+            ui->tabwidData->setColumnWidth(i,60);
+    }
+}
+
+void dlgmodeltest0::GetSetAllModel()
+{
+    char czGroup[64];memset(czGroup,0,64);
+    char czItem[64];
+    char czValue[64];
+    strcpy(czGroup,"Model_SET");
+    int nRowCount = 0;
+    QString sAddName;
+    for(int i=1;i <= 20;i++)
+    {
+        memset(czItem,0,64);
+        memset(czValue,0,64);
+        sprintf(czItem,"Mod_%d",i);
+        GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+
+        if(strlen(czValue) > 0)
+        {
+            sAddName.clear(); 
+            nRowCount++;
+            ui->tabwidData->setRowCount(nRowCount);
+            sAddName = this->GetModelName(i); 
+            ui->tabwidData->setItem(nRowCount - 1,0, new QTableWidgetItem(sAddName));
+        }
+    }
+}
+
+//手动扫描
+void dlgmodeltest0::on_btnManualScan_clicked()
+{
+    DealWithBroadcast();
+}
+//发送广播
+void dlgmodeltest0::DealWithBroadcast()
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    int nAddress = 0;
+    int nName = 0;
+
+    //发送广播
+    QString sAddress;
+    if(pYQ->m_pProcess->pDriver->ModuleScanning(bBuff))
+    {
+        for (int i = 0;i < NUM_MODULE; i++)
+        {
+            nAddress = bBuff[i*9+4];
+            nName = bBuff[i*9+6];
+
+            QString sModName = this->GetModelName(nName);
+            for(int j = 0;j < ui->tabwidData->rowCount(); j++)
+            {
+                QTableWidgetItem *itemName = ui->tabwidData->item(j,0);
+                if(NULL != itemName)
+                {
+                    if(sModName == itemName->text().trimmed())
+                    {
+                        sAddress.clear();
+                        sAddress.sprintf("%d",nAddress);
+                        QTableWidgetItem *ItemAdd = new QTableWidgetItem(sAddress);
+                        ItemAdd->setTextAlignment(Qt::AlignCenter);
+                        ui->tabwidData->setItem(j,3,ItemAdd);
+
+                        QTableWidgetItem *ItemOnLine = new QTableWidgetItem("在线");
+                        ItemOnLine->setTextColor(QColor(255,0,0));
+                        ItemOnLine->setTextAlignment(Qt::AlignCenter);
+                        ui->tabwidData->setItem(j,6,ItemOnLine);
+                        break;
+                    }
+//                    else
+//                    {
+//                        QString sClear;
+//                        QTableWidgetItem *ItemAdd = new QTableWidgetItem(sClear);
+//                        ui->tabwidData->setItem(j,3,ItemAdd);
+//                        QTableWidgetItem *ItemOnLine = new QTableWidgetItem(sClear);
+//                        ui->tabwidData->setItem(j,6,ItemOnLine);
+//                    }
+                }
+            }
+        }
+    }
+}
+//扫描模块信息
+void dlgmodeltest0::on_btnScanModInfo_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+
+    char str[16];
+    char czVersion[64];
+    int16_t iAddName = 0;
+    int16_t iAddress = 0;
+    int16_t iWorkState = 0;
+    int16_t iBaudrate = 0;
+
+    QString sAddName,sAddress,sBaudrate,sWorkTag;
+    int iAddCou = 0;
+
+    for(int i = 0;i < ui->tabwidData->rowCount();i++)
+    {
+        //取地址
+        QTableWidgetItem *GetItemAdd = ui->tabwidData->item(i,3);
+        if(NULL == GetItemAdd)
+        {
+            break;
+        }
+        int iModAdd = GetItemAdd->text().trimmed().toInt();
+        if(0 != iModAdd)
+        {
+           memset(bBuff,0,MAX_SIZE);
+           if(pYQ->m_pProcess->pDriver->ReadModbus(iModAdd,40047,7,bBuff))
+           {
+               iAddCou ++;
+               //取版本   col:5
+               memset(czVersion,0,64);
+               for(int i=0;i<6;i++)
+               {
+                   memset(str,0,16);
+                   sprintf(str,"%02x",bBuff[i]);
+                   strcat(czVersion,str);
+               }
+               //地址40050   col:3
+               iAddress = MAKEWORD(bBuff[7],bBuff[6]);
+               //名称40051    col:1
+               iAddName = MAKEWORD(bBuff[9],bBuff[8]);
+               //工作状态40052  col:2
+               iWorkState = MAKEWORD(bBuff[11],bBuff[10]);
+               //波特率40053    col:4
+               iBaudrate = MAKEWORD(bBuff[13],bBuff[12]);
+
+               sAddName.clear();
+               sAddress.clear();
+               sBaudrate.clear();
+               sWorkTag.clear();
+
+               sAddName.sprintf("%d",iAddName);
+               sAddress.sprintf("%d",iAddress);
+               if(0 == iWorkState)
+               {
+                   sWorkTag = "空闲";
+               }
+               else if(0 == iWorkState)
+               {
+                   sWorkTag = "正常工作";
+               }
+               //波特率 ：0. 9600  1. 19200  2. 115200
+               if(0 == iBaudrate)
+                   sBaudrate = "9600";
+               else if(1 == iBaudrate)
+                   sBaudrate = "19200";
+               else if(2 == iBaudrate)
+                   sBaudrate = "115200";
+
+               QTableWidgetItem *ItemAddName = new QTableWidgetItem(sAddName);
+               ItemAddName->setTextAlignment(Qt::AlignCenter);
+               ui->tabwidData->setItem(i,1,ItemAddName);
+               QTableWidgetItem *ItemWorkTag = new QTableWidgetItem(sWorkTag);
+               ItemWorkTag->setTextAlignment(Qt::AlignCenter);
+               ui->tabwidData->setItem(i,2,ItemWorkTag);
+               QTableWidgetItem *ItemAddress = new QTableWidgetItem(sAddress);
+               ItemAddress->setTextAlignment(Qt::AlignCenter);
+               ui->tabwidData->setItem(i,3,ItemAddress);
+               QTableWidgetItem *ItemBaudrate = new QTableWidgetItem(sBaudrate);
+               ItemBaudrate->setTextAlignment(Qt::AlignCenter);
+               ui->tabwidData->setItem(i,4,ItemBaudrate);
+               QTableWidgetItem *ItemVersion = new QTableWidgetItem(QString(czVersion));
+               ItemVersion->setTextAlignment(Qt::AlignCenter);
+               ui->tabwidData->setItem(i,5,ItemVersion);
+           }
+        }
+    }
+
+    if(iAddCou == 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "没有扫描到模块信息，请选择扫描模块!");
+    }
+}
+
+//设置模块地址
+void dlgmodeltest0::on_btnSetModAdd_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    QTableWidgetItem *item = ui->tabwidData->currentItem();
+    if(item == NULL)
+    {
+        QMessageBox::information(NULL, "提示信息", "必须选择模块名称!");
+        return;
+    }
+    QTableWidgetItem *ItemAdd = ui->tabwidData->item(ui->tabwidData->currentRow(),3);
+    if(ItemAdd == NULL)
+    {
+        QMessageBox::information(NULL, "提示信息", "模块地址为空，必须先扫描模块!");
+        return;
+    }
+    if(ItemAdd != NULL)
+    {
+        QString sModName = ItemAdd->text().trimmed();
+        if(sModName.length() > 0)
+        {
+            int iModName = sModName.toInt();
+            unsigned char bBuff[MAX_SIZE];
+            memset(bBuff,0,MAX_SIZE);
+            //命令字
+            int16_t wPrm0 = 1;
+            int16_t wPrm1 = ui->cbxModAddress->currentText().toInt();
+            bBuff[0] = HIBYTE(wPrm0);
+            bBuff[1] = LOBYTE(wPrm0);
+            bBuff[2] = HIBYTE(wPrm1);
+            bBuff[3] = LOBYTE(wPrm1);
+            if(pYQ->m_pProcess->pDriver->WriteModbus(iModName,40001,1+1,bBuff))
+            {
+                PlsSelectMdl(QString::fromUtf8("地址设置成功!"));
+            }
+            else
+            {
+                PlsSelectMdl(QString::fromUtf8("地址设置失败!"));
+            }
+        }
+    }
+}
+//设置模块波特率
+void dlgmodeltest0::on_btnSetBaudrate_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    QTableWidgetItem *item = ui->tabwidData->currentItem();
+    if(item == NULL)
+    {
+        QMessageBox::information(NULL, "提示信息", "必须选择模块!");
+        return;
+    }
+    QTableWidgetItem *ItemAdd = ui->tabwidData->item(item->row(),3);
+    if(ItemAdd == NULL)
+    {
+        QMessageBox::information(NULL, "提示信息", "模块地址为空，必须先扫描模块!");
+        return;
+    }
+    QString sModName;
+    if(ItemAdd != NULL)
+    {
+        sModName = ItemAdd->text().trimmed();
+    }
+    if(sModName.length() > 0)
+    {
+        int iModName = sModName.toInt();
+        unsigned char bBuff[MAX_SIZE];
+        memset(bBuff,0,MAX_SIZE);
+        //命令字
+        int iBaudrateType;
+        int iBaudrate = ui->liwidBaudrate->currentItem()->text().toInt();
+        //波特率 ：0. 9600  1. 19200  2. 115200
+        if(9600 == iBaudrate)
+        {
+            iBaudrateType = 0;
+        }
+        else if(19200 == iBaudrate)
+        {
+            iBaudrateType = 1;
+        }
+        else if(115200 == iBaudrate)
+        {
+            iBaudrateType = 2;
+        }
+
+        int16_t wPrm0 = 3;
+        int16_t wPrm1 = iBaudrateType;
+        bBuff[0] = HIBYTE(wPrm0);
+        bBuff[1] = LOBYTE(wPrm0);
+        bBuff[2] = HIBYTE(wPrm1);
+        bBuff[3] = LOBYTE(wPrm1);
+        if(pYQ->m_pProcess->pDriver->WriteModbus(iModName,40001,1+1,bBuff))
+        {
+            PlsSelectMdl(QString::fromUtf8("波特率设置成功!"));
+        }
+        else
+        {
+            PlsSelectMdl(QString::fromUtf8("波特率设置失败!"));
+        }
+    }
+}
+
+//点击行
+void dlgmodeltest0::on_tabwidData_cellPressed(int row, int column)
+{
+    if(row >= 0)
+    {
+        QTableWidgetItem *itemAdd = ui->tabwidData->item(row,3);
+        if(itemAdd == NULL)
+        {
+            return;
+        }
+        QString sModAddress = itemAdd->text().trimmed();
+        if(sModAddress.length() > 0)
+        {
+            ui->cbxModAddress->setCurrentIndex(ui->cbxModAddress->findData(sModAddress));
+        }
+        QTableWidgetItem *itemBaudrate = ui->tabwidData->item(row,4);
+        if(itemBaudrate == NULL)
+        {
+            return;
+        }
+        QString sBaudrate = itemBaudrate->text().trimmed();
+        if(sBaudrate.length() > 0)
+        {
+            for(int i = 0;i<ui->liwidBaudrate->count();i++)
+            {
+                int iBaudrate = ui->liwidBaudrate->item(i)->text().trimmed().toInt();
+                if(iBaudrate == sBaudrate.toInt())
+                {
+                    ui->liwidBaudrate->setCurrentRow(i);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+//判断仪器是否正确连接
+//返回:
+//  --> false 失败
+//  --> true  成功
+bool dlgmodeltest0::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        PlsSelectMdl(QString::fromUtf8("仪器信息获取失败!"));
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+QString dlgmodeltest0::GetModelName(int iAddress)
+{
+    QString sAddName;
+    switch(iAddress)
+    {
+        case 1:
+        sAddName = "继电器控制";
+            break;
+        case 2:
+        sAddName = "温度控制";
+            break;
+        case 3:
+        sAddName = "联动";
+            break;
+        case 4:
+        sAddName = "总汞前置";
+            break;
+        case 5:
+        sAddName = "电化学检测";
+            break;
+        case 6:
+        sAddName = "比色法检测";
+            break;
+
+        case 8:
+        sAddName = "有机物信号";
+            break;
+        case 9:
+        sAddName = "有机物协调";
+            break;
+        case 10:
+        sAddName = "有机物温度";
+            break;
+        case 11:
+        sAddName = "泵与电机驱动";
+            break;
+        case 12:
+        sAddName = "汞信号检测";
+            break;
+        case 13:
+        sAddName = "气泵驱动";
+            break;
+        case 14:
+        sAddName = "紫外烟气主控制";
+            break;
+        case 15:
+        sAddName = "ECD检测";
+            break;
+        case 16:
+        sAddName = "原子荧光控制";
+            break;
+        case 17:
+        sAddName = "船载数采仪采集";
+            break;
+    }
+    return sAddName;
+}
+
+//警告信息窗口
+void dlgmodeltest0::PlsSelectMdl(QString context)
+{
+    QMessageBox::information(NULL, "提示信息",context,QMessageBox::Ok);
+}
+
+void dlgmodeltest0::on_btnClose_clicked()
+{
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    this->close();
+}

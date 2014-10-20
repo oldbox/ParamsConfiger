@@ -1,0 +1,1271 @@
+#include "dlgprocessfilemodify.h"
+#include "ui_dlgprocessfilemodify.h"
+#include "dlimportprocessfile.h"
+
+
+
+dlgprocessfilemodify::dlgprocessfilemodify(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    Timer(new QTimer),
+    m_bNewFlag(false),
+    m_bCloseFlag(false),
+    m_bScanFlag(false),
+    m_bModifyFlag(false),
+    ui(new Ui::dlgprocessfilemodify)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    m_pMC = pMC;
+    connect(Timer, SIGNAL(timeout()), this, SLOT(SaveProcessFile()));
+    m_nCurrRow = 0;
+    m_nClick = 0;
+    m_bIsSelected = false;
+    memset(m_cFileName,0,MAX_SIZE);    
+    ShowTableData();
+    DealReserveProcess();
+
+    //启动数据导出中...Movie
+    WordMovie =  new QMovie(":/res/Movie.gif");
+    WordMovie->start();
+    ui->labelMovie->setMovie(WordMovie);
+    ui->labelWord->hide();
+    ui->labelMovie->hide();
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+}
+
+dlgprocessfilemodify::~dlgprocessfilemodify()
+{
+    delete ui;
+    delete Timer;
+} 
+void dlgprocessfilemodify::ScanProcessFile()
+{
+    QString filename;
+    char czPath[MAX_SIZE];
+    char czTmp[MAX_SIZE];
+
+    memset(czPath,0,MAX_SIZE);
+    memset(m_cFileName,0,MAX_SIZE);
+    memset(czTmp,0,MAX_SIZE);
+    sprintf(czPath,"%s",INI_ROOT_PATH);
+    strcat(czPath,"/processfile/");
+    QString qsPath = QString(czPath);
+
+    filename = QFileDialog::getOpenFileName(this,
+       tr("选择流程文件"),
+       qsPath,
+       tr("file (*.dll *.txt *.* **)")); //选择路径
+   if(filename.isEmpty())
+   {
+       return;
+   }
+   else
+   {
+       memcpy(czTmp,filename.toLatin1().data(),strlen(filename.toLatin1().data()));
+       memcpy(m_cFileName,czTmp+strlen(czPath),strlen(czTmp)-strlen(czPath));
+       ScanFlowFile(m_cFileName);
+       ShowTableData();
+       ui->lineEditFileName->setText(QString(m_cFileName));
+   }
+}
+void dlgprocessfilemodify::on_btnscan_clicked()
+{
+    if(RemindSaveOrNot())
+    {
+        ui->labelWord->show();
+        ui->labelMovie->show();
+        m_bScanFlag = true;
+        Timer->start(100);
+    }
+    else
+    {
+        m_bModifyFlag = false;
+        ScanProcessFile();
+    }
+}
+int dlgprocessfilemodify::ScanFlowFile(const char *filename)
+{
+    char czItem[64];memset(czItem,0,64);
+    char czTmp[64];
+    m_vProcFile.clear();
+    for(int i=0;i<MAXSIZE;i++)
+    {
+        sprintf(czItem,"%d",i);
+
+        memset(czTmp,0,64);
+        if(!GetAfxConfig("processfile",filename)->GetIni(czItem,"PID",czTmp))
+        {
+            break;
+        }else{
+            m_pro.PID = atoi(czTmp);
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"Cmd",czTmp);
+        m_pro.Cmd = atoi(czTmp);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"name",czTmp);
+        memcpy(m_pro.cProcName,czTmp,64);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"LogTag",czTmp);
+        m_pro.LogTag = atoi(czTmp);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"time",czTmp);
+        m_pro.CostTime = atoi(czTmp);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"address",czTmp);
+        m_pro.ModelAddress = atoi(czTmp);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"para",czTmp);
+        m_pro.ParaCount = atoi(czTmp);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"1",czTmp);
+        m_pro.arrParaValue[0] = atoi(czTmp);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"2",czTmp);
+        m_pro.arrParaValue[1] = atoi(czTmp);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"3",czTmp);
+        m_pro.arrParaValue[2] = atoi(czTmp);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"4",czTmp);
+        m_pro.arrParaValue[3] = atoi(czTmp);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"5",czTmp);
+        m_pro.arrParaValue[4] = atoi(czTmp);
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"6",czTmp);
+        m_pro.arrParaValue[5] = atoi(czTmp);
+
+        m_vProcFile.push_back(m_pro);
+
+    }
+    return m_vProcFile.size();
+}
+void dlgprocessfilemodify::ShowTableData()
+{
+    ui->TableProcess->clear();
+    ui->TableProcess->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+    ui->TableProcess->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    QStringList qslColHea;
+    qslColHea.clear();
+    qslColHea.insert(0,"PID");
+    qslColHea.insert(1,"流程");
+
+    ui->TableProcess->setColumnCount(2);
+    ui->TableProcess->setColumnWidth(0,35);
+    ui->TableProcess->setColumnWidth(1,100);
+    ui->TableProcess->setRowCount(m_vProcFile.size());
+    ui->TableProcess->setHorizontalHeaderLabels(qslColHea);
+    for(int i=0;i<m_vProcFile.size();i++)
+    {
+        ui->TableProcess->setRowHeight(i,20);
+        QString qsPID = QString::number(m_vProcFile.at(i).PID, 10);
+        ui->TableProcess->setItem(i,0,new QTableWidgetItem(qsPID));
+        ui->TableProcess->setItem(i,1, new QTableWidgetItem(QString(m_vProcFile.at(i).cProcName)));
+    }
+}
+
+void dlgprocessfilemodify::on_TableProcess_cellClicked(int row, int column)
+{
+    m_nCurrRow = row;
+    m_bIsSelected = true;
+    ui->lineEditName->setText(QString(m_vProcFile[m_nCurrRow].cProcName));
+    ui->BoxLog->setChecked(m_vProcFile[m_nCurrRow].LogTag);
+    ui->lineEditAddress->setText(QString::number(m_vProcFile[m_nCurrRow].ModelAddress,10));
+    ui->BoxModel->setCurrentIndex(m_vProcFile[m_nCurrRow].ModelAddress);
+    ui->lineEditCmd->setText(QString::number(m_vProcFile[m_nCurrRow].Cmd,10));
+    ui->BoxParamNum->setCurrentIndex(m_vProcFile[m_nCurrRow].ParaCount);
+    if(1 == m_vProcFile[m_nCurrRow].ParaCount)
+    {
+        ui->lineEditParam1->setEnabled(true);
+    }
+    else if(2 == m_vProcFile[m_nCurrRow].ParaCount)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(true);
+    }
+    else if(3 == m_vProcFile[m_nCurrRow].ParaCount)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(true);
+        ui->lineEditParam3->setEnabled(true);
+    }
+    else if(4 == m_vProcFile[m_nCurrRow].ParaCount)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(true);
+        ui->lineEditParam3->setEnabled(true);
+        ui->lineEditParam4->setEnabled(true);
+    }
+    else if(5 == m_vProcFile[m_nCurrRow].ParaCount)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(true);
+        ui->lineEditParam3->setEnabled(true);
+        ui->lineEditParam4->setEnabled(true);
+        ui->lineEditParam5->setEnabled(true);
+    }
+    else if(6 == m_vProcFile[m_nCurrRow].ParaCount)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(true);
+        ui->lineEditParam3->setEnabled(true);
+        ui->lineEditParam4->setEnabled(true);
+        ui->lineEditParam5->setEnabled(true);
+        ui->lineEditParam6->setEnabled(true);
+    }
+    ui->lineEditParam1->setText(QString::number(m_vProcFile[m_nCurrRow].arrParaValue[0],10));
+    ui->lineEditParam2->setText(QString::number(m_vProcFile[m_nCurrRow].arrParaValue[1],10));
+    ui->lineEditParam3->setText(QString::number(m_vProcFile[m_nCurrRow].arrParaValue[2],10));
+    ui->lineEditParam4->setText(QString::number(m_vProcFile[m_nCurrRow].arrParaValue[3],10));
+    ui->lineEditParam5->setText(QString::number(m_vProcFile[m_nCurrRow].arrParaValue[4],10));
+    ui->lineEditParam6->setText(QString::number(m_vProcFile[m_nCurrRow].arrParaValue[5],10));
+    UpdateParamName();
+
+}
+
+void dlgprocessfilemodify::on_BoxModel_currentIndexChanged(int index)
+{
+    ui->lineEditAddress->setText(QString::number(index,10));
+    if(m_bIsSelected)
+    {
+        if(m_vProcFile[m_nCurrRow].ModelAddress != ui->BoxModel->currentIndex())
+        {
+            m_bModifyFlag = true;
+            m_vProcFile[m_nCurrRow].ModelAddress = ui->BoxModel->currentIndex();
+        }
+    }
+}
+void dlgprocessfilemodify::DealReserveProcess()
+{
+    ScanFlowFile("ReserveProcess.dll");
+    ui->TableReserve->clear();
+    ui->TableReserve->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+    ui->TableReserve->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    QStringList qslColHea;
+    qslColHea.clear();
+    qslColHea.insert(0,"PID");
+    qslColHea.insert(1,"流程");
+    ui->TableReserve->setColumnCount(2);
+    ui->TableReserve->setRowCount(m_vProcFile.size());
+    QHeaderView* headerView = ui->TableReserve->verticalHeader();
+    headerView->setHidden(true);
+    ui->TableReserve->setHorizontalHeaderLabels(qslColHea);
+    ui->TableReserve->setColumnWidth(0,35);
+    ui->TableReserve->setColumnWidth(1,100);
+    for(int i=0;i<m_vProcFile.size();i++)
+    {
+        ui->TableReserve->setRowHeight(i,20);
+        QString qsPID = QString::number(m_vProcFile.at(i).PID, 10);
+        ui->TableReserve->setItem(i,0,new QTableWidgetItem(qsPID));
+        ui->TableReserve->setItem(i,1, new QTableWidgetItem(QString(m_vProcFile.at(i).cProcName)));
+    }
+}
+
+void dlgprocessfilemodify::on_btnProcessSave_clicked()
+{
+    ui->btnProcessSave->setEnabled(false);
+    ui->labelWord->show();
+    ui->labelMovie->show();
+    Timer->start(100);
+}
+
+void dlgprocessfilemodify::on_btnAdd_clicked()
+{
+    char czItem[MAX_SIZE];
+    char cValue[MAX_SIZE];
+
+    if(!strcmp(m_cFileName,""))
+    {
+        QMessageBox::information(NULL, "提示信息","请选择流程或新建流程!");
+        return;
+    }
+    memset(czItem,0,MAX_SIZE);
+    memset(cValue,0,MAX_SIZE);
+    int nRow = ui->TableReserve->currentRow();
+    if(nRow<0||nRow > ui->TableReserve->rowCount())
+    {
+        QMessageBox::information(NULL, "提示信息","请选择添加行!");
+        return;
+    }
+    m_bModifyFlag = true;
+    sprintf(czItem,"%d",nRow);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"PID",cValue);
+    m_pro.PID = atoi(cValue);
+    memset(cValue,0,MAX_SIZE);
+    memset(m_pro.cProcName,0,64);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"name",cValue);
+    memcpy(m_pro.cProcName,cValue,strlen(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"LogTag",cValue);
+    m_pro.LogTag = atoi(cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"address",cValue);
+    m_pro.ModelAddress = atoi(cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"Cmd",cValue);
+    m_pro.Cmd = atoi(cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"para",cValue);
+    m_pro.ParaCount = atoi(cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"1",cValue);
+    m_pro.arrParaValue[0] = atoi(cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"2",cValue);
+    m_pro.arrParaValue[1] = atoi(cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"3",cValue);
+    m_pro.arrParaValue[2] = atoi(cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"4",cValue);
+    m_pro.arrParaValue[3] = atoi(cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"5",cValue);
+    m_pro.arrParaValue[4] = atoi(cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig("processfile","ReserveProcess.dll")->GetIni(czItem,"6",cValue);
+    m_pro.arrParaValue[5] = atoi(cValue);
+    m_vProcFile.insert(m_nCurrRow,m_pro);
+
+    ui->TableProcess->insertRow(m_nCurrRow);
+    ui->TableProcess->setRowHeight(m_nCurrRow,20);
+    QString qsPID = QString::number(m_vProcFile.at(m_nCurrRow).PID, 10);
+    ui->TableProcess->setItem(m_nCurrRow,0,new QTableWidgetItem(qsPID));
+    ui->TableProcess->setItem(m_nCurrRow,1, new QTableWidgetItem(QString(m_vProcFile.at(m_nCurrRow).cProcName)));
+
+    if(m_nCurrRow > 0)
+    {
+        ui->TableProcess->item(m_nCurrRow,0)->setSelected(true);
+        ui->TableProcess->item(m_nCurrRow,1)->setSelected(true);
+        if(ui->TableProcess->item(m_nCurrRow+1,0))
+        {
+            ui->TableProcess->item(m_nCurrRow+1,0)->setSelected(false);
+        }
+        if(ui->TableProcess->item(m_nCurrRow+1,1))
+        {
+            ui->TableProcess->item(m_nCurrRow+1,1)->setSelected(false);
+        }
+        on_TableProcess_cellClicked(m_nCurrRow,0);
+    }
+}
+
+void dlgprocessfilemodify::on_btnDelete_clicked()
+{
+    int nRowCount = ui->TableProcess->rowCount();
+    if(nRowCount-1 >= m_nCurrRow)
+    {
+        m_bModifyFlag = true;
+        ui->TableProcess->removeRow(m_nCurrRow);
+        m_vProcFile.remove(m_nCurrRow);
+        if(nRowCount-1 != m_nCurrRow)
+        {
+            ui->TableProcess->item(m_nCurrRow,0)->setSelected(true);
+            ui->TableProcess->item(m_nCurrRow,1)->setSelected(true);
+            on_TableProcess_cellClicked(m_nCurrRow,0);
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息","请选择删除行!");
+    }
+}
+
+void dlgprocessfilemodify::on_btnUp_clicked()
+{
+    if(m_nCurrRow > 0)
+    {
+        m_bModifyFlag = true;
+        QString qsPID = QString::number(m_vProcFile.at(m_nCurrRow-1).PID, 10);
+        ui->TableProcess->setItem(m_nCurrRow,0,new QTableWidgetItem(qsPID));
+        ui->TableProcess->setItem(m_nCurrRow,1, new QTableWidgetItem(QString(m_vProcFile.at(m_nCurrRow-1).cProcName)));
+        qsPID = QString::number(m_vProcFile.at(m_nCurrRow).PID, 10);
+        ui->TableProcess->setItem(m_nCurrRow-1,0,new QTableWidgetItem(qsPID));
+        ui->TableProcess->setItem(m_nCurrRow-1,1, new QTableWidgetItem(QString(m_vProcFile.at(m_nCurrRow).cProcName)));
+        swap(m_vProcFile[m_nCurrRow],m_vProcFile[m_nCurrRow-1]);
+
+        ui->TableProcess->item(m_nCurrRow,0)->setSelected(false);
+        ui->TableProcess->item(m_nCurrRow,1)->setSelected(false);
+        m_nCurrRow--;
+        ui->TableProcess->item(m_nCurrRow,0)->setSelected(true);
+        ui->TableProcess->item(m_nCurrRow,1)->setSelected(true);
+        on_TableProcess_cellClicked(m_nCurrRow,0);
+    }
+}
+
+void dlgprocessfilemodify::on_btnDown_clicked()
+{
+    if(m_nCurrRow < ui->TableProcess->rowCount()-1)
+    {
+        m_bModifyFlag = true;
+        QString qsPID = QString::number(m_vProcFile.at(m_nCurrRow+1).PID, 10);
+        ui->TableProcess->setItem(m_nCurrRow,0,new QTableWidgetItem(qsPID));
+        ui->TableProcess->setItem(m_nCurrRow,1, new QTableWidgetItem(QString(m_vProcFile.at(m_nCurrRow+1).cProcName)));
+        qsPID = QString::number(m_vProcFile.at(m_nCurrRow).PID, 10);
+        ui->TableProcess->setItem(m_nCurrRow+1,0,new QTableWidgetItem(qsPID));
+        ui->TableProcess->setItem(m_nCurrRow+1,1, new QTableWidgetItem(QString(m_vProcFile.at(m_nCurrRow).cProcName)));
+
+        swap(m_vProcFile[m_nCurrRow],m_vProcFile[m_nCurrRow+1]);
+        ui->TableProcess->item(m_nCurrRow,0)->setSelected(false);
+        ui->TableProcess->item(m_nCurrRow,1)->setSelected(false);
+        m_nCurrRow++;
+        ui->TableProcess->item(m_nCurrRow,0)->setSelected(true);
+        ui->TableProcess->item(m_nCurrRow,1)->setSelected(true);
+        on_TableProcess_cellClicked(m_nCurrRow,0);
+    }
+
+
+}
+
+void dlgprocessfilemodify::on_btnNewFile_clicked()
+{
+    int nRow = ui->TableProcess->rowCount();
+    if(nRow > 0)
+    {
+        if(RemindSaveOrNot())
+        {
+            ui->labelWord->show();
+            ui->labelMovie->show();
+            m_bNewFlag = true;
+            Timer->start(100);
+        }
+        else
+        {
+            m_bModifyFlag = false;
+            NewProcessFile();
+        }
+    }
+    else
+    {
+        m_bModifyFlag = false;
+        NewProcessFile();
+    }
+
+//    if( 0 == nRow)
+//    {
+//        m_vProcFile.clear();
+//        ui->TableProcess->clear();
+//        memset(m_cFileName,0,MAX_SIZE);
+//        memcpy(m_cFileName,"test.dll",strlen("test.dll"));
+//        ui->lineEditFileName->setText(QString(m_cFileName));
+//        QMessageBox::information(NULL, "提示信息","新建流程test.dll");
+//    }
+//    else
+//    {
+//        QMessageBox::information(NULL, "提示信息","请删除现有流程，再新建!");
+//    }
+}
+//新建流程文件
+void dlgprocessfilemodify::NewProcessFile()
+{
+    int nRow = ui->TableProcess->rowCount();
+    m_vProcFile.clear();
+    ui->TableProcess->clear();
+    ui->TableProcess->clearSelection();
+    //删除所有行
+    for(int i=nRow;i>=0;i--)
+    {
+        ui->TableProcess->removeRow(i);
+    }
+    m_nCurrRow = 0;
+    memset(m_cFileName,0,MAX_SIZE);
+    memcpy(m_cFileName,"test.dll",strlen("test.dll"));
+    ui->lineEditFileName->setText(QString(m_cFileName));
+    QMessageBox::information(NULL, "提示信息","新建流程文件为test.dll,请手动修改文件名");
+}
+void dlgprocessfilemodify::on_BoxParamNum_currentIndexChanged(int index)
+{
+    if(m_bIsSelected)
+    {
+        if(m_vProcFile[m_nCurrRow].ParaCount != index)
+        {
+            m_bModifyFlag = true;
+            m_vProcFile[m_nCurrRow].ParaCount = index;
+        }
+        else
+        {
+            return;
+        }
+    }
+    if(1 == index)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(false);
+        ui->lineEditParam3->setEnabled(false);
+        ui->lineEditParam4->setEnabled(false);
+        ui->lineEditParam5->setEnabled(false);
+        ui->lineEditParam6->setEnabled(false);
+    }
+    else if(2 == index)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(true);
+        ui->lineEditParam3->setEnabled(false);
+        ui->lineEditParam4->setEnabled(false);
+        ui->lineEditParam5->setEnabled(false);
+        ui->lineEditParam6->setEnabled(false);
+    }
+    else if(3 == index)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(true);
+        ui->lineEditParam3->setEnabled(true);
+        ui->lineEditParam4->setEnabled(false);
+        ui->lineEditParam5->setEnabled(false);
+        ui->lineEditParam6->setEnabled(false);
+    }
+    else if(4 == index)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(true);
+        ui->lineEditParam3->setEnabled(true);
+        ui->lineEditParam4->setEnabled(true);
+        ui->lineEditParam5->setEnabled(false);
+        ui->lineEditParam6->setEnabled(false);
+    }
+    else if(5 == index)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(true);
+        ui->lineEditParam3->setEnabled(true);
+        ui->lineEditParam4->setEnabled(true);
+        ui->lineEditParam5->setEnabled(true);
+        ui->lineEditParam6->setEnabled(false);
+    }
+    else if(6 == index)
+    {
+        ui->lineEditParam1->setEnabled(true);
+        ui->lineEditParam2->setEnabled(true);
+        ui->lineEditParam3->setEnabled(true);
+        ui->lineEditParam4->setEnabled(true);
+        ui->lineEditParam5->setEnabled(true);
+        ui->lineEditParam6->setEnabled(true);
+    }
+}
+void dlgprocessfilemodify::UpdateParamName()
+{
+    if(3 == m_vProcFile[m_nCurrRow].ModelAddress)
+    {
+        if(40 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("源电磁阀");
+            ui->labelname2->setText("液位");
+            ui->labelname3->setText("目标电磁阀");
+            ui->labelname4->setText("速度");
+            ui->labelname5->setText("源电磁阀");
+            ui->labelname6->setText("目的电磁阀");
+        }
+        else if(41 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+             ui->labelname1->setText("目标电磁阀");
+             ui->labelname2->setText("参数2");
+             ui->labelname3->setText("参数3");
+             ui->labelname4->setText("参数4");
+             ui->labelname5->setText("参数5");
+             ui->labelname6->setText("参数6");
+        }
+        else if(42 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("目标电磁阀");
+            ui->labelname2->setText("0关,1开");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(43 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("目标电磁阀");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(44 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("目标电磁阀1");
+            ui->labelname2->setText("次数");
+            ui->labelname3->setText("目标电磁阀2");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(45 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("源电池阀");
+            ui->labelname2->setText("速度");
+            ui->labelname3->setText("步数");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(46 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("目标电磁阀1");
+            ui->labelname2->setText("速度");
+            ui->labelname3->setText("目标电磁阀2");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(47 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("源电池阀1");
+            ui->labelname2->setText("目标电磁阀");
+            ui->labelname3->setText("次数");
+            ui->labelname4->setText("源电池阀2");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(48 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("源电池阀1");
+            ui->labelname2->setText("液位1");
+            ui->labelname3->setText("源电池阀2");
+            ui->labelname4->setText("液位2");
+            ui->labelname5->setText("目的电磁阀1");
+            ui->labelname6->setText("目的电磁阀2");
+        }
+        else if(49 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("目标液位");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(50 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("源电池阀");
+            ui->labelname2->setText("液位");
+            ui->labelname3->setText("目标电磁阀");
+            ui->labelname4->setText("速度");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(51 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("废液阀编号");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+    }
+    else if(1 == m_vProcFile[m_nCurrRow].ModelAddress)
+    {
+        ui->labelname1->setText("电磁阀");
+        ui->labelname2->setText("开或关");
+        ui->labelname3->setText("持续时间");
+        ui->labelname4->setText("参数4");
+        ui->labelname5->setText("参数5");
+        ui->labelname6->setText("参数6");
+    }
+    else if(5 == m_vProcFile[m_nCurrRow].ModelAddress)
+    {
+        if(70 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("富集电压");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(71 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("平置电压");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(72 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("溶出起始电压");
+            ui->labelname2->setText("溶出终止电压");
+            ui->labelname3->setText("溶出电压增量");
+            ui->labelname4->setText("采样脉冲幅度");
+            ui->labelname5->setText("采样脉冲宽度");
+            ui->labelname6->setText("采样脉冲周期");
+        }
+        else if(73 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("参考电阻(0,1)");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(74 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("16位数据");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(75 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("0断开,1连接");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(76 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("+4V校准值");
+            ui->labelname2->setText("0V校准值");
+            ui->labelname3->setText("-4V校准值");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else
+        {
+            //do nothing
+        }
+    }
+    else if(2 == m_vProcFile[m_nCurrRow].ModelAddress)
+    {
+        if(20 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("第一路温度值");
+            ui->labelname2->setText("保持时间(分钟)");
+            ui->labelname3->setText("第二路温度值");
+            ui->labelname4->setText("保持时间(分钟)");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(21 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("开关通道编号");
+            ui->labelname2->setText("开关(0关,1开)");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(22 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("第一路温度值");
+            ui->labelname2->setText("保持时间(分钟)");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(23 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("第二路温度值");
+            ui->labelname2->setText("保持时间(分钟)");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(24 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("0受控,1自动");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(25 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+             ui->labelname1->setText("0制冷,1制热");
+             ui->labelname2->setText("参数2");
+             ui->labelname3->setText("参数3");
+             ui->labelname4->setText("参数4");
+             ui->labelname5->setText("参数5");
+             ui->labelname6->setText("参数6");
+        }
+        else if(26 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("预设时间(分钟)");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+        else if(27 == m_vProcFile[m_nCurrRow].Cmd)
+        {
+            ui->labelname1->setText("有效负载路");
+            ui->labelname2->setText("参数2");
+            ui->labelname3->setText("参数3");
+            ui->labelname4->setText("参数4");
+            ui->labelname5->setText("参数5");
+            ui->labelname6->setText("参数6");
+        }
+    }
+    else
+    {
+        ui->labelname1->setText("参数1");
+        ui->labelname2->setText("参数2");
+        ui->labelname3->setText("参数3");
+        ui->labelname4->setText("参数4");
+        ui->labelname5->setText("参数5");
+        ui->labelname6->setText("参数6");
+    }
+}
+
+void dlgprocessfilemodify::mousePressEvent(QMouseEvent * mouseEvent)
+{
+    int x = mouseEvent->pos().x();
+    int y = mouseEvent->pos().y();
+
+
+    if ((x < 50)&&(y > 440))
+    {
+        m_nClick++;
+        if(m_nClick >4)
+        {
+            m_nClick = 0;
+            DlgTest pDlgTest(m_pMC);
+            pDlgTest.move((qApp->desktop()->width() - pDlgTest.width())/2,(qApp->desktop()->height() - pDlgTest.height())/2);
+            pDlgTest.exec();
+        }
+    }
+}
+void dlgprocessfilemodify::on_btnSend_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    int16_t nAdds = ui->lineEditAddress->text().toInt();
+    int16_t nCmd  = ui->lineEditCmd->text().toInt();
+    int nParaNum = ui->BoxParamNum->currentIndex();
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    QLineEdit *Param[6] = {ui->lineEditParam1,ui->lineEditParam2,ui->lineEditParam3,
+                          ui->lineEditParam4,ui->lineEditParam5,ui->lineEditParam6};
+    int16_t ParaValue[nParaNum];
+    for(int i=0;i<nParaNum;i++)
+    {
+        ParaValue[i] = Param[i]->text().toInt();
+    }
+    bBuff[0] = HIBYTE(nCmd);
+    bBuff[1] = LOBYTE(nCmd);
+    for(int k=1;k<=nParaNum;k++)
+    {
+        bBuff[2*k] = HIBYTE(ParaValue[k-1]);
+        bBuff[2*k+1] = LOBYTE(ParaValue[k-1]);
+    }
+    if(pYQ->m_pProcess->pDriver->WriteModbus(nAdds,40001,1+nParaNum,bBuff))
+    {
+        QMessageBox::information(NULL, "提示信息","发送成功!");
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息","通讯故障!");
+    }
+}
+//判断仪器是否正确连接
+bool dlgprocessfilemodify::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息", "仪器获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+void dlgprocessfilemodify::on_btnReportFile_clicked()
+{
+    dlImportProcessFile importfile;
+    importfile.move((qApp->desktop()->width() - importfile.width())/2,(qApp->desktop()->height() - importfile.height())/2);
+    importfile.exec();
+}
+void dlgprocessfilemodify::SaveProcessFile()
+{
+    char czTmp[MAX_SIZE];
+    char czItem[MAX_SIZE];
+    char czPath[MAX_SIZE];
+
+    Timer->stop();
+    memset(czPath,0,MAX_SIZE);
+    sprintf(czPath,"%s",INI_ROOT_PATH);
+    strcat(czPath,"/processfile/");
+    strcat(czPath,m_cFileName);
+    QString qsPath = QString(czPath);
+    QFile file(qsPath);
+    if(file.exists())
+    {
+        for(int j=0;j<500;j++)
+        {
+            memset(czItem,0,MAX_SIZE);
+            sprintf(czItem,"%d",j);
+            GetAfxConfig("processfile",m_cFileName)->DelIni(czItem);
+        }
+    }
+    else
+    {
+        file.open(QIODevice::ReadWrite);
+        file.close();
+    }
+    for(int i=0;i<m_vProcFile.size();i++)
+    {
+        memset(czItem,0,MAX_SIZE);
+        sprintf(czItem,"%d",i);
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).PID);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"PID",czTmp);
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).Cmd);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"Cmd",czTmp);
+
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"name",m_vProcFile.at(i).cProcName);
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).LogTag);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"LogTag",czTmp);
+
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"time","0");
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).ModelAddress);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"address",czTmp);
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).ParaCount);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"para",czTmp);
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).arrParaValue[0]);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"1",czTmp);
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).arrParaValue[1]);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"2",czTmp);
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).arrParaValue[2]);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"3",czTmp);
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).arrParaValue[3]);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"4",czTmp);
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).arrParaValue[4]);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"5",czTmp);
+
+        memset(czTmp,0,MAX_SIZE);
+        sprintf(czTmp,"%d",m_vProcFile.at(i).arrParaValue[5]);
+        GetAfxConfig("processfile",m_cFileName)->SetIni(czItem,"6",czTmp);
+
+    }
+    ui->labelWord->hide();
+    ui->labelMovie->hide();
+    m_bModifyFlag = false;
+    QMessageBox::information(NULL, "提示信息","保存流程成功!");
+    ui->btnProcessSave->setEnabled(true);
+    if(m_bCloseFlag)
+    {
+        m_bCloseFlag = false;
+        this->close();
+    }
+    if(m_bNewFlag)
+    {
+        m_bNewFlag = false;
+        NewProcessFile();
+    }
+    if(m_bScanFlag)
+    {
+        m_bScanFlag = false;
+        ScanProcessFile();
+    }
+}
+
+
+void dlgprocessfilemodify::on_BoxLog_clicked(bool checked)
+{
+    if(m_bIsSelected)
+    {
+        m_bModifyFlag = true;
+        m_vProcFile[m_nCurrRow].LogTag = checked;
+    }
+}
+
+void dlgprocessfilemodify::on_btnClose_clicked()
+{
+    if(RemindSaveOrNot())
+    {
+        ui->labelWord->show();
+        ui->labelMovie->show();
+        m_bCloseFlag = true;
+        Timer->start(100);
+    }
+    else
+    {
+        this->close();
+    }
+
+}
+//提醒保存
+bool dlgprocessfilemodify::RemindSaveOrNot()
+{
+    bool bRet = false;
+    if(m_bModifyFlag)
+    {
+        int ret = QMessageBox::information(NULL, "提示信息","是否保存已修改信息？",
+                                               QMessageBox::Yes | QMessageBox::No);
+        switch (ret)
+        {
+          case QMessageBox::Yes:
+                bRet = true;
+              break;
+          case QMessageBox::No:
+              break;
+          default:
+              break;
+        }
+    }
+    return bRet;
+}
+//比较流程文件是否已保存
+bool dlgprocessfilemodify::CompareSaveOrNot(const char *filename)
+{
+    char czItem[64];memset(czItem,0,64);
+    char czTmp[64];
+    bool bRet = true;
+//    char czPath[MAX_SIZE];
+//    memset(czPath,0,MAX_SIZE);
+//    sprintf(czPath,"%s",INI_ROOT_PATH);
+//    strcat(czPath,"/processfile/");
+//    strcat(czPath,m_cFileName);
+//    QString qsPath = QString(czPath);
+//    QFile file(qsPath);
+//    if(!file.exists())
+//    {
+//        return false;
+//    }
+    for(int i=0;i<MAXSIZE;i++)
+    {
+        sprintf(czItem,"%d",i);
+
+        //流程删除时，m_vProcFile长度小于流程文件里的条数，用此做容错误处理
+        if(i >= m_vProcFile.size())
+        {
+            return false;
+        }
+        memset(czTmp,0,64);
+        //当在新建流程文件，插入流程时，怎么提醒保存？？
+        if(!GetAfxConfig("processfile",filename)->GetIni(czItem,"PID",czTmp))
+        {
+            break;
+        }
+        else
+        {
+            if(m_vProcFile.at(i).PID != atoi(czTmp))
+            {
+                bRet = false;
+                break;
+            }
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"Cmd",czTmp);
+        if(m_vProcFile.at(i).Cmd != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"name",czTmp);
+        if(strcmp(m_vProcFile.at(i).cProcName,czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"LogTag",czTmp);
+        if(m_vProcFile.at(i).LogTag != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"time",czTmp);
+        if(m_vProcFile.at(i).CostTime != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"address",czTmp);
+        if(m_vProcFile.at(i).ModelAddress != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"para",czTmp);
+        if(m_vProcFile.at(i).ParaCount != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"1",czTmp);
+        if(m_vProcFile.at(i).arrParaValue[0] != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"2",czTmp);
+        if(m_vProcFile.at(i).arrParaValue[1] != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"3",czTmp);
+        if(m_vProcFile.at(i).arrParaValue[2] != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"4",czTmp);
+        if(m_vProcFile.at(i).arrParaValue[3] != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"5",czTmp);
+        if(m_vProcFile.at(i).arrParaValue[4] != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+        memset(czTmp,0,64);
+        GetAfxConfig("processfile",filename)->GetIni(czItem,"6",czTmp);
+        if(m_vProcFile.at(i).arrParaValue[5] != atoi(czTmp))
+        {
+            bRet = false;
+            break;
+        }
+    }
+    return bRet;
+}
+
+void dlgprocessfilemodify::on_lineEditFileName_textEdited(const QString &arg1)
+{
+    m_bModifyFlag = true;
+    strcpy(m_cFileName,arg1.toLatin1().data());
+}
+
+
+void dlgprocessfilemodify::on_lineEditCmd_textEdited(const QString &arg1)
+{
+    if(m_bIsSelected)
+    {
+        m_bModifyFlag = true;
+        m_vProcFile[m_nCurrRow].Cmd = arg1.toInt();
+    }
+}
+
+void dlgprocessfilemodify::on_lineEditParam1_textEdited(const QString &arg1)
+{
+    if(m_bIsSelected)
+    {
+        m_bModifyFlag = true;
+        m_vProcFile[m_nCurrRow].arrParaValue[0] = arg1.toInt();
+    }
+}
+
+void dlgprocessfilemodify::on_lineEditParam2_textEdited(const QString &arg1)
+{
+    if(m_bIsSelected)
+    {
+        m_bModifyFlag = true;
+        m_vProcFile[m_nCurrRow].arrParaValue[1] = arg1.toInt();
+    }
+}
+
+void dlgprocessfilemodify::on_lineEditParam3_textEdited(const QString &arg1)
+{
+    if(m_bIsSelected)
+    {
+        m_bModifyFlag = true;
+        m_vProcFile[m_nCurrRow].arrParaValue[2] = arg1.toInt();
+    }
+}
+
+void dlgprocessfilemodify::on_lineEditParam4_textEdited(const QString &arg1)
+{
+    if(m_bIsSelected)
+    {
+        m_bModifyFlag = true;
+        m_vProcFile[m_nCurrRow].arrParaValue[3] = arg1.toInt();
+    }
+}
+
+void dlgprocessfilemodify::on_lineEditParam5_textEdited(const QString &arg1)
+{
+    if(m_bIsSelected)
+    {
+        m_bModifyFlag = true;
+        m_vProcFile[m_nCurrRow].arrParaValue[4] = arg1.toInt();
+    }
+}
+
+void dlgprocessfilemodify::on_lineEditParam6_textEdited(const QString &arg1)
+{
+    if(m_bIsSelected)
+    {
+        m_bModifyFlag = true;
+        m_vProcFile[m_nCurrRow].arrParaValue[5] = arg1.toInt();
+    }
+}

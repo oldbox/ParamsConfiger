@@ -1,0 +1,47 @@
+#ifndef SFKEYBOARD_H
+#define SFKEYBOARD_H
+
+#include <QDialog>
+#include <QButtonGroup>
+#include "mylineedit.h"
+
+namespace Ui {
+class SfKeyboard;
+}
+
+class SfKeyboard : public QWidget
+{
+    Q_OBJECT
+
+public:
+    explicit SfKeyboard(QWidget *parent = 0);
+    ~SfKeyboard();
+
+    QString& GetContent(void) {
+        return content;
+    }
+    void Clear();
+    void GetEditContent(QString qsContent);
+    void SetCurLineEdit(QLineEdit *);
+    void contentChanged(QString );
+
+private slots:
+    void on_key_case_clicked();
+    void ButtonJudge(int id );
+
+    void on_key_Switch_clicked();
+
+private:
+    static char keyCaseNms[26];
+    static char keyUnCaseNms[26];
+    void FreshKeyBoard(bool state = true);
+    void SetKeyBoard();
+    void openKeyBoard();
+
+    Ui::SfKeyboard *ui;
+    QButtonGroup *button_group;
+    QString content;
+    QLineEdit *lineEdit;
+};
+
+#endif // SFKEYBOARD_H

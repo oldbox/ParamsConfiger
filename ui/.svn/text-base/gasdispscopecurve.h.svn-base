@@ -1,0 +1,50 @@
+#ifndef GASDISPSCOPECURVE_H
+#define GASDISPSCOPECURVE_H
+
+#include <QDialog>
+#include "mainwindowbase.h"
+#include <QMouseEvent>
+#include "dlgtest.h"
+#include "core/cprocess2.h"
+
+namespace Ui {
+class gasdispscopecurve;
+}
+class MyPlot;
+class gasdispscopecurve : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit gasdispscopecurve(CMainCtrl* pMC,QWidget *parent = 0);
+    ~gasdispscopecurve();
+    
+private:
+    void mousePressEvent(QMouseEvent *);
+    void Init();
+    void DealDataInfo(struGasVector *pScope);
+    void ShowMeasureData(int nKind);
+    void SaveMaxMinLamdba();
+
+    Ui::gasdispscopecurve *ui;
+    MyPlot *plot;
+    CMainCtrl* m_pMC;
+    int m_nClick;
+    struGasVector *pGasScope;
+     QVector <double> m_vtnLamdba,m_vtnMeasure,m_vtnLight,m_vtnBackground;
+
+public slots:
+    void OnScopeData(struGasVector* pScope,int nType);
+private slots:
+    void on_btnclose_clicked();
+
+    void changeShowCurveMode();
+
+    void changeShowDataMode();
+    void on_btnMinUp_clicked();
+    void on_btnMinDown_clicked();
+    void on_btnMaxUp_clicked();
+    void on_btnMaxDown_clicked();
+};
+
+#endif // GASDISPSCOPECURVE_H

@@ -1,0 +1,10 @@
+#ifndef CMETHOD_H
+#define CMETHOD_H
+
+class CMethod
+{
+public:
+    CMethod();
+};
+
+#endif // CMETHOD_H

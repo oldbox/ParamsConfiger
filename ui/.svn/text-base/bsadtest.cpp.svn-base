@@ -1,0 +1,195 @@
+#include "bsadtest.h"
+#include "ui_bsadtest.h"
+
+bsADTest::bsADTest(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::bsADTest)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    this->SettabWidADListStyle();
+    bExitThread = false;
+    m_bRunThread = false;
+    this->RunThread();
+
+    connect(this, SIGNAL(NofityHgSignReadData()), this, SLOT(onGetReadData()),Qt::QueuedConnection);
+
+
+}
+
+bsADTest::~bsADTest()
+{
+    ExitRunThread();
+    delete ui;
+}
+
+void bsADTest::on_butTest_clicked()
+{
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 91;
+    int16_t wPrm1 = 1;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(CMD_LightLight,40001,1+1,bBuff))
+    {
+        m_bRunThread = true;
+    }
+}
+
+void bsADTest::ExitRunThread()
+{
+    bExitThread = true;
+    m_bRunThread = false;
+    pthread_join(id_autorun,0);
+}
+
+void bsADTest::RunThread()
+{
+    if(!bExitThread)
+    pthread_create(&id_autorun, NULL, AutoRunThread, this);
+}
+
+void* bsADTest::AutoRunThread(void* pParam)
+{
+    bsADTest* pThis = (bsADTest*)pParam;
+    while(!pThis->bExitThread)
+    {
+        if(pThis->m_bRunThread)
+        {
+            pThis->GetReadData();
+        }
+       usleep(100);
+    }
+    return NULL;
+}
+
+void bsADTest::GetReadData()
+{
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    unsigned int uValue = 0;
+
+    memset(bBuff,0,MAX_SIZE);
+    if(pYQ->m_pProcess->pDriver->ReadModbus(CMD_LightLight,40053,1,bBuff))
+    {
+        uValue = MAKEWORD(bBuff[1],bBuff[0]);
+        m_vLightVal.push_back(uValue);
+        emit NofityHgSignReadData();
+    }
+}
+
+void bsADTest::onGetReadData()
+{
+    ui->tabWidADList->clear();
+    int j = 0;
+    int x = 0;
+//    for (std::vector<int>::iterator iter = m_vLightVal.begin(); iter != m_vLightVal.end(); ++iter)
+//    {
+//        std::cout << *iter << std::endl;
+//    }
+
+    if(m_vLightVal.size() > 0)
+    {
+         ui->litReadCount->setText(QString::number(m_vLightVal.size()));
+        if(m_vLightVal.size() < 10)
+        {
+            ui->tabWidADList->setRowCount(1);
+            ui->tabWidADList->scrollToBottom();
+        }
+        else
+        {
+            ui->tabWidADList->setRowCount(m_vLightVal.size() / 10 + 1);
+        }
+
+        for(int i = 0;i<m_vLightVal.size();i++)
+        {
+            ui->tabWidADList->setItem(j,x,new QTableWidgetItem(QString::number(m_vLightVal[i])));
+            if(x == 10)
+            {
+                x = 0;
+                j ++;
+            }
+            x++;
+        }
+    }
+    if(m_vLightVal.size() > 120)
+    {
+        ui->tabWidADList->clearContents();
+        m_vLightVal.clear();
+    }
+}
+
+void bsADTest::SettabWidADListStyle()
+{
+    ui->tabWidADList->horizontalHeader()->setVisible(true);
+    ui->tabWidADList->verticalHeader()->setVisible(true);
+    ui->tabWidADList->setShowGrid(true); //设置显示格子线
+    ui->tabWidADList->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一行
+    ui->tabWidADList->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tabWidADList->horizontalHeader()->setClickable(false); //设置表头不可点击（默认点击后进行排序）
+    ui->tabWidADList->horizontalHeader()->setStretchLastSection(true); //设置充满表宽度
+    ui->tabWidADList->setStyleSheet("selection-background-color:lightblue;"); //设置选中背景色
+    ui->tabWidADList->setColumnCount(10);
+
+    QHeaderView *pTableHeaderView = ui->tabWidADList->horizontalHeader();
+    if (pTableHeaderView)
+    {
+        pTableHeaderView->setDefaultAlignment (Qt::AlignVCenter); //居中
+        pTableHeaderView->setTextElideMode (Qt::ElideMiddle); //...效果
+        pTableHeaderView->setStretchLastSection (true); //尾不留空白
+    }
+    ui->tabWidADList->setHorizontalHeader(pTableHeaderView);
+
+    QStringList qHeaderName;
+    ui->tabWidADList->horizontalHeader()->setFixedHeight(25);  //修改表头合适的高度
+
+    for(int i=0;i<10;i++)
+    {
+        QString qsColName = "AD" + QString("%1").arg(i+1);
+        qHeaderName << qsColName;
+        ui->tabWidADList->horizontalHeader()->resizeSection(i,50);
+    }
+    ui->tabWidADList->setHorizontalHeaderLabels(qHeaderName);
+}
+
+void bsADTest::on_butReadStop_clicked()
+{
+    this->StopReadLight();
+}
+
+void bsADTest::StopReadLight()
+{    
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 91;
+    int16_t wPrm1 = 0;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(CMD_LightLight,40001,1+1,bBuff))
+    {
+        m_bRunThread = false;
+    }
+}
+
+void bsADTest::on_butClose_clicked()
+{
+    this->StopReadLight();
+    this->close();
+}

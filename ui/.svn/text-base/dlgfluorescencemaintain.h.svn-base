@@ -1,0 +1,52 @@
+#ifndef DLGFLUORESCENCEMAINTAIN_H
+#define DLGFLUORESCENCEMAINTAIN_H
+
+#include <QWidget>
+#include "../core/cmainctrl.h"
+#include <QMessageBox>
+
+namespace Ui {
+class dlgfluorescencemaintain;
+}
+
+class dlgfluorescencemaintain : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgfluorescencemaintain(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgfluorescencemaintain();
+    
+private slots:
+    void on_btnDCF1_clicked();
+
+    void on_btnDCF2_clicked();
+
+    void on_btnDCF3_clicked();
+
+    void on_btnDCF4_clicked();
+
+    void on_btnDCF9_clicked();
+
+    void on_btnDCF8_clicked();
+
+    void on_btnDCF7_clicked();
+
+    void on_btnDCF6_clicked();
+
+    void on_btnDCF5_clicked();
+
+    void on_btnDCF11_clicked();
+
+    void on_btnDCF10_clicked();
+
+private:
+    bool dealSendCtrlCmd(int nDCF);
+    bool judgeYQConnect();
+    Ui::dlgfluorescencemaintain *ui;
+    bool m_bOnOff[17];
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+};
+
+#endif // DLGFLUORESCENCEMAINTAIN_H

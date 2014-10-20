@@ -1,0 +1,378 @@
+#ifndef PARAMDICT_H
+#define PARAMDICT_H
+
+#include <vector>
+#include <cstring>
+#include <QMap>
+
+using namespace std;
+
+
+struct paramitem
+{
+    paramitem(){
+        //公共
+        memset(LHCodeID,0,16);
+        memset(GBCodeID,0,16);
+        memset(CodeName,0,64);
+        iProcessType = 0;
+        SlaveID = 1;
+        DataDigits = 4;
+        memset(Unit,0,16);
+        BlankChroma = 0.0;
+        SampleChroma = 0.0;
+        CheckChroma = 0.0;
+        Max = 1;
+        Min = 0;
+        Kind = 0;
+        CalcWay = 0;
+        TopLimit = 0.0;
+        LowerLimit = 0.0;
+
+    }
+    //公共属性
+    char LHCodeID[16];      //力合代码
+    char GBCodeID[16];      //国标代码
+    char CodeName[64];      //参数名称
+    short int iProcessType; //流程类型，0表示无流程
+    int SlaveID;           //输出的Modbus地址
+    int DataDigits;         //数据精度
+    char Unit[16];          //单位
+    float BlankChroma;      //空白浓度
+    float SampleChroma;     //标样浓度
+    float CheckChroma;      //核查标样浓度
+    float Max;              //浓度数据超上限
+    float Min;              //浓度数据超下限
+    int Kind;               //参数类型
+    int CalcWay;            //计算方式
+    float TopLimit;         //检出上限
+    float LowerLimit;       //检出下限
+
+    struct param1
+    {
+        param1(){
+            //重金属参数（私有属性）
+            PeakSearchDown = 0;
+            PeakSearchUp = 0;
+            SampleAdjust = 0.0;
+        }
+        //重金属参数（私有属性）
+        int PeakSearchDown;     //寻峰下限
+        int PeakSearchUp;       //寻峰上限
+        float SampleAdjust;    //标样校准系数
+    }parcode1;
+
+    struct param2
+    {
+        param2(){
+            //气体在线分析仪参数（私有属性）
+            memset(IntegralTime,0,64);
+            memset(IntegralNumTime,0,64);
+            QuotietyA = 0.0;
+            QuotietyB = 0.0;
+            memset(ChromaUnit,0,16);
+            MinusChroma = false;
+            memset(IPTCP,0,64);
+            SwitchAmount = false;
+            mA420 = 0.0;
+        }
+
+        //气体在线分析仪参数（私有属性）
+        char IntegralTime[64];      //积分时间
+        char IntegralNumTime[64];   //积分次数
+        float QuotietyA;            //系数A
+        float QuotietyB;            //系数B
+        char ChromaUnit[16];        //浓度单位
+        bool MinusChroma;           //主界面是否显示负浓度
+        char IPTCP[64];             //IP/TCP地址
+        bool SwitchAmount;          //开关量
+        float mA420;                //4~20mA
+    }parcode2;
+
+    struct param3
+    {
+        param3(){
+            //有机物参数
+            RemainTime = 0;
+            K = 1.0;
+            b = 0;
+            R = 1.0;
+        }
+
+        //有机物参数
+        float RemainTime;       //保留时间
+        float K;
+        float b;
+        float R;
+    }parcode3;
+
+    struct param4
+    {
+        param4(){
+            //比色法
+            UnitType = 0;        // 排放量单位
+            InsideCode = 0;         // 内部代码
+        }
+
+        //比色法
+        int UnitType;        // 排放量单位
+        int InsideCode;         // 内部代码
+    }parcode4;
+
+    struct param5  //二氧化硅
+    {
+        param5(){
+            priority = 1;
+        }
+        int priority;  //二氧化硅通道测试优先级,1最优先 6优先最低
+    }parcode5;
+};
+
+////重金属仪器
+//struct paramitem
+//{
+//    paramitem(){
+//        //公共
+//        memset(LHCodeID,0,16);
+//        memset(GBCodeID,0,16);
+//        memset(CodeName,0,64);
+//        iProcessType = 0;
+//        SlaveID = 1;
+//        DataDigits = 4;
+//        memset(Unit,0,16);
+//        BlankChroma = 0.0;
+//        SampleChroma = 0.0;
+//        CheckChroma = 0.0;
+//        Max = 1;
+//        Min = 0;
+//        Kind = 0;
+//        CalcWay = 0;
+//        //重金属参数（私有属性）
+//        PeakSearchDown = 0;
+//        PeakSearchUp = 0;
+//        SampleAdjust = 0.0;
+//        //气体在线分析仪参数（私有属性）
+//        memset(IntegralTime,0,64);
+//        memset(IntegralNumTime,0,64);
+//        QuotietyA = 0.0;
+//        QuotietyB = 0.0;
+//        memset(ChromaUnit,0,16);
+//        MinusChroma = false;
+//        memset(IPTCP,0,64);
+//        SwitchAmount = false;
+//        mA420 = 0.0;
+//        //有机物参数
+//        RemainTime = 0;
+//        Multiplier = 1.0;
+//        K = 1.0;
+//        b = 0;
+//        R = 1.0;
+//        //比色法
+//        EmissUnitID = 0;        // 排放量单位
+//        InsideCode = 0;         // 内部代码
+//    }
+//    //公共属性
+//    char LHCodeID[16];      //力合代码
+//    char GBCodeID[16];      //国标代码
+//    char CodeName[64];      //参数名称
+//    short int iProcessType; //流程类型，0表示无流程
+//    int SlaveID;           //输出的Modbus地址
+//    int DataDigits;         //数据精度
+//    char Unit[16];          //单位
+//    float BlankChroma;      //空白浓度
+//    float SampleChroma;     //标样浓度
+//    float CheckChroma;      //核查标样浓度
+//    float Max;              //浓度数据超上限
+//    float Min;              //浓度数据超下限
+//    int Kind;               //参数类型
+//    int CalcWay;            //计算方式
+//    //重金属参数（私有属性）
+//    int PeakSearchDown;     //寻峰下限
+//    int PeakSearchUp;       //寻峰上限
+//    float SampleAdjust;    //标样校准系数
+//    //气体在线分析仪参数（私有属性）
+//    char IntegralTime[64];      //积分时间
+//    char IntegralNumTime[64];   //积分次数
+//    float QuotietyA;            //系数A
+//    float QuotietyB;            //系数B
+//    char ChromaUnit[16];        //浓度单位
+//    bool MinusChroma;           //主界面是否显示负浓度
+//    char IPTCP[64];             //IP/TCP地址
+//    bool SwitchAmount;          //开关量
+//    float mA420;                //4~20mA
+//    //有机物参数
+//    float RemainTime;       //保留时间
+//    float Multiplier;       //乘数
+//    float K;
+//    float b;
+//    float R;
+//    //比色法
+//    int EmissUnitID;        // 排放量单位
+//    int InsideCode;         // 内部代码
+//    //还原初使默认值
+//};
+
+//气体在线分析仪参数
+//struct paramitem2
+//{
+//    paramitem2(){
+
+//        memset(LHCodeID,0,16);
+//        memset(GBCodeID,0,16);
+//        memset(CodeName,0,64);
+//    }
+
+//    char LHCodeID[16];      //力合代码
+//    char GBCodeID[16];      //国标代码
+//    char CodeName[64];      //参数名称
+//    short int iProcessType; //流程类型，0表示无流程
+//    int DataDigits;         //数据精度
+
+//    char IntegralTime[64];      //积分时间
+//    char IntegralNumTime[64];   //积分次数
+//    float QuotietyA;            //系数A
+//    float QuotietyB;            //系数B
+//    char ChromaUnit[16];        //浓度单位
+//    bool MinusChroma;           //主界面是否显示负浓度
+//    char IPTCP[64];             //IP/TCP地址
+//    bool SwitchAmount;          //开关量
+//    float mA420;                //4~20mA
+
+//};
+//有机物参数
+//struct paramitem3
+//{
+//    paramitem3(){
+//        memset(LHCodeID,0,16);
+//        memset(GBCodeID,0,16);
+//        memset(CodeName,0,64);
+//        memset(Unit,0,16);
+//        iProcessType = 3;
+//        SlaveID = 1;
+//        RemainTime = 0;
+//        Kind = 0;
+//        Multiplier = 1.0;
+//        K = 1.0;
+//        b = 0;
+//        R = 1.0;
+//        DataDigits = 4;
+//        CalcWay = 0;
+//        SampleChroma = 0.0;
+//        CheckChroma = 0.0;
+//        Max = 1;
+//        Min = 0;
+//    }
+
+//    char LHCodeID[16];      //力合代码
+//    char GBCodeID[16];      //国标代码
+//    char CodeName[64];      //参数名称
+
+//    short int iProcessType; //流程类型，0表示无流程
+//    int SlaveID;           //输出的Modbus地址
+
+//    char Unit[16];          //单位
+//    float RemainTime;       //保留时间
+//    int Kind;               //参数类型
+//    float Multiplier;       //乘数
+//    float K;
+//    float b;
+//    float R;
+
+//    int DataDigits;         //数据精度
+//    int CalcWay;            //计算方式
+//    float SampleChroma;     //标样浓度
+//    float CheckChroma;      //核查标样浓度
+//    float Max;              //浓度数据超上限
+//    float Min;              //浓度数据超下限
+//    //还原初使默认值
+//};
+//比色法参数
+//struct paramitem4
+//{
+//    paramitem4()
+//    {
+//        memset(LHCodeID,0,16);
+//        memset(GBCodeID,0,16);
+//        memset(CodeName,0,64);
+//        EmissUnitID = 0;
+//        SlaveID = 1;
+//        iProcessType = 4;
+//        DataDigits = 4;
+//        CalcWay = 0;//无任何方式
+//        InsideCode = 0;
+//        Max = 0;
+//        Min = 0;
+//        Kind = 0;
+//        SampleChroma = 0.0;
+//        CheckChroma = 0.0;
+//        BlankChroma = 0.0;
+//    }
+
+//    char LHCodeID[16];      // 力合代码
+//    int SlaveID;            // Modbus地址
+//    char GBCodeID[16];      // 国标代码
+//    char CodeName[64];      // 参数名称
+//    short int iProcessType; // 流程类型，0表示无流程
+//    int DataDigits;         // 数据精度
+//    float Max;              // 浓度数据超上限
+//    float Min;              // 浓度数据超下限
+
+//    int Kind;               // 参数类型
+//    int EmissUnitID;        // 排放量单位
+//    int CalcWay;            // 读取基线值方式
+//    int InsideCode;         // 内部代码
+
+//    float SampleChroma;     // 标样浓度
+//    float CheckChroma;      // 核查标样浓度
+//    float BlankChroma;      // 空白浓度
+//};
+
+//比色法参数
+//struct paramitem5
+//{
+//    paramitem5()
+//    {
+//        memset(LHCodeID,0,16);
+//        memset(GBCodeID,0,16);
+//        memset(CodeName,0,64);
+//    }
+
+//    char LHCodeID[16];      //力合代码
+//    char GBCodeID[16];      //国标代码
+//    char CodeName[64];      //参数名称
+//    short int iProcessType; //流程类型，0表示无流程
+//    int SlaveID;           //输出的Modbus地址
+
+//    int PeakSearchDown;     //寻峰下限
+//    int PeakSearchUp;       //寻峰上限
+//    int DataDigits;         //数据精度
+//    int CalcWay;            //计算方式
+//    float SampleChroma;     //标样浓度
+//    float CheckChroma;      //核查标样浓度
+//    float Max;              //浓度数据超上限
+//    float Min;              //浓度数据超下限
+//    float BlankChroma;      //空白浓度
+//    float SampleAdjust;    //标样校准系数
+//};
+
+class paramdict
+{
+    public:
+        paramdict();
+        vector<paramitem> paramlist;
+
+        //vector<paramitem2> paramlist2;
+        //vector<paramitem3> paramlist3;
+        //vector<paramitem4> paramlist4;
+       // vector<paramitem5> paramlist5;
+
+        //QMap<QString,QString> m_mapCodeList;
+//    private:
+//        CMainCtrl* m_pMC;
+    private:
+        void Init_Voc();
+        void Init_sVoc();
+        //void GetCodeList(int iYQTypes);
+};
+
+#endif

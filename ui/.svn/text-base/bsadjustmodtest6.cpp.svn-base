@@ -1,0 +1,172 @@
+#include "bsadjustmodtest6.h"
+#include "ui_bsadjustmodtest6.h"
+#include <QTextCodec>
+
+bsAdjustModTest6::bsAdjustModTest6(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    m_bRunThread(false),
+    ui(new Ui::bsAdjustModTest6)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    connect(this, SIGNAL(NofityGYXZReadData()), this, SLOT(onGetReadData()),Qt::QueuedConnection);
+}
+
+bsAdjustModTest6::~bsAdjustModTest6()
+{
+    ExitSubThread();
+    delete ui;
+}
+
+void bsAdjustModTest6::RunSubThread()
+{
+    if(!m_bRunThread)
+    {
+        m_bRunThread = true;
+        pthread_create(&id_autorun, NULL, AutoRunThread, this);
+    }
+}
+void bsAdjustModTest6::ExitSubThread()
+{
+    if(m_bRunThread)
+    {
+        m_bRunThread = false;
+        pthread_join(id_autorun,0);
+        id_autorun = 0;
+    }
+}
+
+void* bsAdjustModTest6::AutoRunThread(void* pParam)
+{
+    bsAdjustModTest6* pThis = (bsAdjustModTest6*)pParam;
+    while(pThis->m_bRunThread)
+    {
+       pThis->GetReadData();
+        sleep(1);
+    }
+    return NULL;
+}
+
+void bsAdjustModTest6::GetReadData()
+{
+    if(false == judgeYQConnect()) return;  
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+   if(pYQ->m_pProcess->pDriver->ReadModbus(CMD_LightLight,40052,6,bBuff))
+   {       
+       m_LightWorkValue.iWorkState = MAKEWORD(bBuff[1],bBuff[0]);
+       m_LightWorkValue.iDAVal = MAKEWORD(bBuff[5],bBuff[4]);
+       m_LightWorkValue.iFactVal = MAKEWORD(bBuff[9],bBuff[8]);
+       if(0 == m_LightWorkValue.iWorkState)
+       {
+           ui->lblOutput->setText("校准成功");
+           this->ExitSubThread();
+//           QMessageBox::information(NULL, "提示信息","校准成功");
+       }
+       else if(1 == m_LightWorkValue.iWorkState)
+       {
+           emit NofityGYXZReadData();
+       }
+       else
+       {
+           ui->lblOutput->setText("校准失败");
+           this->ExitSubThread();
+//           QMessageBox::information(NULL, "提示信息","校准失败");
+       }
+   }
+}
+
+void bsAdjustModTest6::onGetReadData()
+{
+    //0表示空闲，1表示正常工作，2表示参数设置错误，3表示校准AD值错误
+    if(m_LightWorkValue.iWorkState == 0)
+        ui->litStatus->setText("空闲");
+    else if(m_LightWorkValue.iWorkState == 1)
+        ui->litStatus->setText("正常");
+    else if(m_LightWorkValue.iWorkState == 2)
+        ui->litStatus->setText("参数设置错误");
+    else if(m_LightWorkValue.iWorkState == 3)
+        ui->litStatus->setText("校准AD值错误");
+    else
+        ui->litStatus->setText("未知,代码:"+QString::number(m_LightWorkValue.iWorkState));
+
+    ui->litFactVal->setText(QString::number(m_LightWorkValue.iFactVal));
+    ui->litDAVal->setText(QString::number(m_LightWorkValue.iDAVal));
+}
+//AD校准
+void bsAdjustModTest6::on_butGYAdjust_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    ui->lblOutput->setText("");
+    unsigned int iAdjustVal = atoi(ui->litTargetVal->text().toLatin1().data());
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 90;
+    int16_t wPrm1 = iAdjustVal;
+    bBuff[0] = HIBYTE(wPrm0);
+    bBuff[1] = LOBYTE(wPrm0);
+    bBuff[2] = HIBYTE(wPrm1);
+    bBuff[3] = LOBYTE(wPrm1);
+    if(pYQ->m_pProcess->pDriver->WriteModbus(CMD_LightLight,40001,1+1,bBuff))
+    {
+        this->RunSubThread();
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息","写校准命令通讯失败");
+    }
+}
+
+void bsAdjustModTest6::on_btnClose_clicked()
+{
+    this->close();
+}
+
+void bsAdjustModTest6::on_butStop_clicked()
+{
+    ui->lblOutput->setText("");
+    this->ExitSubThread();
+}
+
+//判断仪器是否正确连接
+//返回:
+//  --> false 失败
+//  --> true  成功
+bool bsAdjustModTest6::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        (QString::fromUtf8("仪器信息获取失败!"));
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}

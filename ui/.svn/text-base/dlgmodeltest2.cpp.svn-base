@@ -1,0 +1,258 @@
+#include "dlgmodeltest2.h"
+#include "ui_dlgmodeltest2.h"
+#include <QTextCodec>
+#include <QMessageBox>
+
+dlgmodeltest2::dlgmodeltest2(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    m_bIsPthreadRun(false),
+    ui(new Ui::dlgmodeltest2)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    this->resize(QSize(520,430));
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    this->setWindowTitle("温度控制模块");
+    connect(this, SIGNAL(GetTempOrWorkValue()), this, SLOT(onTempOrWorkValue()),Qt::QueuedConnection);
+
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }   
+}
+
+dlgmodeltest2::~dlgmodeltest2()
+{
+    ExitRunThread();   
+    delete ui;
+}
+
+void dlgmodeltest2::onTempOrWorkValue()
+{
+      ui->litOneCurrentTemp->setText(QString("%1").arg(m_struTempWorkValue.fTemp1 / 10));
+      ui->litTwoCurrentTemp->setText(QString("%1").arg(m_struTempWorkValue.fTemp2 / 10));
+      ui->litOneWorkState->setText(this->GetTempStateName(m_struTempWorkValue.iWorkValue1));
+      ui->litTwoWorkState->setText(this->GetTempStateName(m_struTempWorkValue.iWorkValue1));
+}
+//线程运行时启动,读取温度值及工作状态
+void dlgmodeltest2::onReadTempValOrWorkState()
+{
+    if(false == judgeYQConnect()) return;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    if(pYQ->m_pProcess->pDriver->ReadModbus(CMD_TempControl,40052,5,bBuff))
+    {
+        m_struTempWorkValue.iWorkValue1 = MAKEWORD(bBuff[1],bBuff[0]);    //工作状态
+        m_struTempWorkValue.fTemp1 = MAKEWORD(bBuff[7],bBuff[6]);//第 1 路温度值
+        m_struTempWorkValue.fTemp2 = MAKEWORD(bBuff[9],bBuff[8]);//第 2 路温度值
+        emit GetTempOrWorkValue();
+    }
+}
+
+void dlgmodeltest2::ExitRunThread()
+{
+    //qDebug("quit \n");
+    bExitThread = true;
+    m_bRunThread = false;
+    if(m_bIsPthreadRun)
+        pthread_join(id_autorun,0);
+}
+
+void dlgmodeltest2::RunThread()
+{
+    if(!bExitThread)
+    {
+        if(!m_bIsPthreadRun)
+        {
+            m_bIsPthreadRun = true;
+            pthread_create(&id_autorun, NULL, AutoRunThread, this);
+        }
+    }
+}
+
+void* dlgmodeltest2::AutoRunThread(void* pParam)
+{
+    //qDebug("enter thread \n");
+    dlgmodeltest2* pThis = (dlgmodeltest2*)pParam;
+    while(!pThis->bExitThread)
+    {
+        sleep(1);
+        if(pThis->m_bRunThread)
+        {
+            pThis->onReadTempValOrWorkState();
+        }
+    }
+    //qDebug("exit thread \n");
+    return NULL;
+}
+
+//读取
+void dlgmodeltest2::on_butOneReadTemp_clicked()
+{    
+    bExitThread = false;
+    m_bRunThread = true;
+    this->RunThread();
+}
+//停止
+void dlgmodeltest2::on_butOneStop_clicked()
+{
+    m_bRunThread = false;
+}
+//第一路温度设置--恒温
+void dlgmodeltest2::on_butSetConstTemp_clicked()
+{
+    if(ui->litOneHeatingTemp1->text().trimmed().length() == 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "请输入加热温度!");
+        ui->litOneHeatingTemp1->setFocus();
+        return;
+    }
+    if(ui->litOneConstTempTime1->text().trimmed().length() == 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "请输入恒温时间!");
+        ui->litOneConstTempTime1->setFocus();
+        return;
+    }
+    int iTempValue = atoi(ui->litOneHeatingTemp1->text().toLatin1().data());
+    int iOneConstTempTime = atoi(ui->litOneConstTempTime1->text().toLatin1().data());
+    bool isResult = this->LinkModbusSetConstantTemp(1,iTempValue,iOneConstTempTime);
+    if(isResult)
+    {
+        QMessageBox::information(NULL, "提示信息", "设置恒温成功!");
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "设置恒温失败!");
+    }
+}
+//第二路温度设置--恒温
+void dlgmodeltest2::on_butSetConstTemp2_clicked()
+{
+    if(ui->litOneHeatingTemp2->text().trimmed().length() == 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "请输入加热温度!");
+        ui->litOneHeatingTemp2->setFocus();
+        return;
+    }
+    if(ui->litOneConstTempTime2->text().trimmed().length() == 0)
+    {
+        QMessageBox::information(NULL, "提示信息", "请输入恒温时间!");
+        ui->litOneConstTempTime2->setFocus();
+        return;
+    }
+    int iTempValue = atoi(ui->litOneHeatingTemp2->text().toLatin1().data());
+    int iTwoConstTempTime = atoi(ui->litOneConstTempTime2->text().toLatin1().data());
+    bool isResult = this->LinkModbusSetConstantTemp(2,iTempValue,iTwoConstTempTime);
+
+    if(isResult)
+    {
+        QMessageBox::information(NULL, "提示信息", "设置恒温成功!");
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "设置恒温失败!");
+    }
+}
+
+//设置温度模块恒温
+bool dlgmodeltest2::LinkModbusSetConstantTemp(int iTempType,int iTempValue,int iMinute)
+{
+    if(false == judgeYQConnect()) return false;
+
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+    //命令字
+    int16_t wPrm0 = 0;
+    if(1 == iTempType)
+        wPrm0 = 22;
+    else
+        wPrm0 = 23;
+    int16_t wPrm1 = iTempValue * 10;//将温度扩大10倍
+    int16_t wPrm2 = iMinute;
+     bBuff[0] = HIBYTE(wPrm0);
+     bBuff[1] = LOBYTE(wPrm0);
+     bBuff[2] = HIBYTE(wPrm1);
+     bBuff[3] = LOBYTE(wPrm1);
+     bBuff[4] = HIBYTE(wPrm2);
+     bBuff[5] = LOBYTE(wPrm2);
+     if(pYQ->m_pProcess->pDriver->WriteModbus(CMD_TempControl,40001,1+2,bBuff))
+        return true;
+    else
+        return false;
+
+}
+//判断仪器是否正确连接
+bool dlgmodeltest2::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息", "仪器获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+QString dlgmodeltest2::GetTempStateName(int iTempStateID)
+{
+    QString qsStateName;
+    if(0 == iTempStateID)
+        return qsStateName = "空闲";
+    else if(1 == iTempStateID)
+        return qsStateName = "正常工作";
+    else if(2 == iTempStateID)
+        return qsStateName = "参数设置错误";
+    else if(3 == iTempStateID)
+        return qsStateName = "第一路温度故障";
+    else if(4 == iTempStateID)
+        return qsStateName = "第二路温度故障";
+    else if(5 == iTempStateID)
+        return qsStateName = "第一路、第二路温度故障";
+    else if(6 == iTempStateID)
+        return qsStateName = "第一路负载故障";
+    else if(7 == iTempStateID)
+        return qsStateName = "第一路温度、第一路负载故障";
+    else if(8 == iTempStateID)
+        return qsStateName = "第一路负载故障、第二路温度故障";
+    else if(9 == iTempStateID)
+        return qsStateName = "第一路温度、第一路负载、第二路温度故障";
+    else if(10 == iTempStateID)
+        return qsStateName = "第二路负载故障";
+    else if(11 == iTempStateID)
+        qsStateName = "第一路温度故障、第二路负载故障";
+    else if(12 == iTempStateID)
+        return qsStateName = "第二路温度故障、第二路负载故障";
+    else if(13 == iTempStateID)
+        return qsStateName = "第一路温度、第二路温度、第二路负载故障";
+    else if(14 == iTempStateID)
+        return qsStateName = "第一路负载、第二路负载故障";
+    else if(15 == iTempStateID)
+        return qsStateName = "第一路温度、第一路负载、第二路负载故障";
+    else if(16 == iTempStateID)
+        return qsStateName = "第一路负载、第二路温度、第二路负载故障";
+    else if(17 == iTempStateID)
+        return qsStateName = "第一路温度、负载、第二路温度、负载故障";
+    else
+        return qsStateName;
+}
+

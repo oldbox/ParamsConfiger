@@ -1,0 +1,424 @@
+#include "voc_dlginfoconfig.h"
+#include "ui_voc_dlginfoconfig.h"
+#include "../core/cconfig.h"
+#include "../core/myplot.h"
+#include <stdio.h>
+
+voc_dlgInfoConfig::voc_dlgInfoConfig(QWidget *parent) :
+    QDialog(parent),
+    m_bInitFinish(false),
+    m_lineedit(NULL),
+    m_row(0),
+    m_column(0),
+    ui(new Ui::voc_dlgInfoConfig)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    int iSubYQType = GetAfxYQSubType();
+    if(iSubYQType == 1)//半挥发性有机物
+    {
+        ui->label_3->setText("反复进样");
+        ui->label_17->setText("次");
+        ui->label_4->setText("萃取");
+        ui->label_5->setText("次");
+        ui->label_16->setText("分钟");
+    }
+    Init();
+    m_plot = new MyPlot(4,ui->widget_curve);
+    m_bInitFinish = true;
+    ShowCurve(5);
+}
+
+voc_dlgInfoConfig::~voc_dlgInfoConfig()
+{
+    if(m_lineedit)
+    {
+        delete m_lineedit;
+        m_lineedit = NULL;
+    }
+    delete ui;
+    delete m_plot;
+    m_plot = NULL;
+
+}
+bool voc_dlgInfoConfig::ReadIniFile(const char czTeam[], float &fValue)
+{
+    fValue = 0.0;
+    char czValue[64];memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni("VOC_SET",czTeam,czValue))
+    {
+        fValue = atof(czValue);
+        return true;
+    }
+    return false;
+}
+bool voc_dlgInfoConfig::ReadIniFile(const char czTeam[], int &nValue)
+{
+    char czValue[64];memset(czValue,0,64);
+    if(GetAfxConfig()->GetIni("VOC_SET",czTeam,czValue))
+    {
+        nValue = atoi(czValue);
+        return true;
+    }
+    return false;
+}
+void voc_dlgInfoConfig::WriteIniFile(const char czTeam[], int nValue)
+{
+    char czValue[64];memset(czValue,0,64);
+    sprintf(czValue,"%d",nValue);
+    GetAfxConfig()->SetIni("VOC_SET",czTeam,czValue);
+
+}
+void voc_dlgInfoConfig::WriteIniFile(const char czTeam[], float fValue)
+{
+    char czValue[64];memset(czValue,0,64);
+    sprintf(czValue,"%f",fValue);
+    GetAfxConfig()->SetIni("VOC_SET",czTeam,czValue);
+
+}
+void voc_dlgInfoConfig::Init()
+{
+
+    QString qsValue = "";
+    for(int i = 0;i < 300;i++)
+    {
+        qsValue.setNum(i);
+        if(i % 5 == 0)
+        {
+            ui->cmbPJJJxTemp->addItem(qsValue);
+            ui->cmbPJJHkTemp->addItem(qsValue);
+            ui->cmbBoxTemp->addItem(qsValue);
+            ui->cmbPJJInitTemp->addItem(qsValue);
+            ui->cmbFIDInitTemp->addItem(qsValue);
+            ui->cmbMxzInitTemp->addItem(qsValue);
+            ui->cmbSampleTime->addItem(qsValue);
+            if(i > 20)
+                ui->cmbPJJJxTime->addItem(qsValue);
+            if(i < 60)
+                ui->cmbYQTemp->addItem(qsValue);
+        }
+        if(i % 10 == 0)
+        {
+            ui->cmbGainDataRate->addItem(qsValue);
+        }
+        if(i > 0 && i <= 20)
+        {
+            ui->cmbPJJHkTime->addItem(qsValue);
+            ui->cmbCSTime->addItem(qsValue);
+            ui->cmbCSTime_2->addItem(qsValue);
+            ui->cmbGCTime->addItem(qsValue);
+            ui->cmbPJJJxTime->addItem(qsValue);
+        }
+    }
+
+    int nValue = 0;
+    float fValue = 0.0;
+
+     ReadIniFile("SampleTime",nValue);
+     qsValue.setNum(nValue);
+     ui->cmbSampleTime->setItemText(0,qsValue);
+
+     ReadIniFile("CSTime",fValue);
+     qsValue.setNum(fValue,'f',1);
+     ui->cmbCSTime->setItemText(0,qsValue);
+
+     ReadIniFile("CSTime_BY",fValue);
+     qsValue.setNum(fValue,'f',1);
+     ui->cmbCSTime_2->setItemText(0,qsValue);
+
+     ReadIniFile("GCTime",fValue);
+     qsValue.setNum(fValue,'f',1);
+     ui->cmbGCTime->setItemText(0,qsValue);
+
+
+     ReadIniFile("GainDataRate",nValue);
+     qsValue.setNum(nValue);
+     ui->cmbGainDataRate->setItemText(0,qsValue);
+
+     ReadIniFile("GainDataRTime",nValue);
+     qsValue.setNum(nValue);
+     ui->libGainDataRate->setText(qsValue);
+
+
+     ReadIniFile("PJJTemp_Init",nValue);
+     qsValue.setNum(nValue);
+     ui->cmbPJJInitTemp->setItemText(0,qsValue);
+
+     ReadIniFile("BoxTemp_Init",nValue);
+     qsValue.setNum(nValue);
+     ui->cmbBoxTemp->setItemText(0,qsValue);
+
+     ReadIniFile("FIDTemp_Init",nValue);
+     qsValue.setNum(nValue);
+     ui->cmbFIDInitTemp->setItemText(0,qsValue);
+
+     ReadIniFile("MxzTemp_Init",nValue);
+     qsValue.setNum(nValue);
+     ui->cmbMxzInitTemp->setItemText(0,qsValue);
+
+     ReadIniFile("PJJTemp_JX",nValue);
+     qsValue.setNum(nValue);
+     ui->cmbPJJJxTemp->setItemText(0,qsValue);
+     ReadIniFile("PJJTime_jx",nValue);
+     qsValue.setNum(nValue);
+     ui->cmbPJJJxTime->setItemText(0,qsValue);
+
+     ReadIniFile("PJJTemp_HK",nValue);
+     qsValue.setNum(nValue);
+     ui->cmbPJJHkTemp->setItemText(0,qsValue);
+     ReadIniFile("PJJTime_hk",fValue);
+     qsValue.setNum(fValue,'f',1);
+     ui->cmbPJJHkTime->setItemText(0,qsValue);
+
+     ReadIniFile("CSPress",fValue);
+     qsValue.setNum(fValue,'f',4);
+     ui->lieditCSPress->setText(qsValue);
+
+     ReadIniFile("Nitrpress",fValue);
+     qsValue.setNum(fValue,'f',4);
+     ui->lieditNitrpress->setText(qsValue);
+
+     ReadIniFile("YQTemp_Safe",nValue);
+     qsValue.setNum(nValue);
+     ui->cmbYQTemp->setItemText(0,qsValue);
+     GetLineTempt();
+}
+void voc_dlgInfoConfig::on_butOK_clicked()
+{
+    WriteIniFile("SampleTime",ui->cmbSampleTime->currentText().toInt());
+    WriteIniFile("CSTime",ui->cmbCSTime->currentText().toFloat());
+    WriteIniFile("CSTime_BY",ui->cmbCSTime_2->currentText().toFloat());
+    WriteIniFile("GCTime",ui->cmbGCTime->currentText().toFloat());
+
+    WriteIniFile("GainDataRate",ui->cmbGainDataRate->currentText().toInt());
+    WriteIniFile("GainDataRTime",ui->libGainDataRate->text().toInt());
+
+    WriteIniFile("PJJTemp_JX",ui->cmbPJJJxTemp->currentText().toInt());
+    WriteIniFile("PJJTime_jx",ui->cmbPJJJxTime->currentText().toInt());
+    WriteIniFile("PJJTemp_HK",ui->cmbPJJHkTemp->currentText().toInt());
+    WriteIniFile("PJJTime_hk",ui->cmbPJJHkTime->currentText().toFloat());
+
+    WriteIniFile("PJJTemp_Init",ui->cmbPJJInitTemp->currentText().toInt());
+    WriteIniFile("BoxTemp_Init",ui->cmbBoxTemp->currentText().toInt());
+    WriteIniFile("FIDTemp_Init",ui->cmbFIDInitTemp->currentText().toInt());
+    WriteIniFile("MxzTemp_Init",ui->cmbMxzInitTemp->currentText().toInt());
+    WriteIniFile("YQTemp_Safe",ui->cmbYQTemp->currentText().toInt());
+
+    WriteIniFile("CSPress",ui->lieditCSPress->text().toFloat());
+    WriteIniFile("Nitrpress",ui->lieditNitrpress->text().toFloat());
+
+
+
+    QMessageBox::information(NULL, "提示信息", "保存成功!");
+}
+
+void voc_dlgInfoConfig::on_butCancel_clicked()
+{
+    this->close();
+    emit EmityParWinClolse();
+}
+
+
+void voc_dlgInfoConfig::GetLineTempt()
+{
+    //隐藏表头
+    ui->tableWidget_name->verticalHeader()->setVisible(false);
+    ui->tableWidget_name->setShowGrid(true);  // 设置不显示格子线
+    ui->tableWidget_name->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一次
+    ui->tableWidget_name->setRowCount(5);
+    ui->tableWidget_name->setColumnCount(4);
+    //ui->tableWidget_name->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
+
+    QStringList name;
+    name.push_back("编号");
+    name.push_back("目标温度");
+    name.push_back("速率(℃/min)");
+    name.push_back("保持时间(min)");
+    ui->tableWidget_name->setHorizontalHeaderLabels(name);
+    ui->tableWidget_name->setColumnWidth(0,40);
+    ui->tableWidget_name->setColumnWidth(1,60);
+    ui->tableWidget_name->setColumnWidth(2,90);
+    ui->tableWidget_name->setColumnWidth(3,90);
+    QTableWidgetItem* qtItem;
+    QString qsValue;
+    int nValue = 0;
+    float fValue = 0.0;
+    char czValue[64];memset(czValue,0,64);
+
+    for(int i  = 0;i < 5;i++)
+    {
+        qsValue = QString::number(i+1);
+        qtItem = new QTableWidgetItem(qsValue);
+        ui->tableWidget_name->setItem(i, 0, qtItem);
+        ui->tableWidget_name->item(i, 0)->setFlags(Qt::NoItemFlags);
+
+        memset(czValue,0,64);
+        sprintf(czValue,"DescTemp_%d",i+1);
+        if(ReadIniFile(czValue,nValue))
+        {
+            if(i == 0 && nValue <= 0)//自动设置为毛细柱初始温度
+            {
+                nValue = ui->cmbMxzInitTemp->currentText().toInt();
+                WriteIniFile(czValue,nValue);
+            }
+            qsValue = QString::number(nValue);
+            qtItem = new QTableWidgetItem(qsValue);
+            if(i == 0)
+                qtItem->setFlags(0);//只读
+            ui->tableWidget_name->setItem(i, 1, qtItem);
+        }
+
+        memset(czValue,0,64);
+        sprintf(czValue,"TempRate_%d",i+1);
+        if(ReadIniFile(czValue,nValue))
+        {
+            if(i == 0)
+            {
+                nValue = 0;
+                WriteIniFile(czValue,0);
+            }
+            qsValue = QString::number(nValue);
+            qtItem = new QTableWidgetItem(qsValue);
+            if(i == 0)
+                qtItem->setFlags(0);//只读
+            ui->tableWidget_name->setItem(i, 2, qtItem);
+        }
+
+        memset(czValue,0,64);
+        sprintf(czValue,"TempRTime_%d",i+1);
+        if(ReadIniFile(czValue,fValue))
+        {
+            qsValue = QString::number(fValue);
+            qtItem = new QTableWidgetItem(qsValue);
+            ui->tableWidget_name->setItem(i, 3, qtItem);
+        }
+    }
+
+}
+
+void voc_dlgInfoConfig::on_tableWidget_name_cellChanged(int row, int column)
+{
+    if(row >= 0 && column >= 0 && m_bInitFinish)
+    {
+        char czValue[64];memset(czValue,0,64);
+        QString  strText = ui->tableWidget_name->item(row, column)->text();
+        switch(column)
+        {
+        case 1://温度
+            sprintf(czValue,"DescTemp_%d",row+1);
+            WriteIniFile(czValue,strText.toInt());
+            break;
+        case 2://速率
+            sprintf(czValue,"TempRate_%d",row+1);
+            WriteIniFile(czValue,strText.toInt());
+            break;
+        case 3:
+            sprintf(czValue,"TempRTime_%d",row+1);
+            WriteIniFile(czValue,strText.toFloat());
+            break;
+        }
+        ShowCurve(5);
+    }
+}
+void voc_dlgInfoConfig::ShowCurve(int nNumber)
+{
+    m_vtRt.clear();
+    m_vtTempt.clear();
+    QString qsValue;
+    int nTempt = 0;//目标温度
+    float fRTime = 0.0;//保留时间
+    float fSumRTime = 0.0;//累计时间
+    int nLastTempt = 0;//上一条目标温度
+    int nSpeed = 0;//速度
+    for(int i=0; i<nNumber;i++)
+    {
+        qsValue = ui->tableWidget_name->item(i,1)->text();
+        nTempt = qsValue.toInt();
+        qsValue = ui->tableWidget_name->item(i,2)->text();
+        nSpeed = qsValue.toInt();
+        qsValue = ui->tableWidget_name->item(i,3)->text();
+        fRTime = qsValue.toFloat();
+        if(i == 0)
+        {
+            //第1点
+            m_vtTempt.push_back(nTempt);
+            m_vtRt.push_back(0);
+
+            //第2点,温度保持时间
+            m_vtTempt.push_back(nTempt);
+            m_vtRt.push_back(fRTime);
+
+            nLastTempt = nTempt;
+            fSumRTime = fRTime;
+        }
+        else if(nTempt > 0 && nSpeed > 0)
+        {
+            //目标温度，升温所需时间
+            m_vtTempt.push_back(nTempt);
+            fSumRTime += (nTempt - nLastTempt)/nSpeed;
+            m_vtRt.push_back(fSumRTime);
+
+            //温度保持时间
+            m_vtTempt.push_back(nTempt);
+            fSumRTime += fRTime;
+            m_vtRt.push_back(fSumRTime);
+
+            nLastTempt = nTempt;
+        }
+        else
+        {
+            break;
+        }
+    }
+    if(m_vtTempt.size() >= 2)
+    {
+        m_plot->RemoveCurve();
+        m_plot->AddCurve("",m_vtRt, m_vtTempt,Qt::blue);
+
+        QString qsValue;
+        int nTemp = 0;
+        if(qRound(fSumRTime) < fSumRTime)
+            nTemp = qRound(fSumRTime)+1;
+        else
+            nTemp = qRound(fSumRTime);
+        qsValue.setNum(nTemp);
+        ui->libGainDataRate->setText(qsValue);
+
+        WriteIniFile("GainDataRTime",nTemp);
+    }
+    else
+    {
+        m_plot->RemoveCurve();
+    }
+}
+
+void voc_dlgInfoConfig::on_cmbMxzInitTemp_editTextChanged(const QString &arg1)
+{
+    int nValue = arg1.toInt();
+    if(nValue > 0)
+    {
+        WriteIniFile("DescTemp_1",nValue);
+        if(ui->tableWidget_name->item(0, 1))
+            ui->tableWidget_name->item(0, 1)->setText(arg1);
+    }
+}
+
+void voc_dlgInfoConfig::on_tableWidget_name_cellDoubleClicked(int row, int column)
+{
+    if(m_lineedit)
+    {
+        delete m_lineedit;
+        m_lineedit = NULL;
+    }
+    m_lineedit = new QLineEdit();
+    m_row = row;
+    m_column = column;
+
+    m_lineedit->setText(ui->tableWidget_name->item(row, column)->text());
+    ui->tableWidget_name->setCellWidget(row,column,m_lineedit);
+    connect(m_lineedit, SIGNAL(textChanged(QString)), this , SLOT(on_LineEditTextChanged(QString)));
+}
+void voc_dlgInfoConfig::on_LineEditTextChanged(const QString arg1)
+{
+      ui->tableWidget_name->item(m_row, m_column)->setText(arg1);
+}

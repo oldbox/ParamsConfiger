@@ -1,0 +1,2211 @@
+#include "dldataquery.h"
+#include "ui_dldataquery.h"
+#include <QMessageBox>
+#include <stdexcept>
+#include "../core/vardef.h"
+#include <QCompleter>
+#include <ostream>
+#include "dispdatacurve.h"
+#include <QHeaderView>
+#include "../core/paramdict.h"
+#include "../ui/dlmonitordatacurve.h"
+#include "../ui/dldispdatacurve.h"
+#include <QTextCodec>
+#include <QDesktopWidget>
+
+
+using namespace std;
+
+dldataquery::dldataquery(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dldataquery),
+    startState(false),
+    m_pDB(NULL),
+    Timer(new QTimer),
+    timeDaInfo(new QTimer),
+    QueryTimer(new QTimer),
+    m_bLockDataInfo(false),
+    endState(false)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    m_pMC = pMC;
+//    QRect rect(0,0,this->width(),this->height());
+//    this->setGeometry(rect);
+
+    iYQType = GetAfxYQType();
+    m_pDB = new CDBBusiness("yqdata","yq.db");
+    //隐藏日志查询相关按钮
+    ui->checkBoxALARM->hide();
+    ui->checkBoxFault->hide();
+    ui->checkBoxWarn->hide();
+    ui->checkBoxNamol->hide();
+    ui->comboBoxLogType->hide();
+    ui->comboBox->addItem("水样数据","1");
+    ui->comboBox->addItem("日志信息","4");
+    ui->comboBox->addItem("核查数据","2");
+
+    if(iYQType == 4)
+        ui->comboBox->addItem("详细数据","5");    
+    if(iYQType == 1)
+        ui->comboBox->addItem("斜率","3");
+    if(iYQType == 3)
+        ui->comboBox->addItem("内标数据","3");
+    ui->lineStartTimDisp->setText(QDate::currentDate().addDays(-1).toString("yyyy-MM-dd 00"));
+    ui->lineEndTimDisp->setText(QDate::currentDate().toString("yyyy-MM-dd 23"));
+    ui->calendarStartTim->hide();
+    ui->calendarEndTim->hide();
+    ui->checkBox->setChecked(true);   
+    ui->textEdit->setReadOnly(true);
+    ui->textEdit->setEnabled(false);
+    connect(ui->tabwidData->horizontalHeader(),SIGNAL(sectionClicked(int)),this, SLOT(onHeaderClicked(int)));
+    connect(ui->checkBox, SIGNAL(clicked()), this, SLOT(on_butQuery_clicked()));
+    connect(ui->radiobtnmg, SIGNAL(clicked()), this, SLOT(on_butQuery_clicked()));
+    connect(ui->radiobtnug, SIGNAL(clicked()), this, SLOT(on_butQuery_clicked()));
+    connect(Timer, SIGNAL(timeout()), this, SLOT(OnHideWordMovie()));
+    connect(QueryTimer, SIGNAL(timeout()), this, SLOT(OnQueryData()));
+
+    //启动数据导出中...Movie
+    WordMovie =  new QMovie(":/res/Movie.gif");
+    WordMovie->start();
+    ui->labelMovie->setMovie(WordMovie);
+    ui->labelWord->hide();
+    ui->labelMovie->hide();
+
+    this->SetDataListStyle();
+    ui->wgDataInfo->hide();
+    connect(timeDaInfo, SIGNAL(timeout()), this, SLOT(onWGClose()));
+    ui->butLock->setToolTip("锁定");
+}
+
+dldataquery::~dldataquery()
+{
+    delete timeDaInfo;
+    delete m_pDB;
+    delete ui;
+    delete Timer;
+    delete QueryTimer;
+    delete WordMovie;
+}
+
+//点击列头
+void dldataquery::onHeaderClicked(int iCurreintIndex)
+{
+    ui->wgDataInfo->hide();
+    if("水样数据" == ui->comboBox->currentText() || "详细数据" == ui->comboBox->currentText() || "核查数据" == ui->comboBox->currentText())
+    {
+        if(iCurreintIndex > 0)
+        {            
+            QTableWidgetItem *columnHeader = ui->tabwidData->horizontalHeaderItem(iCurreintIndex);
+            if(columnHeader != NULL)
+            {
+                QString sLegName = columnHeader->text().trimmed();
+                if(sLegName == "曲线编号")
+                {
+                    return;
+                }
+                int nRow = ui->tabwidData->rowCount();
+                QVector<double> vtX,vtY;
+                QString qsContent;
+
+                for(int j=0;j<nRow;j++)
+                {
+                   QTableWidgetItem *item = ui->tabwidData->item(nRow-j-1,iCurreintIndex);
+                    if(item != NULL)
+                    {
+                        qsContent = item->text();
+                        vtY.push_back(qsContent.toDouble());
+                        vtX.push_back(j);
+                    }
+                }
+
+                dldispdatacurve* clmonitcurve = new dldispdatacurve(m_pMC,1,sLegName,vtX,vtY);
+                clmonitcurve->move((qApp->desktop()->width() - clmonitcurve->width())/2,(qApp->desktop()->height() - clmonitcurve->height() + 60)/2);
+                clmonitcurve->exec();
+                delete  clmonitcurve;
+                clmonitcurve = NULL;
+            }
+        }
+    }
+}
+
+void dldataquery::on_butQuery_clicked()
+{
+    ui->wgDataInfo->hide();
+    m_vtTime.clear();
+    ui->calendarEndTim->hide();
+    ui->calendarStartTim->hide();
+    ui->butQuery->setEnabled(false);
+    ui->butQuery->setText("查询中...");
+    memset(StartTimes,0,64);
+    strcpy(StartTimes,ui->lineStartTimDisp->text().toStdString().c_str());
+    strcat(StartTimes,":00:00");
+    memset(EndTimes,0,64);
+    strcpy(EndTimes,ui->lineEndTimDisp->text().toStdString().c_str());
+    strcat(EndTimes,":59:59");
+    QueryTimer->start(100);
+}
+
+void dldataquery::on_btnStartDown_clicked()
+{
+    if(startState)
+    {
+        ui->calendarStartTim->hide();
+        startState = false;
+    }
+    else
+    {
+        ui->calendarStartTim->show();
+        ui->calendarEndTim->hide();
+        startState = true;
+        endState = false;
+    }
+
+}
+
+void dldataquery::on_btnEndDown_clicked()
+{
+    if(endState)
+    {
+        ui->calendarEndTim->hide();
+        endState = false;
+    }
+    else
+    {
+        ui->calendarEndTim->show();
+        ui->calendarStartTim->hide();
+        endState = true;
+        startState = false;
+    }
+}
+
+void dldataquery::on_calendarStartTim_clicked(const QDate &date)
+{
+    ui->lineStartTimDisp->setText(date.toString("yyyy-MM-dd 00"));
+    ui->calendarStartTim->hide();
+    startState = false;
+}
+
+void dldataquery::on_calendarEndTim_clicked(const QDate &date)
+{
+    ui->lineEndTimDisp->setText(date.toString("yyyy-MM-dd 23"));
+    ui->calendarEndTim->hide();
+    endState = false;
+}
+
+void dldataquery::SetDataListStyle()
+{
+    ui->twDataInfo->clear();
+    ui->twDataInfo->horizontalHeader()->setVisible(false);
+    ui->twDataInfo->verticalHeader()->setVisible(false);
+    ui->twDataInfo->setShowGrid(true); //设置显示格子线
+    ui->twDataInfo->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一行
+    ui->twDataInfo->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->twDataInfo->setColumnCount(2);
+    ui->twDataInfo->setColumnWidth(0,68);
+    ui->twDataInfo->setColumnWidth(1,120);
+    ui->twDataInfo->setFocusPolicy(Qt::NoFocus);
+
+    ui->twDataInfo->setFont(QFont("文泉驿正黑",9));
+    QHeaderView *pTableHeaderView = ui->twDataInfo->horizontalHeader();
+    if (pTableHeaderView)
+    {
+        pTableHeaderView->setDefaultAlignment (Qt::AlignVCenter); //居中
+        pTableHeaderView->setTextElideMode (Qt::ElideRight); //...效果
+        pTableHeaderView->setStretchLastSection (true); //尾不留空白
+    }
+
+    ui->twDataInfo->verticalHeader()->setDefaultSectionSize(20);
+
+    QStringList slColumnName;
+    if(1 == iYQType)
+    {
+        slColumnName << "时间" << "参数" << "峰高h" << "峰高H" << "计算方式" << "左寻峰点" << "右寻峰点" << "消解温度" << "消解时间" ;
+    }
+    else if(3 == iYQType)
+    {
+        slColumnName << "时间" << "参数" << "保留时间" << "峰高" << "面积" << "乘数" << "K" << "B" << "R";
+    }
+    else if(4 == iYQType || 6 == iYQType)
+    {
+        slColumnName << "时间" << "参数" << "基线值" << "样品值" << "吸光度" << "K" << "B" << "R" << "空白吸光度" << "消解温度" << "消解时间" << "工作曲线";
+    }
+
+    ui->twDataInfo->setRowCount(slColumnName.size());
+    for(int i = 0;i < slColumnName.size(); i++ )
+    {
+        ui->twDataInfo->setItem(i,0,new QTableWidgetItem(slColumnName.at(i)));
+        ui->twDataInfo->setRowHeight(i,20);
+        ui->twDataInfo->item(i,0)->setTextAlignment(Qt::AlignVCenter | Qt::AlignRight);
+    }
+    //显示日志
+    ui->twLogInfo->clear();
+    ui->twLogInfo->horizontalHeader()->setVisible(false);
+    ui->twLogInfo->verticalHeader()->setVisible(false);
+    ui->twLogInfo->setShowGrid(true); //设置显示格子线
+    ui->twLogInfo->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一行
+    ui->twLogInfo->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->twLogInfo->setColumnCount(2);
+    ui->twLogInfo->setRowCount(10);
+    ui->twLogInfo->setColumnWidth(0,60);
+    ui->twLogInfo->setColumnWidth(1,120);
+
+    ui->twLogInfo->setFont(QFont("文泉驿正黑",9));
+    QHeaderView *pLogTabHeaView = ui->twLogInfo->horizontalHeader();
+    if (pLogTabHeaView)
+    {
+        pLogTabHeaView->setDefaultAlignment (Qt::AlignVCenter); //居中
+        pLogTabHeaView->setTextElideMode (Qt::ElideRight); //...效果
+        pLogTabHeaView->setStretchLastSection (true); //尾不留空白
+    }
+
+    QStringList slLogColName;
+    slLogColName << "时间" << "日志" ;
+    ui->twLogInfo->setHorizontalHeaderLabels(slLogColName);
+    ui->twLogInfo->verticalHeader()->setDefaultSectionSize(20);
+}
+
+void dldataquery::GetDataInfoList(QString sTime,QString sCodeID)
+{
+    sqlite_data datalist;
+    int nResult = 0;
+    if(m_pDB)
+    {
+        if(1 == iYQType)
+        {
+            nResult = m_pDB->GetEchemDataInfo(sTime.toLatin1().data(),datalist);
+        }
+        else if(3 == iYQType)
+        {
+             nResult = m_pDB->GetVocDataInfo(sTime.toLatin1().data(),datalist);
+        }
+        else if(4 == iYQType || 6 == iYQType)
+        {
+            nResult = m_pDB->GetBsDataInfo(sTime.toLatin1().data(),sTime.toLatin1().data(),datalist);
+        }
+        if(nResult > 0)
+        {
+             if(!datalist.IsEmpty())
+             {
+                 QString qsValue;
+                 int nCol = 1;
+                 int nRow = 0;
+                 for(int i=1;i<=datalist.RowCount();i++)
+                 {
+                     QString sczID = QString(datalist.GetData(i,2));//YQID
+                     if(sczID != sCodeID)
+                     {
+                         continue;
+                     }
+                     nRow = 0;
+                     if(1 == iYQType)
+                     {                         
+                         QDateTime qTime = QDateTime::fromString(QString(datalist.GetData(i,1)), "yyyy-MM-dd hh:mm:ss");
+                         qsValue = qTime.toString("MM-dd hh");//时间
+                         ui->twDataInfo->setItem(nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,2));//YQID
+                         qsValue = GetYQName(qsValue);
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,3));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,4));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         if(1 == atoi(datalist.GetData(i,5)))
+                         {
+                             ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem("峰高"));
+                         }
+                         else
+                         {
+                             ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem("峰面积"));
+                         }
+                         qsValue = QString(datalist.GetData(i,6));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,7));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,8));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,9));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                     }
+                     else if(3 == iYQType)
+                     {
+                         QDateTime qTime = QDateTime::fromString(QString(datalist.GetData(i,1)), "yyyy-MM-dd hh:mm:ss");
+                         qsValue = qTime.toString("MM-dd hh");//时间
+                         ui->twDataInfo->setItem(nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,3));//YQID
+                         qsValue = GetYQName(qsValue);
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,4));//RemainTime
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,5));//PeakHight
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,6));//Area
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,7));//K
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,8));//B
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,9));//R
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                     }
+                     else if(4 == iYQType || 6 == iYQType)
+                     {
+                         QDateTime qTime = QDateTime::fromString(QString(datalist.GetData(i,1)), "yyyy-MM-dd hh:mm:ss");
+                         qsValue = qTime.toString("MM-dd hh");//时间
+                         ui->twDataInfo->setItem(nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,3));//YQID
+                         qsValue = this->GetYQName(qsValue);
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,4));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,5));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,6));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,7));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,8));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,9));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,10));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));//空白吸光度
+                         qsValue = QString(datalist.GetData(i,13));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));//温度
+                         qsValue = QString(datalist.GetData(i,14));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));//消解时间
+                         qsValue = QString(datalist.GetData(i,15));
+                         ui->twDataInfo->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));//曲线编号
+                     }
+                 }
+             }
+        }
+    }
+    datalist.Free();
+//    if(ui->twDataInfo->rowCount() < 13)
+//    {
+//        ui->twDataInfo->setRowCount(12);
+//        for(int i=0;i<ui->twDataInfo->rowCount();i++)
+//        {
+//            ui->twDataInfo->setRowHeight(i,20);
+//        }
+//    }
+
+}
+
+QString dldataquery::GetYQName(QString sCodeID)
+{
+    QString qsCodeName;
+    paramdict dict;
+    vector<paramitem>::iterator it;
+    for(it = dict.paramlist.begin(); it < dict.paramlist.end(); it++)
+    {
+        if(sCodeID == (*it).LHCodeID)
+        {
+            qsCodeName = (*it).CodeName;
+            break;
+        }
+    }
+    return qsCodeName;
+}
+
+void dldataquery::onWGClose()
+{
+    ui->wgDataInfo->hide();
+}
+
+void dldataquery::GetLogInfo(QString sTime)
+{
+
+     int nResult = 0;
+     sqlite_data datalist; 
+     if(iYQType == 4)
+     {
+         ui->BtnCurve->hide();
+     }
+     else
+     {
+         ui->BtnCurve->show();
+     }
+     if(m_pDB)
+     {
+         QString sEndTime;
+         QDateTime tEndTime = QDateTime::fromString(sTime,"yyyy-MM-dd hh:mm:ss").addSecs(60*60);
+         sEndTime = tEndTime.toString("yyyy-MM-dd hh:mm:ss");
+         nResult = m_pDB->Get2091(sTime.toLatin1().data(),sEndTime.toLatin1().data(),iYQType,"仪器",datalist);
+         if(nResult > 0)
+         {
+              if(!datalist.IsEmpty())
+              {
+                  int iX;
+                  int iRow = 0;
+                  for(int i=1;i<=datalist.RowCount();i++)
+                  {
+                        QString sRemark = datalist.GetData(i,5);
+                        if(sRemark == "流程开始")
+                        {
+                            iX = i;
+
+                            while(iX <= datalist.RowCount())
+                            {
+                                sRemark = datalist.GetData(iX,1);
+                                if(sRemark.trimmed().indexOf(" ") >= 0)
+                                {
+                                    if(sRemark.trimmed().length() > 11)
+                                        sRemark.remove(0,11);
+                                }
+                                ui->twLogInfo->setItem(iRow,0, new QTableWidgetItem(sRemark));
+                                sRemark = datalist.GetData(iX,5);
+                                ui->twLogInfo->setItem(iRow,1, new QTableWidgetItem(sRemark));
+                                ui->twLogInfo->setRowHeight(iRow,20);
+                                if(sRemark == "流程结束" || sRemark == "异常结束")
+                                {
+                                    break;
+                                }
+                                iRow++;
+                                iX++;
+                            }
+                            break;
+                        }
+                  }
+                  ui->twLogInfo->setRowCount(iRow);
+              }
+              else
+              {
+
+              }
+         }
+     }
+     datalist.Free();
+//     if(ui->twLogInfo->rowCount() < 11)
+//     {
+//         ui->twLogInfo->setRowCount(11);
+//         for(int i=0;i<ui->twLogInfo->rowCount();i++)
+//         {
+//             ui->twLogInfo->setRowHeight(i,20);
+//         }
+//     }
+}
+
+//点击行事件
+void dldataquery::on_tabwidData_itemPressed(QTableWidgetItem *item)
+{ 
+    if(!ui->chkDetailData->isChecked())
+    {
+        ui->wgDataInfo->hide();
+        return;
+    }
+    QString sDataType = ui->comboBox->currentText();
+    if("日志信息" == sDataType)//当日志查询时，不需显示曲线信息
+    {
+        return;
+    }
+
+    int iselRow = item->row();
+    int iselCol = item->column();
+    if(iselCol > 0) //判断选择的不是时间列
+    {
+        QString qsTime,sCodeName,sCodeID;
+        if(ui->tabwidData->item(iselRow,0))
+        {
+            qsTime = ui->tabwidData->item(iselRow,0)->text();
+        }
+        if(qsTime.length() > 0)
+        {          
+            if(ui->tabwidData->horizontalHeaderItem(iselCol))
+            {
+                sCodeName = ui->tabwidData->horizontalHeaderItem(iselCol)->text();
+            }
+            if(sCodeName != "核查参数")
+            {
+                //如果有单位去掉单位，只剩参数名称
+                if(sCodeName.contains("(mg/L)"))
+                {
+                    sCodeName.replace("(mg/L)","");
+                }
+                else if(sCodeName.contains("(μg/L)"))
+                {
+                    sCodeName.replace("(μg/L)","");
+                }
+            }
+            else
+            {
+                sCodeName = item->text().trimmed();
+            }
+
+
+            paramdict dict;
+            vector<paramitem>::iterator it;
+            for(it = dict.paramlist.begin(); it < dict.paramlist.end(); it++)
+            {
+                if(sCodeName == (*it).CodeName)
+                {
+                    sCodeID = (*it).LHCodeID;
+                    break;
+                }
+            }
+            if(sCodeID.length() > 0)
+            {
+                this->GetDataInfoList(qsTime,sCodeID);
+                this->GetLogInfo(qsTime);
+                if(m_bLockDataInfo)
+                {
+                    timeDaInfo->stop();
+                }
+                else
+                {
+                    if(!timeDaInfo->isActive())
+                        timeDaInfo->start(4000);
+                }
+                ui->wgDataInfo->show();
+                int i_X,i_Y,i_GisY;
+                i_GisY = QCursor::pos().y();
+                int iscreenHei = QApplication::desktop()->height();
+                int iHei = iscreenHei / 2;
+
+                 i_X = QApplication::desktop()->pos().x();
+                if(i_GisY > iHei)
+                {
+                   i_Y = QApplication::desktop()->pos().y();
+                }
+                else
+                {
+                    i_Y = QApplication::desktop()->pos().y() + 480 - 256;
+                }
+
+                QRect rect(i_X, i_Y, 290, 256);
+                ui->wgDataInfo->setGeometry(rect);
+            }
+
+
+//            int i_X,i_Y,i_GisX,i_GisY;
+//            i_GisX = QCursor::pos().x();
+//            i_GisY = QCursor::pos().y();
+
+//            int iScreenWid = QApplication::desktop()->width();
+//            int iscreenHei = QApplication::desktop()->height();
+
+//            int iWid = iScreenWid / 2;
+//            int iHei = iscreenHei / 2;
+//            i_X = ui->tabwidData->geometry().x();
+//            if(i_GisY > iHei)
+//            {
+//                i_Y = iHei - 480 / 2 - 256 / 2 - 20;
+//            }
+//            else
+//            {
+//                i_Y = iHei - 480 / 2 + 80;
+//            }
+
+//            QRect rect(i_X, i_Y, 290, 256);
+//            ui->wgDataInfo->setGeometry(rect);
+
+//            if(c_dlInfo != NULL)
+//            {
+//                delete c_dlInfo;
+//                c_dlInfo = NULL;
+//            }
+
+//            c_dlInfo = new dldatainfo(qsTime,qsName,ui->comboBox->currentIndex());
+
+//            int i_X,i_Y,i_GisX,i_GisY;
+//            i_GisX = QCursor::pos().x();
+//            i_GisY = QCursor::pos().y();
+
+//            int iScreenWid = QApplication::desktop()->width();
+//            int iscreenHei = QApplication::desktop()->height();
+
+//            int iWid = iScreenWid / 2 + 320;
+//            int iHei = iscreenHei / 2 + 240;
+
+//            if((i_GisX + 280) > iWid)
+//            {
+//                i_X = i_GisX - 280;
+//            }
+//            else
+//            {
+//                i_X = i_GisX;
+//            }
+
+//            if((i_GisY + 286) > iHei)
+//            {
+//                i_Y = i_GisY - 286;
+//            }
+//            else
+//            {
+//                i_Y = i_GisY;
+//            }
+
+//            QRect rect(i_X, i_Y, 280, 286); // left top width height
+
+//            c_dlInfo->setGeometry(rect);
+//            c_dlInfo->exec();
+        }
+
+
+
+//        if(qsTime.length() > 0&&qsDataValue.length() > 0)
+//        {
+//            if("日志信息" == ui->comboBox->currentText())//当日志查询时，不需显示曲线信息
+//            {
+//                QTableWidgetItem *item = ui->tabwidData->item(iselRow,3);
+//                 if(item != NULL)
+//                 {
+//                     if(("电极维护" == item->text())||("标样校准" == item->text())||("空白校准" == item->text()))//但电化学"电极维护","标样校准","空白校准",需显示曲线信息
+//                     {
+//                         dlgviewdatainfo* pDataInfo = new dlgviewdatainfo(m_pMC,qsTime,qsName,ui->comboBox->currentIndex(),m_pDB);
+//                         pDataInfo->move((qApp->desktop()->width() - pDataInfo->width())/2,(qApp->desktop()->height() - pDataInfo->height())/2);
+//                         pDataInfo->exec();
+//                         delete pDataInfo;
+//                         pDataInfo = NULL;
+//                     }
+//                 }
+//            }
+//            else if(("内标数据" != ui->comboBox->currentText()))
+//            {
+//                dlgviewdatainfo* pDataInfo = new dlgviewdatainfo(m_pMC,qsTime,qsName,ui->comboBox->currentIndex(),m_pDB);
+//                pDataInfo->move((qApp->desktop()->width() - pDataInfo->width())/2,(qApp->desktop()->height() - pDataInfo->height())/2);
+//                pDataInfo->exec();
+//                delete pDataInfo;
+//                pDataInfo = NULL;
+//            }
+//        }
+    }
+}
+
+//水样数据
+void dldataquery::ResultDataQuery()
+{
+    //获取仪器参数列表
+    qYQIDList.clear();
+    QMap<QString,QString> mapParamHeaser;
+    QMap<QString,int> mapParamDigitList;
+    QStringList qslColHea;
+    qslColHea.clear();
+    mapParamHeaser.insert("-0","");
+    QMap<QString,QString>::iterator it;
+    paramdict dict;
+    int nCount = 0;
+    char czGroup[64];
+    char czItem[64];memset(czItem,0,64);
+    char czValue[64];
+    strcpy(czItem,"UnitType");
+    for(int i=0;i<m_pMC->pYQs->GetYQCount();i++)
+    {
+        SYQPARAM sYQ;
+        m_pMC->pYQs->pYQ[i]->GetYQParam(sYQ);
+        if(dict.paramlist.size() > 0)
+        {
+           vector<paramitem>::iterator it;
+           for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+           {
+               if(0 == strcmp(sYQ.czID,(*it).LHCodeID))
+               {
+                   QString sCodeName = (*it).CodeName;
+                   if(!ui->radiobtnmg->isChecked() && !ui->radiobtnug->isChecked())
+                   {
+                       memset(czGroup,0,64);
+                       memset(czValue,0,64);
+                       sprintf(czGroup,"%s_SET",sYQ.czID);
+                       GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+                       if(strlen(czValue) > 0)
+                       {
+                           if(!strcmp(czValue,"1"))
+                           {
+                               ui->radiobtnmg->setChecked(true);
+                               sCodeName += "(mg/L)";
+                           }
+                           else if(!strcmp(czValue,"0"))
+                           {
+                               ui->radiobtnug->setChecked(true);
+                               sCodeName += "(μg/L)";
+                           }
+                       }
+                   }
+                   else if(ui->radiobtnmg->isChecked())
+                   {
+                       sCodeName += "(mg/L)";
+                   }
+                   else if(ui->radiobtnug->isChecked())
+                   {
+                       sCodeName += "(μg/L)";
+                   }
+                   qYQIDList.append(QString(sYQ.czID));
+                   qslColHea.append(sCodeName);
+
+                   mapParamHeaser.insert(sYQ.czID,(*it).CodeName);
+                   mapParamDigitList.insert(QString(sYQ.czID),sYQ.DataDigits);
+                   nCount++;
+                   break;
+               }
+           }
+        }
+    }
+
+    if(qslColHea.size() == 0)
+    {
+        QMessageBox::information(NULL, "提示信息","没有参数查询，请先设置参数！");
+        return;
+    }
+
+    ui->tabwidData->clear();
+    qslColHea.insert(0,"时间");
+    ui->tabwidData->setFrameShape(QFrame::NoFrame);  //设置边框
+    ui->tabwidData->setAlternatingRowColors(true);//隔行改变颜色
+   // ui->tabwidData->setShowGrid(false);  //不显示网络虚线
+    //去掉行号
+    QHeaderView* headerView = ui->tabwidData->verticalHeader();
+    headerView->setHidden(true); 
+    ui->tabwidData->setColumnCount(qslColHea.size());
+    ui->tabwidData->setRowCount(0);
+    ui->tabwidData->setHorizontalHeaderLabels(qslColHea);
+    ui->tabwidData->horizontalHeader()->setVisible(true);
+    if(qslColHea.size() > 4)
+    {
+        ui->tabwidData->setColumnWidth(0,140);
+        int nTabWidth = ui->tabwidData->width() - 150;
+        int nWidth = (nTabWidth) / (qslColHea.size() - 1);
+        //ui->tabwidData->horizontalHeader()->resizeSection();
+       // ui->tabwidData->resizeColumnsToContents(); //根据内容调整列宽
+//        ui->tabwidData->resizeColumnToContents();//根据内容自动调整给定列宽
+        for(int i=1;i<=qslColHea.size();i++)
+        {
+            ui->tabwidData->horizontalHeader()->resizeSection(i,nWidth);
+            //ui->tabwidData->setColumnWidth(i,nWidth);
+        }
+    }
+    else
+    {
+        ui->tabwidData->horizontalHeader()->resizeSection(0,140);
+        for(int i=1;i<=qslColHea.size();i++)
+        {
+              ui->tabwidData->horizontalHeader()->resizeSection(i,80);
+        }
+    }
+
+    //ui->tabwidData->horizontalHeader()->setStretchLastSection(true);
+    //ui->tabwidData->resizeColumnsToContents();
+    //ui->tabwidData->horizontalHeader()->setStretchLastSection(true);
+//    ui->tabwidData->resizeColumnsToContents();
+//    ui->tabwidData->resizeRowsToContents();
+
+//    if(qslColHea.size() > 4)
+//    {
+//       // ui->tabwidData->setColumnWidth(0,140);
+//        //int nTabWidth = ui->tabwidData->width() - 150;
+//        //int nWidth = (nTabWidth) / (qslColHea.size());
+//        int nWidth = 90;
+//        //ui->tabwidData->horizontalHeader()->resizeSection();
+//       // ui->tabwidData->resizeColumnsToContents(); //根据内容调整列宽
+////        ui->tabwidData->resizeColumnToContents();//根据内容自动调整给定列宽
+////         ui->tabwidData->resizeColumnToContents(1);//根据内容自动调整给定列宽
+////         ui->tabwidData->resizeColumnToContents(2);
+////         ui->tabwidData->resizeColumnToContents(3);
+////         ui->tabwidData->resizeColumnToContents(4);
+////         ui->tabwidData->resizeColumnToContents(5);
+//        for(int i=0;i<=qslColHea.size();i++)
+//        {
+//            ui->tabwidData->horizontalHeader()->resizeSection(i,111);
+//            //ui->tabwidData->setColumnWidth(i,nWidth);
+//        }
+//    }
+//    else
+//    {
+//        ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
+//    }
+
+    bool isResult = false;
+    sqlite_data datalist;
+    isResult = m_pDB->Get8051((const char*)StartTimes,(const char*)EndTimes,&qYQIDList,datalist);
+    if(isResult)
+    {
+        if(!datalist.IsEmpty())
+        {
+            ui->tabwidData->setColumnCount(datalist.ColCount());
+            ui->tabwidData->setRowCount(datalist.RowCount());
+
+
+            ui->tabwidData->rowHeight(8);
+
+            qYQIDList.insert(0,"-1");
+            int iXGDDigits = 4;
+            int iRow = 0;
+
+            for(int j=1;j<=datalist.RowCount();j++)
+            {
+                bool isFlag = false;
+                 for(int i = 0;i<qYQIDList.size();i++)
+                 {
+                     QString sValue;
+                     if(i+2 <= datalist.ColCount())
+                     {
+                         sValue = datalist.GetData(j,i+2);
+                         if(sValue.indexOf("&") >= 0)
+                         {
+                             QStringList qsAly = sValue.split("&");
+                             if(qsAly.length() > 1)
+                             {
+                                 if((!ui->checkBox->isChecked()) && (qsAly.at(1).trimmed() != ""))
+                                 {
+                                     isFlag = true;
+                                      i = qYQIDList.size();
+                                      continue;
+                                 }
+                             }
+                         }
+                     }
+                     //第一列为时间
+                     if(i == 0)
+                     {
+                         char cTime[20];memset(cTime,0,20);
+                         strcpy(cTime,datalist.GetData(j,i+1));
+                         QString qsTime(cTime);
+                         ui->tabwidData->setItem(iRow,i, new QTableWidgetItem(qsTime));
+                         m_vtTime.push_back(qsTime);
+                     }
+                     else
+                     {
+                         QString qsYQID = qYQIDList.at(i);
+                         QString qsValue = QString(datalist.GetData(j,i+1));
+                         QStringList qlValue = qsValue.split("&");
+
+                         if(qlValue.length() > 0)
+                         {
+                             int iDataDigits = 4;
+
+                             QMap<QString,int>::const_iterator it;
+                             for(it = mapParamDigitList.constBegin();it != mapParamDigitList.constEnd();++it)
+                             {
+                                 if(it.key() == qsYQID)
+                                 {
+                                      iDataDigits = it.value();
+                                      iXGDDigits = iDataDigits;
+                                      break;
+                                 }
+                             }
+
+                             if(qsYQID == "基线值" || qsYQID == "样品值" || qsYQID == "曲线编号")
+                             {
+                                 iDataDigits = 0;
+                             }
+                             else if(qsYQID == "吸光度")//吸光度与浓度数据精度一致
+                             {
+                                 iDataDigits = iXGDDigits;
+                             }
+
+                             if(qsValue.length() > 0)
+                             {
+                                 char cDataDigit[10];memset(cDataDigit,0,10);
+                                 char cDigit[10];memset(cDigit,0,10);
+                                 strcpy(cDataDigit,"%.");
+                                 sprintf(cDigit,"%d",iDataDigits);
+                                 strcat(cDataDigit,cDigit);
+                                 strcat(cDataDigit,"f");
+                                 char cValue[64];memset(cValue,0,64);
+                                 if(ui->radiobtnug->isChecked())
+                                 {
+                                     sprintf(cValue,cDataDigit,qlValue.at(0).toDouble()*1000.0);
+                                 }
+                                 else
+                                 {
+                                     sprintf(cValue,cDataDigit,qlValue.at(0).toDouble());
+                                 }
+                                 if(qlValue.size() > 1)
+                                 {
+                                     if((qlValue.at(1).trimmed().length() > 0))
+                                     {
+                                         strcat(cValue," ");
+                                         strcat(cValue,qlValue.at(1).toLatin1().data());
+                                     }
+                                 }
+
+                                 ui->tabwidData->setItem(iRow,i, new QTableWidgetItem((QString)cValue));
+                                 if(qlValue.size() > 1)
+                                 {
+                                     QString qsFlag = qlValue.at(1);
+                                     if(qsFlag.length() > 0)
+                                     {
+                                         if(qsFlag.indexOf("D") >= 0 || qsFlag.indexOf("C") >= 0 || qsFlag.indexOf("S") >= 0
+                                         || qsFlag.indexOf("lr") >= 0 || qsFlag.indexOf("lp") >= 0 || qsFlag.indexOf("lw") >= 0
+                                         || qsFlag.indexOf("ls") >= 0)
+                                         {
+                                             //红色
+                                             ui->tabwidData->item(iRow,i)->setTextColor(QColor(255,0,0));
+                                         }
+                                         else
+                                         {
+                                             //蓝色
+                                             ui->tabwidData->item(iRow,i)->setTextColor(QColor(85,0,255));
+                                         }
+                                     }
+                                 }
+
+                             }
+                         }
+                     }
+                 }
+                 if(!isFlag)
+                 {
+                     iRow++;
+                 }
+
+            }
+             datalist.Free();
+        }
+        else
+        {
+           ui->tabwidData->setRowCount(0);
+           QMessageBox::information(NULL, "提示信息","没有查询到数据！");
+        }
+   }
+   else
+   {
+      QMessageBox::information(NULL, "提示信息","查询数据错误！");
+   }
+}
+void dldataquery::SlopeDataQuery()
+{
+    QStringList qslColHead;
+    qslColHead.clear();
+    qslColHead.insert(0,"时间");
+    qslColHead.insert(1,"斜率");
+    ui->tabwidData->setColumnCount(2);
+    ui->tabwidData->setRowCount(0);
+    ui->tabwidData->setHorizontalHeaderLabels(qslColHead);
+    ui->tabwidData->horizontalHeader()->setVisible(true);
+    sqlite_data datalist;
+    if(m_pDB->GetLinear((const char*)StartTimes,(const char*)EndTimes,datalist))
+    {
+        if(!datalist.IsEmpty())
+        {
+            ui->tabwidData->setColumnCount(datalist.ColCount());
+            ui->tabwidData->setRowCount(datalist.RowCount());
+            ui->tabwidData->setHorizontalHeaderLabels(qslColHead);
+            for(int i=1;i<=datalist.RowCount();i++)
+            {
+                QString qstime = QString(datalist.GetData(i,1));
+                ui->tabwidData->setItem(i-1,0, new QTableWidgetItem(qstime));
+                ui->tabwidData->setItem(i-1,1, new QTableWidgetItem(QString(datalist.GetData(i,2))));
+                m_vtTime.push_back(qstime);
+            }
+            datalist.Free();
+        }
+        else
+        {
+            ui->tabwidData->setRowCount(0);
+            QMessageBox::information(NULL, "提示信息","没有查询到数据！");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息","查询数据错误！");
+    }
+}
+//日志查询
+void dldataquery::MaintainInfoQuery()
+{
+    if(!(ui->checkBoxNamol->isChecked()||ui->checkBoxWarn->isChecked()||ui->checkBoxALARM->isChecked()||ui->checkBoxFault->isChecked()))
+    {
+        QMessageBox::information(NULL, "提示信息","请选择查询类型");
+        return;
+    }
+    QStringList qslColHead;
+    qslColHead.clear();
+    qslColHead.insert(0,"时间");
+    qslColHead.insert(1,"类型");
+    qslColHead.insert(2,"级别");
+    qslColHead.insert(3,"内容");
+    ui->tabwidData->setColumnCount(4);
+    ui->tabwidData->setRowCount(0);
+    ui->tabwidData->setHorizontalHeaderLabels(qslColHead);
+    ui->tabwidData->setColumnWidth(0,140);
+    ui->tabwidData->setColumnWidth(1,60);
+    ui->tabwidData->setColumnWidth(2,60);
+    ui->tabwidData->setColumnWidth(3,320);
+    ui->tabwidData->horizontalHeader()->setVisible(true);
+    sqlite_data datalist;
+    if(m_pDB->Get2091((const char*)StartTimes,(const char*)EndTimes,datalist))
+    {
+        if(!datalist.IsEmpty())
+        {
+            ui->tabwidData->setColumnCount(datalist.ColCount()-1);
+            int nRowCount = 0;
+            ui->tabwidData->setHorizontalHeaderLabels(qslColHead);
+            for(int i=1;i<=datalist.RowCount();i++)
+            {
+                QString qstime = QString(datalist.GetData(i,1));
+                QString qsProcess = QString(datalist.GetData(i,2));//流程类型
+                QString qsLogCode = QString(datalist.GetData(i,3));//仪器 系统 维护日志
+                int nLevel = atoi(datalist.GetData(i,4));
+                if(qsProcess.toInt() == GetAfxYQType())//对应流程的日志
+                {
+                    if(0 == nLevel&&ui->checkBoxNamol->isChecked())//正常
+                    {
+                        if(0 == ui->comboBoxLogType->currentIndex())//全部查询
+                        {
+                            nRowCount++;
+                            ui->tabwidData->setRowCount(nRowCount);
+                            ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                            ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                            ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("正常"));
+                            ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+                        }
+                        else if(1 == ui->comboBoxLogType->currentIndex())//仪器日志
+                        {
+                            if(qsLogCode == "仪器")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("正常"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+                            }
+                        }
+                        else if(2 == ui->comboBoxLogType->currentIndex())//系统日志
+                        {
+                            if(qsLogCode == "系统")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("正常"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+                            }
+                        }
+                        else if(3 == ui->comboBoxLogType->currentIndex())//维护日志
+                        {
+                            if(qsLogCode == "维护")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("正常"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+                            }
+                        }
+                    }
+                    else if(1 == nLevel&&ui->checkBoxWarn->isChecked())//警告
+                    {
+                        if(0 == ui->comboBoxLogType->currentIndex())//全部查询
+                        {
+                            nRowCount++;
+                            ui->tabwidData->setRowCount(nRowCount);
+                            ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                            ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                            ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("警告"));
+                            ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+                        }
+                        else if(1 == ui->comboBoxLogType->currentIndex())//仪器日志
+                        {
+                            if(qsLogCode == "仪器")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("警告"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+                            }
+                        }
+                        else if(2 == ui->comboBoxLogType->currentIndex())//系统日志
+                        {
+                            if(qsLogCode == "系统")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("警告"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+                            }
+                        }
+                        else if(3 == ui->comboBoxLogType->currentIndex())//维护日志
+                        {
+                            if(qsLogCode == "维护")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("警告"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+                            }
+                        }
+                    }
+                    else if(2 == nLevel&&ui->checkBoxALARM->isChecked())//报警
+                    {
+
+                        if(0 == ui->comboBoxLogType->currentIndex())//全部查询
+                        {
+                            nRowCount++;
+                            ui->tabwidData->setRowCount(nRowCount);
+                            ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                            ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                            ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("报警"));
+                            ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+
+                            //添加背景颜色
+                            ui->tabwidData->item(nRowCount-1,0)->setTextColor(QColor(255,85,0));
+                            ui->tabwidData->item(nRowCount-1,1)->setTextColor(QColor(255,85,0));
+                            ui->tabwidData->item(nRowCount-1,2)->setTextColor(QColor(255,85,0));
+                            ui->tabwidData->item(nRowCount-1,3)->setTextColor(QColor(255,85,0));
+                        }
+                        else if(1 == ui->comboBoxLogType->currentIndex())//仪器日志
+                        {
+                            if(qsLogCode == "仪器")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("报警"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+
+                                //添加背景颜色
+                                ui->tabwidData->item(nRowCount-1,0)->setTextColor(QColor(255,85,0));
+                                ui->tabwidData->item(nRowCount-1,1)->setTextColor(QColor(255,85,0));
+                                ui->tabwidData->item(nRowCount-1,2)->setTextColor(QColor(255,85,0));
+                                ui->tabwidData->item(nRowCount-1,3)->setTextColor(QColor(255,85,0));
+                            }
+                        }
+                        else if(2 == ui->comboBoxLogType->currentIndex())//系统日志
+                        {
+                            if(qsLogCode == "系统")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("报警"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+
+                                //添加背景颜色
+                                ui->tabwidData->item(nRowCount-1,0)->setTextColor(QColor(255,85,0));
+                                ui->tabwidData->item(nRowCount-1,1)->setTextColor(QColor(255,85,0));
+                                ui->tabwidData->item(nRowCount-1,2)->setTextColor(QColor(255,85,0));
+                                ui->tabwidData->item(nRowCount-1,3)->setTextColor(QColor(255,85,0));
+                            }
+                        }
+                        else if(3 == ui->comboBoxLogType->currentIndex())//维护日志
+                        {
+                            if(qsLogCode == "维护")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("报警"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+
+                                //添加背景颜色
+                                ui->tabwidData->item(nRowCount-1,0)->setTextColor(QColor(255,85,0));
+                                ui->tabwidData->item(nRowCount-1,1)->setTextColor(QColor(255,85,0));
+                                ui->tabwidData->item(nRowCount-1,2)->setTextColor(QColor(255,85,0));
+                                ui->tabwidData->item(nRowCount-1,3)->setTextColor(QColor(255,85,0));
+                            }
+                        }
+                    }
+                    else if(3 == nLevel&&ui->checkBoxFault->isChecked())//故障
+                    {
+                        if(0 == ui->comboBoxLogType->currentIndex())//全部查询
+                        {
+                            nRowCount++;
+                            ui->tabwidData->setRowCount(nRowCount);
+                            ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                            ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                            ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("故障"));
+                            ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+
+                            //添加背景颜色
+                            ui->tabwidData->item(nRowCount-1,0)->setTextColor(QColor(255,0,0));
+                            ui->tabwidData->item(nRowCount-1,1)->setTextColor(QColor(255,0,0));
+                            ui->tabwidData->item(nRowCount-1,2)->setTextColor(QColor(255,0,0));
+                            ui->tabwidData->item(nRowCount-1,3)->setTextColor(QColor(255,0,0));
+                        }
+                        else if(1 == ui->comboBoxLogType->currentIndex())//仪器日志
+                        {
+                            if(qsLogCode == "仪器")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("故障"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+
+                                //添加背景颜色
+                                ui->tabwidData->item(nRowCount-1,0)->setTextColor(QColor(255,0,0));
+                                ui->tabwidData->item(nRowCount-1,1)->setTextColor(QColor(255,0,0));
+                                ui->tabwidData->item(nRowCount-1,2)->setTextColor(QColor(255,0,0));
+                                ui->tabwidData->item(nRowCount-1,3)->setTextColor(QColor(255,0,0));
+                            }
+                        }
+                        else if(2 == ui->comboBoxLogType->currentIndex())//系统日志
+                        {
+                            if(qsLogCode == "系统")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("故障"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+
+                                //添加背景颜色
+                                ui->tabwidData->item(nRowCount-1,0)->setTextColor(QColor(255,0,0));
+                                ui->tabwidData->item(nRowCount-1,1)->setTextColor(QColor(255,0,0));
+                                ui->tabwidData->item(nRowCount-1,2)->setTextColor(QColor(255,0,0));
+                                ui->tabwidData->item(nRowCount-1,3)->setTextColor(QColor(255,0,0));
+                            }
+                        }
+                        else if(3 == ui->comboBoxLogType->currentIndex())//维护日志
+                        {
+                            if(qsLogCode == "维护")
+                            {
+                                nRowCount++;
+                                ui->tabwidData->setRowCount(nRowCount);
+                                ui->tabwidData->setItem(nRowCount-1,0, new QTableWidgetItem(qstime));
+                                ui->tabwidData->setItem(nRowCount-1,1, new QTableWidgetItem(qsLogCode));
+                                ui->tabwidData->setItem(nRowCount-1,2, new QTableWidgetItem("故障"));
+                                ui->tabwidData->setItem(nRowCount-1,3, new QTableWidgetItem(QString(datalist.GetData(i,5))));
+
+                                //添加背景颜色
+                                ui->tabwidData->item(nRowCount-1,0)->setTextColor(QColor(255,0,0));
+                                ui->tabwidData->item(nRowCount-1,1)->setTextColor(QColor(255,0,0));
+                                ui->tabwidData->item(nRowCount-1,2)->setTextColor(QColor(255,0,0));
+                                ui->tabwidData->item(nRowCount-1,3)->setTextColor(QColor(255,0,0));
+                            }
+                        }
+                    }
+                }
+            }
+            datalist.Free();
+        }
+        else
+        {
+            ui->tabwidData->setRowCount(0);
+            QMessageBox::information(NULL, "提示信息","没有查询到数据！");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息","查询数据错误！");
+    }
+}
+void dldataquery::StandardDataQuery()
+{
+    paramdict dict;
+    QMap<QString,int> mapParamDigitList;
+    QStringList qslColHea;
+    qslColHea.clear();
+    int nCount = 0;
+
+    for(int i=0;i<m_pMC->pYQs->GetYQCount();i++)
+    {
+        SYQPARAM sYQ;
+        m_pMC->pYQs->pYQ[i]->GetYQParam(sYQ);
+        qYQIDList.append(QString(sYQ.czID));        
+        if(dict.paramlist.size() > 0)
+        {
+            vector<paramitem>::iterator it;
+            for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+            {
+                if(0 == strcmp(sYQ.czID,(*it).LHCodeID))
+                {
+                    mapParamDigitList.insert(QString(sYQ.czID),sYQ.DataDigits);
+                    nCount++;
+                    break;
+                }
+            }
+        }
+    }
+
+
+    qslColHea.insert(0,"时间");
+    qslColHea.insert(1,"核查参数");
+    qslColHea.insert(2,"实测值");
+    qslColHea.insert(3,"参考值");
+    qslColHea.insert(4,"误差率");
+    ui->tabwidData->setColumnCount(5);
+    ui->tabwidData->setRowCount(0);
+    ui->tabwidData->setHorizontalHeaderLabels(qslColHea);
+    ui->tabwidData->setColumnWidth(0,160);
+    ui->tabwidData->setColumnWidth(1,80);
+    ui->tabwidData->setColumnWidth(2,120);
+    ui->tabwidData->setColumnWidth(3,120);
+    ui->tabwidData->setColumnWidth(4,80);
+    ui->tabwidData->horizontalHeader()->setVisible(true);
+    sqlite_data datalist;
+    if(m_pDB->Get3016((const char*)StartTimes,(const char*)EndTimes,datalist))
+    {
+        if(!datalist.IsEmpty())
+        {
+            ui->tabwidData->setRowCount(datalist.RowCount());
+            ui->tabwidData->horizontalHeader()->setStretchLastSection(true);//尾不留空白
+            for(int i=1;i<=datalist.RowCount();i++)
+            {
+                QString qName;
+                int nDataDigits = 0;
+                QString qstime = QString(datalist.GetData(i,1));
+                ui->tabwidData->setItem(i-1,0, new QTableWidgetItem(qstime));
+
+
+               vector<paramitem>::iterator it;
+               for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+               {
+                   if(0 == strcmp(datalist.GetData(i,2),(*it).LHCodeID))
+                   {
+                       qName = (*it).CodeName;
+                       nDataDigits = (*it).DataDigits;
+                   }
+               }
+
+//                if(0 == strcmp("Z07",datalist.GetData(i,2)))
+//                {
+//                    qName = "总铅";
+//                    QMap<QString,int>::iterator it = mapParamDigitList.find("Z07");
+//                    nDataDigits = it.value();
+
+//                }else if(0 == strcmp("Z08",datalist.GetData(i,2)))
+//                {
+//                    qName = "总镉";
+//                    QMap<QString,int>::iterator it = mapParamDigitList.find("Z08");ui->tabwidData->setToolTip("sssssssssssssssssssssssssssssssssssssssssssssssss");
+//                    nDataDigits = it.value();
+//                }else if(0 == strcmp("Z24",datalist.GetData(i,2)))
+//                {
+//                    qName = "总锌";
+//                    QMap<QString,int>::iterator it = mapParamDigitList.find("Z24");
+//                    nDataDigits = it.value();
+//                }else if(0 == strcmp("Z27",datalist.GetData(i,2)))
+//                {
+//                    qName = "总铜";
+//                    QMap<QString,int>::iterator it = mapParamDigitList.find("Z27");
+//                    nDataDigits = it.value();
+//                }
+//                else
+//                {
+//                    //do nothig
+//                }
+                QString qTestValue = QString(datalist.GetData(i,3));
+                QString qSampleValue = QString(datalist.GetData(i,4));
+                QString qDataTag = QString(datalist.GetData(i,5));
+                char cDataDigit[64];memset(cDataDigit,0,64);
+                char cDigit[64];memset(cDigit,0,64);
+                strcpy(cDataDigit,"%.");
+                sprintf(cDigit,"%d",nDataDigits);
+                strcat(cDataDigit,cDigit);
+                strcat(cDataDigit,"f");
+                char cValue[255];memset(cValue,0,255);
+                char cSampleValue[255];memset(cSampleValue,0,255);
+                if(ui->radiobtnug->isChecked())
+                {
+                    sprintf(cValue,cDataDigit,qTestValue.toDouble()*1000.0);
+                    sprintf(cSampleValue,cDataDigit,qSampleValue.toDouble()*1000.0);
+                }
+                else
+                {
+                    sprintf(cValue,cDataDigit,qTestValue.toDouble());
+                    sprintf(cSampleValue,cDataDigit,qSampleValue.toDouble());
+                }
+                float fError = 0.0;
+                char cError[64];memset(cError,0,64);
+                if((0.0 == qTestValue.toDouble())&&(0.0 == qSampleValue.toDouble()))
+                {
+                    fError = 0.0;
+                }
+                else if((0.0 == qTestValue.toDouble())&&(0.0 != qSampleValue.toDouble()))
+                {
+                    fError = 100.0;
+                }
+                else
+                {
+                    fError = (fabs(qTestValue.toDouble()-qSampleValue.toDouble())/qTestValue.toDouble())*100;
+                }
+                sprintf(cError,"%0.1f",fError);
+                strcat(cError,"%");
+                if(ui->checkBox->isChecked())
+                {
+                    strcat(cValue,qDataTag.toLatin1().data());
+                }
+                ui->tabwidData->setItem(i-1,1, new QTableWidgetItem(qName));
+                ui->tabwidData->setItem(i-1,2, new QTableWidgetItem((QString)cValue));
+                ui->tabwidData->setItem(i-1,3, new QTableWidgetItem((QString)cSampleValue));
+                ui->tabwidData->setItem(i-1,4, new QTableWidgetItem((QString)cError));
+                m_vtTime.push_back(qstime);
+            }
+            datalist.Free();
+        }
+        else
+        {
+            ui->tabwidData->setRowCount(0);
+            QMessageBox::information(NULL, "提示信息","没有查询到数据！");
+        }
+    }
+    else
+    {
+       QMessageBox::information(NULL, "提示信息","查询数据错误！");
+    }
+
+}
+//详细数据
+void dldataquery::DetailedDataQuery()
+{
+    //获取仪器参数列表
+    qYQIDList.clear();
+    QMap<QString,QString> mapParamHeaser;
+    QMap<QString,int> mapParamDigitList;
+    QStringList qslColHea;
+    qslColHea.clear();
+    mapParamHeaser.insert("-0","");
+    QMap<QString,QString>::iterator it;
+    paramdict dict;
+    int nCount = 0;
+    char czGroup[64];
+    char czItem[64];memset(czItem,0,64);
+    char czValue[64];
+    strcpy(czItem,"UnitType");
+    for(int i=0;i<m_pMC->pYQs->GetYQCount();i++)
+    {
+        SYQPARAM sYQ;
+        m_pMC->pYQs->pYQ[i]->GetYQParam(sYQ);
+        if(dict.paramlist.size() > 0)
+        {
+           vector<paramitem>::iterator it;
+           for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+           {
+               if(0 == strcmp(sYQ.czID,(*it).LHCodeID))
+               {
+                   QString sCodeName = (*it).CodeName;
+                   if(!ui->radiobtnmg->isChecked() && !ui->radiobtnug->isChecked())
+                   {
+                       memset(czGroup,0,64);
+                       memset(czValue,0,64);
+                       sprintf(czGroup,"%s_SET",sYQ.czID);
+                       GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+                       if(strlen(czValue) > 0)
+                       {
+                           if(!strcmp(czValue,"1"))
+                           {
+                               ui->radiobtnmg->setChecked(true);
+                               sCodeName += "(mg/L)";
+                           }
+                           else if(!strcmp(czValue,"0"))
+                           {
+                               ui->radiobtnug->setChecked(true);
+                               sCodeName += "(μg/L)";
+                           }
+                       }
+                   }
+                   else if(ui->radiobtnmg->isChecked())
+                   {
+                       sCodeName += "(mg/L)";
+                   }
+                   else if(ui->radiobtnug->isChecked())
+                   {
+                       sCodeName += "(μg/L)";
+                   }
+
+                   qYQIDList.append(QString(sYQ.czID));
+                   qslColHea.append(sCodeName);
+                   mapParamHeaser.insert(sYQ.czID,(*it).CodeName);
+                   mapParamDigitList.insert(QString(sYQ.czID),sYQ.DataDigits);
+                   nCount++;
+                   break;
+               }
+           }
+        }
+    }
+
+    if(qslColHea.size() == 0)
+    {
+        QMessageBox::information(NULL, "提示信息","没有参数查询，请先设置参数！");
+        return;
+    }
+
+    qslColHea.insert(0,"时间");
+
+    qslColHea.append("吸光度");
+    qslColHea.append("基线值");
+    qslColHea.append("样品值");
+    qslColHea.append("曲线编号");
+
+    ui->tabwidData->setColumnCount(qslColHea.size());
+    ui->tabwidData->setRowCount(0);
+    ui->tabwidData->setHorizontalHeaderLabels(qslColHea);
+    ui->tabwidData->horizontalHeader()->setVisible(true);
+    if(qslColHea.size() > 2)
+    {
+        ui->tabwidData->setColumnWidth(0,140);
+         for(int i=1;i<=qslColHea.size();i++)
+         {
+              if(i == qslColHea.size())
+              {
+                  ui->tabwidData->setColumnWidth(i,65);
+              }
+              else
+              {
+                ui->tabwidData->setColumnWidth(i,85);
+              }
+         }
+     }
+    else
+    {
+        ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
+    }
+
+    bool isResult = false;
+    sqlite_data datalist;
+    //QString dt1;
+    //QString dt2,dt3,dt4;
+    //dt1 = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+    isResult = m_pDB->GetBs8051((const char*)StartTimes,(const char*)EndTimes,&qYQIDList,datalist);
+    //dt2 = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+
+    //cout << datalist.RowCount() << endl;
+    //dt3 = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+    if(isResult)
+    {
+        if(!datalist.IsEmpty())
+        {
+            ui->tabwidData->setColumnCount(datalist.ColCount());
+            ui->tabwidData->setRowCount(datalist.RowCount());
+            ui->tabwidData->setHorizontalHeaderLabels(qslColHea);
+            ui->tabwidData->horizontalHeader()->setStretchLastSection(true);//尾不留空白
+            ui->tabwidData->rowHeight(8);
+
+            qYQIDList.insert(0,"-1");
+            if(iYQType == 4)
+            {
+                qYQIDList.append("吸光度");
+                qYQIDList.append("基线值");
+                qYQIDList.append("样品值");
+                qYQIDList.append("曲线编号");
+            }
+
+            int iXGDDigits = 4;
+            int iRow = 0;
+            for(int j=1;j<=datalist.RowCount();j++)
+            {
+                bool isFlag = false;
+                 for(int i = 0;i<qYQIDList.size();i++)
+                 {
+                     QString sValue;
+                     if(i + 2 <= datalist.ColCount())
+                     {
+                         sValue = datalist.GetData(j,i + 2);
+                         QString sTemp;
+                         if(sValue.indexOf("&") >= 0)
+                         {
+                             QStringList qsAly = sValue.split("&");
+                             if(qsAly.length() > 1)
+                                 sTemp = qsAly.at(1);
+                         }
+                         if(!ui->checkBox->isChecked() && (sTemp.trimmed() != ""))
+                         {
+                             isFlag = true;
+                             i = qYQIDList.size();
+                             continue;
+                         }
+                     }
+
+                     //第一列为时间
+                     if(i == 0)
+                     {
+                         char cTime[20];memset(cTime,0,20);
+                         strcpy(cTime,datalist.GetData(j,i+1));
+                         QString qsTime(cTime);
+                         ui->tabwidData->setItem(iRow,i, new QTableWidgetItem(qsTime));
+                         m_vtTime.push_back(qsTime);
+                     }
+                     else
+                     {
+                         QString qsYQID = qYQIDList.at(i);
+                         QString qsValue = QString(datalist.GetData(j,i+1));
+                         QStringList qlValue = qsValue.split("&");
+
+                         if(qlValue.length() > 0)
+                         {
+                             int iDataDigits = 4;
+
+                             QMap<QString,int>::const_iterator it;
+                             for(it = mapParamDigitList.constBegin();it != mapParamDigitList.constEnd();++it)
+                             {
+                                 if(it.key() == qsYQID)
+                                 {
+                                      iDataDigits = it.value();
+                                      iXGDDigits = iDataDigits;
+                                      break;
+                                 }
+                             }
+
+                             if(qsYQID == "基线值" || qsYQID == "样品值" || qsYQID == "曲线编号")
+                             {
+                                 iDataDigits = 0;
+                             }
+                             else if(qsYQID == "吸光度")//吸光度与浓度数据精度一致
+                             {
+                                 iDataDigits = iXGDDigits;
+                             }
+
+                             if(qsValue.length() > 0)
+                             {
+                                 char cDataDigit[10];memset(cDataDigit,0,10);
+                                 char cDigit[10];memset(cDigit,0,10);
+                                 strcpy(cDataDigit,"%.");
+                                 sprintf(cDigit,"%d",iDataDigits);
+                                 strcat(cDataDigit,cDigit);
+                                 strcat(cDataDigit,"f");
+                                 char cValue[64];memset(cValue,0,64);
+                                 if(ui->radiobtnug->isChecked())
+                                 {
+                                     if(qsYQID != "曲线编号")
+                                     {
+                                        sprintf(cValue,cDataDigit,qlValue.at(0).toDouble()*1000.0);
+                                     }
+                                     else
+                                     {
+                                        sprintf(cValue,cDataDigit,qlValue.at(0).toDouble());
+                                     }
+                                 }
+                                 else
+                                 {
+                                     if(qsYQID != "曲线编号")
+                                     {
+                                        sprintf(cValue,cDataDigit,qlValue.at(0).toDouble());
+                                     }
+                                     else
+                                     {
+                                          if(qlValue.at(0).toInt() != 0)
+                                              sprintf(cValue,cDataDigit,qlValue.at(0).toDouble());
+
+                                     }
+
+                                 }
+                                 if(qlValue.size() > 1)
+                                 {
+                                     if((qlValue.at(1).trimmed().length() > 0)&&(ui->checkBox->isChecked()))
+                                     {
+                                         strcat(cValue," ");
+                                         strcat(cValue,qlValue.at(1).toLatin1().data());
+                                     }
+                                 }
+
+                                 ui->tabwidData->setItem(iRow,i, new QTableWidgetItem((QString)cValue));
+                                 //ui->tabwidData->item(iRow,i)->setToolTip("<table><tr><td>11</td>22<td></td></tr></table>");
+                                 if(qlValue.size() > 1)
+                                 {
+                                     QString qsFlag = qlValue.at(1);
+                                     if(qsFlag.length() > 0)
+                                     {
+                                         //ui->tabwidData->item(j-1,i)->setFont(QFont("Helvetica"));
+                                         if(qsFlag.indexOf("D") >= 0 || qsFlag.indexOf("C") >= 0 || qsFlag.indexOf("S") >= 0
+                                         || qsFlag.indexOf("lr") >= 0 || qsFlag.indexOf("lp") >= 0 || qsFlag.indexOf("lw") >= 0
+                                         || qsFlag.indexOf("ls") >= 0)
+                                         {
+                                             //红色
+                                             ui->tabwidData->item(iRow,i)->setTextColor(QColor(255,0,0));
+                                         }
+                                         else
+                                         {
+                                             //蓝色
+                                             ui->tabwidData->item(iRow,i)->setTextColor(QColor(85,0,255));
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                 }
+                 if(!isFlag)
+                 {
+                     iRow++;
+                 }
+            }
+             datalist.Free();
+        }
+        else
+        {
+           ui->tabwidData->setRowCount(0);
+           QMessageBox::information(NULL, "提示信息","没有查询到数据！");
+        }
+   }
+   else
+   {
+      QMessageBox::information(NULL, "提示信息","查询数据错误！");
+   }
+
+   // dt4 = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+
+    //cout << "dt1:" << dt1.toLatin1().data() << endl;
+    //cout << "dt2:" << dt2.toLatin1().data() << endl;
+   // cout << "dt3:" << dt2.toLatin1().data() << endl;
+    //cout << "dt4:" << dt2.toLatin1().data() << endl;
+
+}
+
+void dldataquery::AdjustDataQuery()
+{
+    QStringList qslColHea;
+    qslColHea.clear();
+    qslColHea.insert(0,"时间");
+    qslColHea.insert(1,"参考保留时间");
+    qslColHea.insert(2,"实时保留时间");
+    qslColHea.insert(3,"参考浓度");
+    qslColHea.insert(4,"实测浓度");
+    qslColHea.insert(5,"峰面积");
+    ui->tabwidData->setColumnCount(6);
+    ui->tabwidData->setRowCount(0);
+    ui->tabwidData->setHorizontalHeaderLabels(qslColHea);
+    ui->tabwidData->setColumnWidth(0,150);
+    ui->tabwidData->horizontalHeader()->setVisible(true);
+    sqlite_data datalist;
+    char cTemp[64];
+    if(m_pDB->GetVocinternal((const char*)StartTimes,(const char*)EndTimes,datalist))
+    {
+        if(!datalist.IsEmpty())
+        {
+            ui->tabwidData->setRowCount(datalist.RowCount());
+            ui->tabwidData->horizontalHeader()->setStretchLastSection(true);//尾不留空白
+            for(int i=1;i<=datalist.RowCount();i++)
+            {
+                QString qstime = QString(datalist.GetData(i,1));
+                ui->tabwidData->setItem(i-1,0, new QTableWidgetItem(qstime));
+
+                //DataTime,RemainTime,RTime,Conc,RConc,Area
+                QString  qsValue = QString(datalist.GetData(i,2));
+                memset(cTemp,0,64);
+                sprintf(cTemp,"%.4f",qsValue.toFloat());
+                ui->tabwidData->setItem(i-1,1, new QTableWidgetItem(cTemp));
+                qsValue = QString(datalist.GetData(i,3));
+                memset(cTemp,0,64);
+                sprintf(cTemp,"%.4f",qsValue.toFloat());
+                ui->tabwidData->setItem(i-1,2, new QTableWidgetItem(cTemp));
+                qsValue = QString(datalist.GetData(i,4));
+                memset(cTemp,0,64);
+                sprintf(cTemp,"%.1f",qsValue.toFloat());
+                ui->tabwidData->setItem(i-1,3, new QTableWidgetItem(cTemp));
+                qsValue = QString(datalist.GetData(i,5));
+                memset(cTemp,0,64);
+                sprintf(cTemp,"%.1f",qsValue.toFloat());
+                ui->tabwidData->setItem(i-1,4, new QTableWidgetItem(cTemp));
+                qsValue = QString(datalist.GetData(i,6));
+                memset(cTemp,0,64);
+                sprintf(cTemp,"%.1f",qsValue.toFloat());
+                ui->tabwidData->setItem(i-1,5, new QTableWidgetItem(cTemp));
+//                m_vtTime.push_back(qstime);
+            }
+            datalist.Free();
+        }
+        else
+        {
+            ui->tabwidData->setRowCount(0);
+            QMessageBox::information(NULL, "提示信息","没有查询到数据！");
+        }
+    }
+    else
+    {
+       QMessageBox::information(NULL, "提示信息","查询数据错误！");
+    }
+
+}
+void dldataquery::on_butExport_clicked()
+{
+    ui->wgDataInfo->hide();
+    QFile mmc("/dev/mmcblk0p1");
+    QFile mmu("/dev/sda1");
+    char czPath[MAX_SIZE];
+    char czCopy[MAX_SIZE];
+    char czYQType[MAX_SIZE];
+    char czLog[MAX_SIZE];
+
+
+    memset(czCopy,0,MAX_SIZE);
+    memset(czYQType,0,MAX_SIZE);
+    sprintf(czYQType,"/%d/data/",GetAfxYQType());
+    strcpy(czCopy,DB_ROOT_PATH);
+    strcat(czCopy,czYQType);//测试数据保存区
+
+    memset(czYQType,0,MAX_SIZE);
+    memset(czLog,0,MAX_SIZE);
+    sprintf(czYQType,"/%d/log/",GetAfxYQType());
+    strcpy(czLog,DB_ROOT_PATH);
+    strcat(czLog,czYQType);//流水日志保存区
+
+    if(mmu.exists())
+    {
+        ui->labelMovie->show();
+        ui->labelWord->show();
+
+        usleep(200000);
+        memset(czPath,0,255);
+        memcpy(czPath,"/mnt",strlen("/mnt"));
+        strcat(czPath,"/u/");
+
+        FileYQDataCopy(czPath);
+        DataFileCopy(czCopy,czPath);
+        ResultDataExport(czPath);
+        LogFileCopy(czLog,czPath);
+
+        Timer->start(10000);//10S后启动定时器
+     }
+     else if(mmc.exists())
+     {
+        ui->labelMovie->show();
+        ui->labelWord->show();
+
+        usleep(200000);
+        memset(czPath,0,255);
+        memcpy(czPath,"/mnt",strlen("/mnt"));
+        strcat(czPath,"/sd-card/");
+
+        FileYQDataCopy(czPath);
+        DataFileCopy(czCopy,czPath);
+        ResultDataExport(czPath);
+        LogFileCopy(czLog,czPath);
+
+        Timer->start(10000);
+     }
+    else
+    {
+        dlgRemindMessage *pMessage = new dlgRemindMessage(m_pMC,4);
+        pMessage->exec();
+        delete pMessage;
+        pMessage = NULL;
+    }
+
+
+}
+//return the speed, KB/s
+int dldataquery::FileTransfer(QString sourceDir ,QString toDir)
+{
+    if (sourceDir == toDir)
+    {
+           return 1;
+    }
+    if (!QFile::exists(sourceDir))
+    {
+       return 0;
+    }
+
+    QFile file(sourceDir);
+    int fSize = file.size();
+    fSize /=1024;
+
+    QDir *createfile     = new QDir;
+
+    if(createfile->exists(toDir))
+        createfile->remove(toDir);
+
+    delete createfile;
+
+    QTime t;
+    t.start();
+    if(!QFile::copy(sourceDir, toDir))
+    {
+        return 0;
+    }
+    int ems = t.elapsed();
+    //return ( fSize * 1000 / ems);
+    return ems;
+}
+//将原始数据txt文件导出
+int dldataquery::DataFileCopy(QString Path,QString CopyPath)
+{
+    char czDBName[255];
+    int nSpeed = -1;
+
+    for(int i=0;i<m_vtTime.size();i++)
+    {
+        QString sourceDir;
+        QString toDir;
+        QDateTime qTime = QDateTime::fromString(m_vtTime.at(i), "yyyy-MM-dd hh:mm:ss");
+        memset(czDBName,0,255);
+        sprintf(czDBName,"%04d%02d%02d-%02d%02d.txt",qTime.date().year(),qTime.date().month(),qTime.date().day(),qTime.time().hour(),qTime.time().minute());
+        sourceDir += Path;
+        sourceDir += QString(czDBName);
+        toDir += CopyPath;
+        toDir += QString(czDBName);
+        nSpeed = FileTransfer(sourceDir,toDir);
+
+    }
+}
+//将流水日志文件导出
+int dldataquery::LogFileCopy(QString Path,QString CopyPath)
+{
+    char czDBName[255];
+    int nSpeed = -1;
+
+    for(int i=0;i<m_vtTime.size();i++)
+    {
+        QString sourceDir;
+        QString toDir;
+        QDateTime qTime = QDateTime::fromString(m_vtTime.at(i), "yyyy-MM-dd hh:mm:ss");
+        memset(czDBName,0,255);
+        sprintf(czDBName,"log%04d%02d%02d-%02d%02d.txt",qTime.date().year(),qTime.date().month(),qTime.date().day(),qTime.time().hour(),qTime.time().minute());
+        sourceDir += Path;
+        sourceDir += QString(czDBName);
+        toDir += CopyPath;
+        toDir += QString(czDBName);
+        nSpeed = FileTransfer(sourceDir,toDir);
+
+    }
+}
+//将查询出来的数据导出
+void dldataquery::ResultDataExport(const char* czPath)
+{
+    int nColumn = ui->tabwidData->columnCount();
+    int nRow = ui->tabwidData->rowCount();
+    QString qsContent;
+
+    QString qsTxtFilePath = QString(czPath) + "ResultData.xls";
+    QFile file(qsTxtFilePath);
+    QTextStream stream(&file);
+    file.open(QIODevice::WriteOnly | QIODevice::Text);
+    for(int k=0;k<nColumn;k++)//获取头名称
+    {
+        if(ui->tabwidData->horizontalHeaderItem(k))
+        {
+            qsContent = ui->tabwidData->horizontalHeaderItem(k)->text();
+        }
+        stream <<qsContent;
+        stream<<"\t";
+    }
+    stream << "\r\n";
+    for(int i=0;i<nRow;i++)//获取表内数据
+    {
+        for(int j=0;j<nColumn;j++)
+        {
+           QTableWidgetItem *item = ui->tabwidData->item(i,j);
+            if(item != NULL)
+            {
+                QString qsContent = item->text();
+                stream <<qsContent;
+                stream<<"\t";
+            }
+        }
+        stream << "\r\n";
+    }
+    file.close();
+
+}
+//将yq.db导出
+int dldataquery::FileYQDataCopy(const char* czPath)
+{
+    QString toDir = QString(czPath) + "yq.db";
+    QString sourceDir = QString(DB_ROOT_PATH) + "/yqdata/yq.db";
+    int nSpeed = FileTransfer(sourceDir,toDir);
+    return nSpeed;
+}
+void dldataquery::on_down_clicked()
+{
+    ui->wgDataInfo->hide();
+    int size = 10;
+    int nCurRow = ui->tabwidData->verticalScrollBar()->value();
+
+    if (nCurRow+12 < ui->tabwidData->rowCount())
+    {
+        ui->tabwidData->verticalScrollBar()->setSliderPosition(nCurRow + size);
+    }
+    else
+    {
+        ui->tabwidData->verticalScrollBar()->setSliderPosition(0);
+    }
+}
+
+void dldataquery::on_up_clicked()
+{
+    ui->wgDataInfo->hide();
+    int size = 10;
+    int nCurRow = ui->tabwidData->verticalScrollBar()->value();
+
+    if (nCurRow > 0)
+    {
+        ui->tabwidData->verticalScrollBar()->setSliderPosition(nCurRow - size);
+    }
+    else
+    {
+        ui->tabwidData->verticalScrollBar()->setSliderPosition(ui->tabwidData->rowCount());
+    }
+}
+
+void dldataquery::on_comboBox_currentIndexChanged(const QString &arg1)
+{
+    if("日志信息" == arg1)
+    {
+        ui->checkBoxALARM->show();
+        ui->checkBoxFault->show();
+        ui->checkBoxWarn->show();
+        ui->checkBoxNamol->show();
+        ui->comboBoxLogType->show();
+
+        ui->checkBoxALARM->setChecked(true);
+        ui->checkBoxFault->setChecked(true);
+        ui->checkBoxWarn->setChecked(true);
+        ui->checkBoxNamol->setChecked(true);
+        ui->butExport->hide();//隐藏数据导出按钮
+        //ui->butQuery->setGeometry(QRect(500,10,100,35));
+        ui->chkDetailData->hide();
+    }
+    else if("内标数据" == arg1)
+    {
+        ui->chkDetailData->hide();
+    }
+    else if("斜率" == arg1)
+    {
+        ui->chkDetailData->hide();
+    }
+    else
+    {
+        ui->chkDetailData->show();
+        ui->checkBoxALARM->hide();
+        ui->checkBoxFault->hide();
+        ui->checkBoxWarn->hide();
+        ui->checkBoxNamol->hide();
+        ui->comboBoxLogType->hide();
+        ui->butExport->show();
+    }
+}
+//10S后隐藏数据导出中字样
+void dldataquery::OnHideWordMovie()
+{
+    ui->labelMovie->hide();
+    ui->labelWord->hide();
+    Timer->stop();
+    sync();//同步
+    QMessageBox::information(NULL, "提示信息","数据导出成功！");
+}
+void dldataquery::OnQueryData()
+{
+    QueryTimer->stop();
+    ui->tabwidData->clear();
+    ui->tabwidData->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+    ui->tabwidData->setEditTriggers(QAbstractItemView::NoEditTriggers);//设置不可编辑
+    if("水样数据" == ui->comboBox->currentText())
+    {
+        if(iYQType == 3)
+            ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::ResizeToContents);
+        else
+            ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::Fixed);
+        ui->tabwidData->setGeometry(QRect(7,60,626,328));
+        ui->textEdit->show();
+        ui->radiobtnmg->show();
+        ui->radiobtnug->show();
+        ui->checkBox->show();
+        ResultDataQuery();
+
+    }else if("核查数据" == ui->comboBox->currentText())
+    {        
+        if(iYQType == 3)
+            ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::ResizeToContents);
+        else
+            ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::Fixed);
+        ui->tabwidData->setGeometry(QRect(7,60,626,328));
+        ui->textEdit->show();
+        ui->radiobtnmg->show();
+        ui->radiobtnug->show();
+        ui->checkBox->show();
+        StandardDataQuery();
+    }
+    else if("斜率" == ui->comboBox->currentText())
+    {
+        ui->chkDetailData->hide();
+        ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
+        ui->tabwidData->setGeometry(QRect(7,60,626,380));
+        ui->textEdit->hide();
+        ui->radiobtnmg->hide();
+        ui->radiobtnug->hide();
+        ui->checkBox->hide();
+        SlopeDataQuery();
+    }else if("日志信息" == ui->comboBox->currentText())
+    {
+        ui->chkDetailData->hide();
+        ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::Fixed);
+        ui->tabwidData->setGeometry(QRect(7,60,626,380));
+        ui->textEdit->hide();
+        ui->radiobtnmg->hide();
+        ui->radiobtnug->hide();
+        ui->checkBox->hide();
+        MaintainInfoQuery();
+    }
+    else if("详细数据" == ui->comboBox->currentText())
+    {
+        ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::Fixed);
+        ui->tabwidData->setGeometry(QRect(7,60,626,328));
+        ui->textEdit->show();
+        ui->radiobtnmg->show();
+        ui->radiobtnug->show();
+        ui->checkBox->show();
+        DetailedDataQuery();
+    }
+    else if("内标数据" == ui->comboBox->currentText())
+    {
+        ui->chkDetailData->hide();
+        ui->tabwidData->horizontalHeader()->setResizeMode(QHeaderView::Fixed);
+        ui->tabwidData->setGeometry(QRect(7,60,626,328));
+        ui->textEdit->show();
+        ui->radiobtnmg->show();
+        ui->radiobtnug->show();
+        ui->checkBox->show();
+        AdjustDataQuery();
+    }
+    else
+    {
+        //do nothing
+    }
+    ui->butQuery->setEnabled(true);
+    ui->butQuery->setText("查询");
+}
+
+void dldataquery::on_BtnCurve_clicked()
+{
+    QTableWidgetItem *item = ui->tabwidData->currentItem();
+    if(NULL != item)
+    {
+        int iselRow = item->row();
+        int iselCol = item->column();
+        if(iselCol > 0) //判断选择的不是时间列
+        {
+            QString qsTime;
+
+            if(ui->tabwidData->item(iselRow,0))
+            {
+                qsTime = ui->tabwidData->item(iselRow,0)->text();
+            }
+
+            if(qsTime.length() > 0)
+            {
+                DispDataCurve* pdatacurve = new DispDataCurve(m_pMC,qsTime,ui->comboBox->currentIndex());
+                pdatacurve->move((qApp->desktop()->width() - pdatacurve->width())/2,(qApp->desktop()->height() - pdatacurve->height())/2);
+                pdatacurve->exec();
+                delete pdatacurve;
+                pdatacurve = NULL;
+            }
+        }
+    }
+
+}
+
+void dldataquery::on_butLock_clicked()
+{
+    if(!m_bLockDataInfo)
+    {
+        ui->butLock->setToolTip("解锁");
+        m_bLockDataInfo = true;
+        ui->butLock->setIcon(QIcon(":/res/lock.png"));
+        timeDaInfo->stop();
+    }
+    else
+    {
+        ui->butLock->setToolTip("锁定");
+        ui->butLock->setIcon(QIcon(":/res/unlock.png"));
+        m_bLockDataInfo = false;
+        timeDaInfo->start(4000);
+    }
+}

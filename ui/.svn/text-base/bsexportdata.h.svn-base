@@ -1,0 +1,43 @@
+#ifndef BSEXPORTDATA_H
+#define BSEXPORTDATA_H
+
+#include <QDialog>
+#include "../core/cdbbusiness.h"
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class bsExportData;
+}
+
+class bsExportData : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit bsExportData(CMainCtrl* pMC,QWidget *parent = 0);
+    ~bsExportData();
+    
+private slots:
+    void on_butExportData_clicked();
+    void on_butClose_clicked();
+
+    void on_chkAllData_clicked(bool checked);
+
+    void on_butExportData_2_clicked();
+
+private:
+    Ui::bsExportData *ui;
+    CMainCtrl* m_pMC;
+    CDBBusiness* m_pDB;//保存过程数据的数据库对象
+    //char czTxtFile[256];
+    char czDBFile[256];
+    char czChildPath[256];
+    void Init();
+    bool copyFileToPath(QString sourceDir ,QString toDir);
+    QVector<QString> qve_AllFile;
+
+    sqlite_db* pDB;
+    char m_DBName[MAX_DBNAME];
+};
+
+#endif // BSEXPORTDATA_H

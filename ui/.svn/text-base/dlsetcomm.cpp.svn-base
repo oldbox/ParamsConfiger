@@ -1,0 +1,371 @@
+#include "dlsetcomm.h"
+#include "ui_dlsetcomm.h"
+#include <QTextCodec>
+#include <QMessageBox>
+
+dlSetComm::dlSetComm(QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::dlSetComm)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    this->resize(QSize(640,422));
+
+    m_iYQType = GetAfxYQType();    
+    this->Init();
+
+    for(int i = 0;i<ui->liwidBaudrate->count();i++)
+    {
+        int iBaudrate = ui->liwidBaudrate->item(i)->text().trimmed().toInt();
+        if(iBaudrate == 9600)
+        {
+            ui->liwidBaudrate->setCurrentRow(i);
+            break;
+        }
+    }
+
+    for(int i = 0;i<ui->liwidDataBit->count();i++)
+    {
+        int iDataBit = ui->liwidDataBit->item(i)->text().trimmed().toInt();
+        if(iDataBit == 8)
+        {
+            ui->liwidDataBit->setCurrentRow(i);
+            break;
+        }
+    }
+
+    for(int i = 0;i<ui->liwidStopBit->count();i++)
+    {
+        int iDataBit = ui->liwidStopBit->item(i)->text().trimmed().toInt();
+        if(iDataBit == 1)
+        {
+            ui->liwidStopBit->setCurrentRow(i);
+            break;
+        }
+    }
+
+    ui->liwidParity->setCurrentRow(0);
+
+
+ //   ui->listwidBaudrate->setCurrentIndex(ui->listwidBaudrate->findItems("9600"));
+
+//    ui->cbxBaudrate->setCurrentIndex(ui->cbxBaudrate->findText("9600"));
+//    ui->cbxDataBit->setCurrentIndex(ui->cbxDataBit->findText("8"));
+//    ui->cbxStopBit->setCurrentIndex(ui->cbxStopBit->findText("1"));
+//    ui->cbxParity->setCurrentIndex(ui->cbxParity->findText("无"));
+}
+
+dlSetComm::~dlSetComm()
+{
+    delete listItem;
+    delete ui;
+}
+
+void dlSetComm::Init()
+{
+    ui->cbxModuleCOM->clear();
+    ui->cbxConcertModule->clear();
+    ui->cbxOutputCOM->clear();
+    mapComList.clear();
+
+    for(int i=0;i<11;i++)
+    {
+        QString sCOM,sValue;
+        sCOM.sprintf("COM%d",i);
+        sValue = QString(i);
+        listItem = new QListWidgetItem(sCOM);
+        mapComList.insert(sCOM,i);
+        ui->cbxModuleCOM->addItem(sCOM,sValue);
+        ui->cbxConcertModule->addItem(sCOM,sValue);
+        ui->cbxOutputCOM->addItem(sCOM,sValue);
+    }
+//    ui->cbxParity->addItem("无","N");
+//    ui->cbxParity->addItem("奇校验","O");
+//    ui->cbxParity->addItem("偶校验","E");
+
+    char cProcessType[64];
+    char cValue[64];
+    //COM设置
+    memset(cProcessType,0,64);
+    sprintf(cProcessType,"ProcessType_%d",m_iYQType);
+
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni(cProcessType,"comport",cValue))
+    {
+        ui->cbxModuleCOM->setCurrentIndex(atoi(cValue));
+    }
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni(cProcessType,"outcomport",cValue))
+    {
+        ui->cbxOutputCOM->setCurrentIndex(atoi(cValue));
+    }
+
+    if(m_iYQType == 3)
+    {
+        memset(cValue,0,64);
+        if(GetAfxConfig()->GetIni(cProcessType,"comport1",cValue))
+        {
+            ui->cbxConcertModule->setCurrentIndex(atoi(cValue));
+        }
+    }
+    else
+    {
+        ui->cbxConcertModule->hide();
+        ui->labConcertModule->hide();
+    }
+
+    //网络设置
+//     memset(cValue,0,64);
+//     if(GetAfxConfig()->GetIni("NETGROUP","GBIP",cValue))
+//     {
+//         ui->litGBIP->setText(QString(cValue));
+//     }
+//     memset(cValue,0,64);
+//     if(GetAfxConfig()->GetIni("NETGROUP","GBPORT",cValue))
+//     {
+//         ui->litGBPort->setText(QString(cValue));
+//     }
+//     memset(cValue,0,64);
+//     if(GetAfxConfig()->GetIni("NETGROUP","GBMN",cValue))
+//     {
+//         ui->litGBMN->setText(QString(cValue));
+//     }
+//     memset(cValue,0,64);
+//     if(GetAfxConfig()->GetIni("NETGROUP","GBPW",cValue))
+//     {
+//         ui->litGBPWD->setText(QString(cValue));
+//     }
+}
+
+void dlSetComm::on_btnSave_clicked()
+{
+    char cProcessType[64];
+    char cValue[64];
+    //----COM设置
+    memset(cProcessType,0,64);
+    sprintf(cProcessType,"ProcessType_%d",m_iYQType);
+
+    memset(cValue,0,64);
+    sprintf(cValue,"%d",ui->cbxModuleCOM->currentIndex());
+    GetAfxConfig()->SetIni(cProcessType,"comport",cValue);
+    memset(cValue,0,64);
+    sprintf(cValue,"%d",ui->cbxOutputCOM->currentIndex());
+    GetAfxConfig()->SetIni(cProcessType,"outcomport",cValue);
+    if(m_iYQType == 3)
+    {
+        memset(cValue,0,64);
+        sprintf(cValue,"%d",ui->cbxConcertModule->currentIndex());
+        GetAfxConfig()->SetIni(cProcessType,"comport1",cValue);
+    }
+
+    //----COM属性
+    char cGroup[64];
+    int iVal = ui->liWidComList->currentIndex().row();
+    memset(cGroup,0,64);
+    sprintf(cGroup,"comport_%d",iVal);
+
+    //波特率
+    memset(cValue,0,64);
+    sprintf(cValue,"%d",ui->liwidBaudrate->currentItem()->text().trimmed().toInt());
+    GetAfxConfig()->SetIni(cGroup,"baudrate",cValue);
+
+    //数据位
+    memset(cValue,0,64);
+    sprintf(cValue,"%d",ui->liwidDataBit->currentItem()->text().trimmed().toInt());
+    GetAfxConfig()->SetIni(cGroup,"databit",cValue);
+
+    //停止位
+    memset(cValue,0,64);
+    sprintf(cValue,"%d",ui->liwidStopBit->currentItem()->text().trimmed().toInt());
+     GetAfxConfig()->SetIni(cGroup,"stopbit",cValue);
+
+    //校验位
+     memset(cValue,0,64);
+     int iParity = ui->liwidParity->currentIndex().row();
+     if(iParity == 0)
+         strcpy(cValue,"N");
+     else if(iParity == 1)
+         strcpy(cValue,"O");
+     else if(iParity == 2)
+         strcpy(cValue,"E");
+
+     GetAfxConfig()->SetIni(cGroup,"parity",cValue);
+
+    //----通信
+//    memset(cValue,0,64);
+//    strcpy(cValue,ui->litGBIP->text().trimmed().toLatin1().data());
+//    GetAfxConfig()->SetIni("NETGROUP","GBIP",cValue);
+//    memset(cValue,0,64);
+//    strcpy(cValue,ui->litGBPort->text().trimmed().toLatin1().data());
+//    GetAfxConfig()->SetIni("NETGROUP","GBPORT",cValue);
+//    memset(cValue,0,64);
+//    strcpy(cValue,ui->litGBMN->text().trimmed().toLatin1().data());
+//    GetAfxConfig()->SetIni("NETGROUP","GBMN",cValue);
+//    memset(cValue,0,64);
+//    strcpy(cValue,ui->litGBPWD->text().trimmed().toLatin1().data());
+//    GetAfxConfig()->SetIni("NETGROUP","GBPW",cValue);
+
+    QMessageBox::information(NULL, "提示信息", "保存成功!");
+}
+//选择COM时，返回相信的COM的属性(波特率、数据位、停止位、是否奇偶校验)
+//void dlSetComm::on_cbxModuleCOM_2_currentIndexChanged(int index)
+//{
+//    char cGroup[64];
+//    char cValue[64];
+//    memset(cGroup,0,64);
+//    sprintf(cGroup,"comport_%d",index);
+
+//    memset(cValue,0,64);
+//    if(GetAfxConfig()->GetIni(cGroup,"baudrate",cValue))
+//    {
+//        ui->cbxBaudrate->setCurrentIndex(ui->cbxBaudrate->findText(cValue));
+//    }
+//    else
+//    {
+//        ui->cbxBaudrate->setCurrentIndex(ui->cbxBaudrate->findText("9600"));
+//    }
+//    memset(cValue,0,64);
+//    if(GetAfxConfig()->GetIni(cGroup,"databit",cValue))
+//    {
+//        ui->cbxDataBit->setCurrentIndex(ui->cbxDataBit->findText(cValue));
+//    }
+//    else
+//    {
+//        ui->cbxDataBit->setCurrentIndex(ui->cbxDataBit->findText("8"));
+//    }
+//    memset(cValue,0,64);
+//    if(GetAfxConfig()->GetIni(cGroup,"stopbit",cValue))
+//    {
+//        ui->cbxStopBit->setCurrentIndex(ui->cbxStopBit->findText(cValue));
+//    }
+//    else
+//    {
+//        ui->cbxStopBit->setCurrentIndex(ui->cbxStopBit->findText("1"));
+//    }
+//    memset(cValue,0,64);
+//    if(GetAfxConfig()->GetIni(cGroup,"parity",cValue))
+//    {
+//        ui->cbxParity->setCurrentIndex(ui->cbxParity->findData(cValue));
+//    }
+//    else
+//    {
+//        ui->cbxParity->setCurrentIndex(ui->cbxParity->findText("无"));
+//    }
+//}
+
+void dlSetComm::on_btnClose_clicked()
+{
+    this->close();
+    emit EmityParWinClolse();
+}
+
+
+
+void dlSetComm::on_liWidComList_clicked(const QModelIndex &index)
+{
+    char cGroup[64];
+    char cValue[64];
+    memset(cGroup,0,64);
+    sprintf(cGroup,"comport_%d",index.row());
+
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni(cGroup,"baudrate",cValue))
+    {
+        for(int i = 0;i<ui->liwidBaudrate->count();i++)
+        {
+            int iBaudrate = ui->liwidBaudrate->item(i)->text().trimmed().toInt();
+            if(iBaudrate == atoi(cValue))
+            {
+                ui->liwidBaudrate->setCurrentRow(i);
+                break;
+            }
+        }
+    }
+    else
+    {
+        for(int i = 0;i<ui->liwidBaudrate->count();i++)
+        {
+            int iBaudrate = ui->liwidBaudrate->item(i)->text().trimmed().toInt();
+            if(iBaudrate == 9600)
+            {
+                ui->liwidBaudrate->setCurrentRow(i);
+                break;
+            }
+        }
+    }
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni(cGroup,"databit",cValue))
+    {
+        for(int i = 0;i<ui->liwidDataBit->count();i++)
+        {
+            int iDataBit = ui->liwidDataBit->item(i)->text().trimmed().toInt();
+            if(iDataBit == atoi(cValue))
+            {
+                ui->liwidDataBit->setCurrentRow(i);
+                break;
+            }
+        }
+    }
+    else
+    {
+        for(int i = 0;i<ui->liwidDataBit->count();i++)
+        {
+            int iDataBit = ui->liwidDataBit->item(i)->text().trimmed().toInt();
+            if(iDataBit == 8)
+            {
+                ui->liwidDataBit->setCurrentRow(i);
+                break;
+            }
+        }
+    }
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni(cGroup,"stopbit",cValue))
+    {
+        for(int i = 0;i<ui->liwidStopBit->count();i++)
+        {
+            int iDataBit = ui->liwidStopBit->item(i)->text().trimmed().toInt();
+            if(iDataBit == atoi(cValue))
+            {
+                ui->liwidStopBit->setCurrentRow(i);
+                break;
+            }
+        }
+    }
+    else
+    {
+        for(int i = 0;i<ui->liwidStopBit->count();i++)
+        {
+            int iDataBit = ui->liwidStopBit->item(i)->text().trimmed().toInt();
+            if(iDataBit == 1)
+            {
+                ui->liwidStopBit->setCurrentRow(i);
+                break;
+            }
+        }
+    }
+
+    memset(cValue,0,64);
+    if(GetAfxConfig()->GetIni(cGroup,"parity",cValue))
+    {
+        if(!strcmp(cValue,"N"))
+        {
+            ui->liwidParity->setCurrentRow(0);
+        }
+        else if(!strcmp(cValue,"O"))
+        {
+            ui->liwidParity->setCurrentRow(1);
+        }
+        else if(!strcmp(cValue,"E"))
+        {
+            ui->liwidParity->setCurrentRow(2);
+        }
+    }
+    else
+    {
+        ui->liwidParity->setCurrentRow(0);
+    }
+}

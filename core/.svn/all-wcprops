@@ -1,0 +1,497 @@
+K 25
+svn:wc:ra_dav:version-url
+V 38
+/svn/linux_yq/!svn/ver/1520/trunk/core
+END
+vardef.h
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/linux_yq/!svn/ver/1519/trunk/core/vardef.h
+END
+tcpserver.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/linux_yq/!svn/ver/740/trunk/core/tcpserver.cpp
+END
+cprocess.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/linux_yq/!svn/ver/1515/trunk/core/cprocess.cpp
+END
+cprocessstatus.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/linux_yq/!svn/ver/809/trunk/core/cprocessstatus.cpp
+END
+Arithmetic.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/linux_yq/!svn/ver/1143/trunk/core/Arithmetic.cpp
+END
+cserialport.h
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1058/trunk/core/cserialport.h
+END
+cyq.h
+K 25
+svn:wc:ra_dav:version-url
+V 44
+/svn/linux_yq/!svn/ver/1202/trunk/core/cyq.h
+END
+cdriver.h
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/linux_yq/!svn/ver/876/trunk/core/cdriver.h
+END
+paramdict.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1519/trunk/core/paramdict.cpp
+END
+cmodbusregister.h
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/linux_yq/!svn/ver/840/trunk/core/cmodbusregister.h
+END
+cprocess0.h
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/linux_yq/!svn/ver/21/trunk/core/cprocess0.h
+END
+cconfig.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1465/trunk/core/cconfig.cpp
+END
+cprocess2.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1503/trunk/core/cprocess2.h
+END
+cprocess4.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1463/trunk/core/cprocess4.h
+END
+cmainctrl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1519/trunk/core/cmainctrl.cpp
+END
+cprocess6.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1463/trunk/core/cprocess6.h
+END
+cmydatabase.h
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1407/trunk/core/cmydatabase.h
+END
+minIni.c
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/linux_yq/!svn/ver/603/trunk/core/minIni.c
+END
+myplot.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/linux_yq/!svn/ver/1500/trunk/core/myplot.cpp
+END
+cyqs.h
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/linux_yq/!svn/ver/1383/trunk/core/cyqs.h
+END
+cdriver1.h
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/linux_yq/!svn/ver/876/trunk/core/cdriver1.h
+END
+cdriver3.h
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/linux_yq/!svn/ver/1333/trunk/core/cdriver3.h
+END
+cserialport.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/linux_yq/!svn/ver/1132/trunk/core/cserialport.cpp
+END
+cdriver5.h
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/linux_yq/!svn/ver/874/trunk/core/cdriver5.h
+END
+minIni.h
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/linux_yq/!svn/ver/597/trunk/core/minIni.h
+END
+cdbmanager.h
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/linux_yq/!svn/ver/1104/trunk/core/cdbmanager.h
+END
+cmodbus.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1296/trunk/core/cmodbus.cpp
+END
+gbtcpclient.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/linux_yq/!svn/ver/819/trunk/core/gbtcpclient.cpp
+END
+cmodbusregister.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/linux_yq/!svn/ver/840/trunk/core/cmodbusregister.cpp
+END
+cprocess0.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/22/trunk/core/cprocess0.cpp
+END
+cprocess1.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1478/trunk/core/cprocess1.cpp
+END
+cprocess2.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1514/trunk/core/cprocess2.cpp
+END
+cprocess3.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1520/trunk/core/cprocess3.cpp
+END
+cprocess4.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1515/trunk/core/cprocess4.cpp
+END
+VocArithmetic.h
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/linux_yq/!svn/ver/1491/trunk/core/VocArithmetic.h
+END
+cprocess5.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1470/trunk/core/cprocess5.cpp
+END
+cprocess6.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1515/trunk/core/cprocess6.cpp
+END
+cprocess7.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1514/trunk/core/cprocess7.cpp
+END
+paramdict.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1519/trunk/core/paramdict.h
+END
+cmydatabase.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/linux_yq/!svn/ver/1470/trunk/core/cmydatabase.cpp
+END
+cconfig.h
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/linux_yq/!svn/ver/1345/trunk/core/cconfig.h
+END
+cdriver0.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/linux_yq/!svn/ver/31/trunk/core/cdriver0.cpp
+END
+cdriver1.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/876/trunk/core/cdriver1.cpp
+END
+cyqs.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/linux_yq/!svn/ver/1498/trunk/core/cyqs.cpp
+END
+cdriver2.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/874/trunk/core/cdriver2.cpp
+END
+cmainctrl.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1519/trunk/core/cmainctrl.h
+END
+cdriver3.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/linux_yq/!svn/ver/1338/trunk/core/cdriver3.cpp
+END
+cdriver4.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/876/trunk/core/cdriver4.cpp
+END
+cdriver5.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/874/trunk/core/cdriver5.cpp
+END
+cdbmanager.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/linux_yq/!svn/ver/1376/trunk/core/cdbmanager.cpp
+END
+IniFile.h
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/linux_yq/!svn/ver/580/trunk/core/IniFile.h
+END
+cmethod.h
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/linux_yq/!svn/ver/15/trunk/core/cmethod.h
+END
+myplot.h
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/linux_yq/!svn/ver/1500/trunk/core/myplot.h
+END
+tcpclient.h
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/linux_yq/!svn/ver/819/trunk/core/tcpclient.h
+END
+ccomm.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/linux_yq/!svn/ver/819/trunk/core/ccomm.cpp
+END
+modbustcpslave.h
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/linux_yq/!svn/ver/819/trunk/core/modbustcpslave.h
+END
+cmodbus.h
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/linux_yq/!svn/ver/812/trunk/core/cmodbus.h
+END
+VocArithmetic.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/linux_yq/!svn/ver/1492/trunk/core/VocArithmetic.cpp
+END
+gbtcpclient.h
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/linux_yq/!svn/ver/819/trunk/core/gbtcpclient.h
+END
+cdbbusiness.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/linux_yq/!svn/ver/1407/trunk/core/cdbbusiness.cpp
+END
+minGlue.h
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/linux_yq/!svn/ver/597/trunk/core/minGlue.h
+END
+cprocess1.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1463/trunk/core/cprocess1.h
+END
+cprocess3.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1520/trunk/core/cprocess3.h
+END
+cprocess5.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1463/trunk/core/cprocess5.h
+END
+cdatabase.h
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/linux_yq/!svn/ver/443/trunk/core/cdatabase.h
+END
+cprocess7.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1495/trunk/core/cprocess7.h
+END
+IniFile.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/linux_yq/!svn/ver/580/trunk/core/IniFile.cpp
+END
+tcpserver.h
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/linux_yq/!svn/ver/713/trunk/core/tcpserver.h
+END
+cdriver0.h
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/linux_yq/!svn/ver/31/trunk/core/cdriver0.h
+END
+cmethod.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/linux_yq/!svn/ver/15/trunk/core/cmethod.cpp
+END
+cdriver2.h
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/linux_yq/!svn/ver/874/trunk/core/cdriver2.h
+END
+tcpclient.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/linux_yq/!svn/ver/819/trunk/core/tcpclient.cpp
+END
+cprocess.h
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/linux_yq/!svn/ver/1489/trunk/core/cprocess.h
+END
+cdriver4.h
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/linux_yq/!svn/ver/876/trunk/core/cdriver4.h
+END
+cprocessstatus.h
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/linux_yq/!svn/ver/809/trunk/core/cprocessstatus.h
+END
+modbustcpslave.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/linux_yq/!svn/ver/819/trunk/core/modbustcpslave.cpp
+END
+cyq.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/linux_yq/!svn/ver/1376/trunk/core/cyq.cpp
+END
+Arithmetic.h
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/linux_yq/!svn/ver/1143/trunk/core/Arithmetic.h
+END
+cdriver.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/linux_yq/!svn/ver/1487/trunk/core/cdriver.cpp
+END
+ccomm.h
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/linux_yq/!svn/ver/819/trunk/core/ccomm.h
+END
+cdatabase.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/linux_yq/!svn/ver/443/trunk/core/cdatabase.cpp
+END
+cdbbusiness.h
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/linux_yq/!svn/ver/1407/trunk/core/cdbbusiness.h
+END

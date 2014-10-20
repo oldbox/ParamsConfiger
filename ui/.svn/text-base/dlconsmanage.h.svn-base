@@ -1,0 +1,58 @@
+#ifndef DLCONSMANAGE_H
+#define DLCONSMANAGE_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include <QTableWidgetItem>
+
+#define NUM_RadSize 6
+
+namespace Ui {
+class dlConsManage;
+}
+
+class dlConsManage : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlConsManage(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlConsManage();
+    
+private slots:
+    void on_butClose_clicked();
+    void on_tabConsumeinfo_itemClicked(QTableWidgetItem *item);
+    void on_btnAdd5_clicked();
+    void on_btnAdd1_clicked();
+    void on_btnAdd20_clicked();
+    void on_btnAdd100_clicked();
+    void on_btnAdd500_clicked();
+    void on_btnReduce5_clicked();
+    void on_btnReduce20_clicked();
+    void on_btnReduce100_clicked();
+    void on_btnReduce500_clicked();
+    void on_btnReduce1_clicked();
+    void on_btnAddAll_clicked();
+    void on_tabConsumeinfo_itemDoubleClicked(QTableWidgetItem *item);
+    void on_butSave_clicked();
+
+    void on_btnDelAll_clicked();
+
+private:
+    Ui::dlConsManage *ui;
+    int m_nClick;
+    CDBBusiness* m_pDB;
+    void mousePressEvent(QMouseEvent * mouseEvent);
+    void Init();
+    int m_iYQType;
+    void GetConsumeinfo(struConsumeInfo *model);
+    void DealReagentValue(int nValue);
+    int m_nReagentValue[NUM_RadSize];
+    int m_nReagentMax[NUM_RadSize];
+    bool UpdateConsumeInfo();
+    void GetProBarItem();
+    float m_fRealValue[NUM_RadSize];
+    CMainCtrl* m_pMC;
+};
+
+#endif // DLCONSMANAGE_H

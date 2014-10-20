@@ -1,0 +1,61 @@
+#ifndef VOC_DLGCURVESHOW_H
+#define VOC_DLGCURVESHOW_H
+
+#include <QDialog>
+#include <QDateTime>
+#include "../core/cdbbusiness.h"
+
+namespace Ui {
+class voc_dlgCurveShow;
+}
+class Plot;
+class QwtPlotZoomer;
+class voc_dlgCurveShow : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit voc_dlgCurveShow(QWidget *parent = 0);
+    ~voc_dlgCurveShow();
+
+    void appendPoint(QPointF point);//添加数据
+    void end();//添加完最后一点后要求调用此函数终止定时器
+    void start(bool btag = false);//启动动态画曲线,btag=true表示基线
+private slots:
+    void on_pbtYAxisUp_clicked();
+
+    void on_pbtYAxisDown_clicked();
+
+    void on_pbtXAxisLeft_clicked();
+
+    void on_pbtXAxisRight_clicked();
+
+    void on_pbtSet_clicked();
+
+private:
+    Ui::voc_dlgCurveShow *ui;
+    QwtPlotZoomer* m_zoomer;
+
+    Plot *m_plot;
+
+    float m_fMin_Y;
+    float m_fMax_Y;
+
+    float m_fMin_X;
+    float m_fMax_X;
+
+    int m_nMultiple;//Y轴倍数
+
+    float m_fMaxResponse;//最大AD值
+    float m_fCurrResponse;
+    long  m_nCurrID;//当前点编号
+
+    bool ReadIniFile(const char czTeam[],float& fValue);
+    bool ReadIniFile(const char czTeam[], int &nValue);
+    void WriteIniFile(const char czTeam[], int nValue);
+    void WriteIniFile(const char czTeam[], float fValue);
+
+    char* QSTimelabel( double v ) const;
+};
+
+#endif // VOC_DLGCURVESHOW_H

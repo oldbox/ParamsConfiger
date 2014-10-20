@@ -1,0 +1,38 @@
+#ifndef DLGDAMOREMAIND_H
+#define DLGDAMOREMAIND_H
+
+#include <QDialog>
+#include "../mainwindowbase.h"
+#include <QMessageBox>
+#include "core/cprocess2.h"
+
+namespace Ui {
+class dlgdamoremaind;
+}
+
+class dlgdamoremaind : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgdamoremaind(CMainCtrl* pMC,int nType,int nCaliKind,QWidget *parent = 0);
+    ~dlgdamoremaind();
+    
+private slots:
+    void on_btnYes1_clicked();
+
+    void on_btnYes2_clicked();
+
+    void on_btnYes3_clicked();
+
+    void on_btnYesGasAjust_clicked();
+
+private:
+    bool judgeYQConnect();
+    Ui::dlgdamoremaind *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    int m_nCaliKind;
+};
+
+#endif // DLGDAMOREMAIND_H

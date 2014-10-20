@@ -1,0 +1,407 @@
+#include "sfkeyboard.h"
+#include "ui_sfkeyboard.h"
+#include <iostream>
+
+#include <QDesktopWidget>
+
+using namespace std;
+
+SfKeyboard::SfKeyboard(QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::SfKeyboard),
+    lineEdit(NULL)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+
+    button_group = new QButtonGroup;
+    SetKeyBoard();
+    this->backgroundRole();
+    content = "";
+
+    connect(button_group,SIGNAL(buttonClicked (int)),this,SLOT(ButtonJudge(int)));
+}
+
+SfKeyboard::~SfKeyboard()
+{
+    delete button_group;
+    button_group = NULL;
+    lineEdit = NULL;
+    delete ui;
+}
+
+char SfKeyboard::keyCaseNms[26] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+                          'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+                          'w', 'x', 'y', 'z'};
+char SfKeyboard::keyUnCaseNms[26] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
+                            'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+                            'W', 'X', 'Y', 'Z'};
+void SfKeyboard::Clear()
+{
+    if(!content.isEmpty())
+    {
+        content.clear();
+    }
+}
+//获取编辑框的内容
+void SfKeyboard::GetEditContent(QString qsContent)
+{
+    if(content.isEmpty())
+    {
+        content.append(qsContent);
+    }
+}
+void SfKeyboard::SetCurLineEdit(QLineEdit *le)
+{
+    lineEdit = le;
+}
+
+void SfKeyboard::on_key_case_clicked()
+{
+    if(ui->key_case->text() == QString::fromUtf8("小写/数字"))
+    {
+        ui->key_case->setText(QString::fromUtf8("数字"));
+        FreshKeyBoard(false);
+    }
+    else if(ui->key_case->text() == QString::fromUtf8("数字"))
+    {
+        ui->key_case->setText(QString::fromUtf8("小写/数字"));
+        FreshKeyBoard();
+        ui->frame_2->show();
+    }
+}
+
+
+// ture  : 大写
+// false : 小写
+void SfKeyboard::FreshKeyBoard(bool state)
+{
+    QPushButton * keys[26] = {
+        ui->key_A, ui->key_B, ui->key_C, ui->key_D, ui->key_E, ui->key_F, ui->key_G, ui->key_H,
+        ui->key_I, ui->key_J, ui->key_K, ui->key_L, ui->key_M, ui->key_N, ui->key_O, ui->key_P, ui->key_Q,
+        ui->key_R, ui->key_S, ui->key_T, ui->key_U, ui->key_V, ui->key_W, ui->key_X, ui->key_Y, ui->key_Z
+    };
+    if(state)
+    {
+        for(int i = 0; i < 26; i++)
+        {
+            keys[i]->setText(QString(keyUnCaseNms[i]));
+        }
+    }
+    else
+    {
+        for(int i = 0; i < 26; i++)
+        {
+            keys[i]->setText(QString(keyCaseNms[i]));
+        }
+    }
+}
+
+
+void SfKeyboard::SetKeyBoard()
+{
+//    this->button_group->addButton(ui->key_0,Qt::Key_0);
+//    this->button_group->addButton(ui->key_1,Qt::Key_1);
+//    this->button_group->addButton(ui->key_2,Qt::Key_2);
+//    this->button_group->addButton(ui->key_3,Qt::Key_3);
+//    this->button_group->addButton(ui->key_4,Qt::Key_4);
+//    this->button_group->addButton(ui->key_5,Qt::Key_5);
+//    this->button_group->addButton(ui->key_6,Qt::Key_6);
+//    this->button_group->addButton(ui->key_7,Qt::Key_7);
+//    this->button_group->addButton(ui->key_8,Qt::Key_8);
+//    this->button_group->addButton(ui->key_9,Qt::Key_9);
+
+    this->button_group->addButton(ui->key_00,Qt::Key_0);
+    this->button_group->addButton(ui->key_01,Qt::Key_1);
+    this->button_group->addButton(ui->key_02,Qt::Key_2);
+    this->button_group->addButton(ui->key_03,Qt::Key_3);
+    this->button_group->addButton(ui->key_04,Qt::Key_4);
+    this->button_group->addButton(ui->key_05,Qt::Key_5);
+    this->button_group->addButton(ui->key_06,Qt::Key_6);
+    this->button_group->addButton(ui->key_07,Qt::Key_7);
+    this->button_group->addButton(ui->key_08,Qt::Key_8);
+    this->button_group->addButton(ui->key_09,Qt::Key_9);
+
+    this->button_group->addButton(ui->key_A,Qt::Key_A);
+    this->button_group->addButton(ui->key_B,Qt::Key_B);
+    this->button_group->addButton(ui->key_C,Qt::Key_C);
+    this->button_group->addButton(ui->key_D,Qt::Key_D);
+    this->button_group->addButton(ui->key_E,Qt::Key_E);
+    this->button_group->addButton(ui->key_F,Qt::Key_F);
+    this->button_group->addButton(ui->key_G,Qt::Key_G);
+    this->button_group->addButton(ui->key_H,Qt::Key_H);
+    this->button_group->addButton(ui->key_I,Qt::Key_I);
+    this->button_group->addButton(ui->key_J,Qt::Key_J);
+    this->button_group->addButton(ui->key_K,Qt::Key_K);
+    this->button_group->addButton(ui->key_L,Qt::Key_L);
+    this->button_group->addButton(ui->key_M,Qt::Key_M);
+    this->button_group->addButton(ui->key_N,Qt::Key_N);
+    this->button_group->addButton(ui->key_O,Qt::Key_O);
+    this->button_group->addButton(ui->key_P,Qt::Key_P);
+    this->button_group->addButton(ui->key_Q,Qt::Key_Q);
+    this->button_group->addButton(ui->key_R,Qt::Key_R);
+    this->button_group->addButton(ui->key_S,Qt::Key_S);
+    this->button_group->addButton(ui->key_T,Qt::Key_T);
+    this->button_group->addButton(ui->key_U,Qt::Key_U);
+    this->button_group->addButton(ui->key_V,Qt::Key_V);
+    this->button_group->addButton(ui->key_W,Qt::Key_W);
+    this->button_group->addButton(ui->key_X,Qt::Key_X);
+    this->button_group->addButton(ui->key_Y,Qt::Key_Y);
+    this->button_group->addButton(ui->key_Z,Qt::Key_Z);
+
+//    this->button_group->addButton(ui->key_dot, Qt::Key_Delete);
+//    this->button_group->addButton(ui->key_sub, Qt::Key_Minus);
+
+    this->button_group->addButton(ui->key_elimiante, Qt::Key_Clear);//清除按钮
+    this->button_group->addButton(ui->key_Enter, Qt::Key_Enter);
+    this->button_group->addButton(ui->key_backspace,Qt::Key_Backspace);//退格
+    this->button_group->addButton(ui->key_Escape, Qt::Key_Escape);
+
+    this->button_group->addButton(ui->key_elimiante1, Qt::Key_Clear);
+    this->button_group->addButton(ui->key_sub1, Qt::Key_Minus);
+    this->button_group->addButton(ui->key_Enter1, Qt::Key_Enter);
+    this->button_group->addButton(ui->key_dot1, Qt::Key_Delete);
+    this->button_group->addButton(ui->key_space, Qt::Key_Space);
+}
+
+void SfKeyboard::ButtonJudge(int id )
+{
+    bool state = false;
+    if(ui->key_case->text() == QString::fromUtf8("小写"))
+        state = true;
+
+    switch (id)
+    {
+    case Qt::Key_0 :
+        content += "0";
+        break;
+    case Qt::Key_1 :
+        content += "1";
+        break;
+    case Qt::Key_2 :
+        content += "2";
+        break;
+    case Qt::Key_3 :
+        content += "3";
+        break;
+    case Qt::Key_4 :
+        content += "4";
+        break;
+    case Qt::Key_5 :
+        content += "5";
+        break;
+    case Qt::Key_6 :
+        content += "6";
+        break;
+    case Qt::Key_7 :
+        content += "7";
+        break;
+    case Qt::Key_8 :
+        content += "8";
+        break;
+    case Qt::Key_9 :
+        content += "9";
+        break;
+
+
+    case Qt::Key_A :
+        if(state)
+            content += 'A';
+        else
+            content += 'a';
+        break;
+    case Qt::Key_B :
+        if(state)
+            content += 'B';
+        else
+            content += 'b';
+        break;
+    case Qt::Key_C :
+        if(state)
+            content += 'C';
+        else
+            content += 'c';
+        break;
+    case Qt::Key_D :
+        if(state)
+            content += 'D';
+        else
+            content += 'd';
+        break;
+    case Qt::Key_E :
+        if(state)
+            content += 'E';
+        else
+            content += 'e';
+        break;
+    case Qt::Key_F :
+        if(state)
+            content += 'F';
+        else
+            content += 'f';
+        break;
+    case Qt::Key_G :
+        if(state)
+            content += 'G';
+        else
+            content += 'g';
+        break;
+    case Qt::Key_H :
+        if(state)
+            content += 'H';
+        else
+            content += 'h';
+        break;
+    case Qt::Key_I :
+        if(state)
+            content += 'I';
+        else
+            content += 'i';
+        break;
+    case Qt::Key_J :
+        if(state)
+            content += 'J';
+        else
+            content += 'j';
+        break;
+    case Qt::Key_K :
+        if(state)
+            content += 'K';
+        else
+            content += 'k';
+        break;
+    case Qt::Key_L :
+        if(state)
+            content += 'L';
+        else
+            content += 'l';
+        break;
+    case Qt::Key_M :
+        if(state)
+            content += 'M';
+        else
+            content += 'm';
+        break;
+    case Qt::Key_N :
+        if(state)
+            content += 'N';
+        else
+            content += 'n';
+        break;
+    case Qt::Key_O :
+        if(state)
+            content += 'O';
+        else
+            content += 'o';
+        break;
+    case Qt::Key_P :
+        if(state)
+            content += 'P';
+        else
+            content += 'p';
+        break;
+    case Qt::Key_Q :
+        if(state)
+            content += 'Q';
+        else
+            content += 'q';
+        break;
+    case Qt::Key_R :
+        if(state)
+            content += 'R';
+        else
+            content += 'r';
+        break;
+    case Qt::Key_S :
+        if(state)
+            content += 'S';
+        else
+            content += 's';
+        break;
+    case Qt::Key_T :
+        if(state)
+            content += 'T';
+        else
+            content += 't';
+        break;
+    case Qt::Key_U :
+        if(state)
+            content += 'U';
+        else
+            content += 'u';
+        break;
+    case Qt::Key_V :
+        if(state)
+            content += 'V';
+        else
+            content += 'v';
+        break;
+    case Qt::Key_W :
+        if(state)
+            content += 'W';
+        else
+            content += 'w';
+        break;
+    case Qt::Key_X :
+        if(state)
+            content += 'X';
+        else
+            content += 'x';
+        break;
+    case Qt::Key_Y :
+        if(state)
+            content += 'Y';
+        else
+            content += 'y';
+        break;
+    case Qt::Key_Z :
+        if(state)
+            content += 'Z';
+        else
+            content += 'z';
+        break;
+
+    case Qt::Key_Clear :
+        content.clear();
+        break;
+
+    case Qt::Key_Backspace :
+        content.chop(1);
+        break;
+
+    case Qt::Key_Enter :
+        emit hide();
+        break;
+
+    case Qt::Key_Delete :
+        content += '.';
+        break;
+    case Qt::Key_Minus:
+        content += '-';
+        break;
+    case Qt::Key_Escape:
+        emit hide();
+        break;
+    case Qt::Key_Space:
+        content += ' ';
+        break;
+    default:
+//        emit this->SendInputMessage("wrong");
+        break;
+
+    }
+    contentChanged(content);
+}
+
+void SfKeyboard::contentChanged(QString s)
+{
+    if(lineEdit != NULL)
+    {
+        lineEdit->setText(s);
+    }
+}
+
+void SfKeyboard::on_key_Switch_clicked()
+{
+    ui->frame_2->hide();
+}

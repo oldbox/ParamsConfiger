@@ -1,0 +1,54 @@
+#ifndef WDTPROCESSDIAGRAM_H
+#define WDTPROCESSDIAGRAM_H
+
+#include <QWidget>
+#include <QDateTime>
+#include "wdtheavymetalproccessdiagram.h"
+#include "wdtheavymetalworkstate.h"
+#include "mainwindowbase.h"
+/*
+ * 不同的仪器设置不同的流路图和工作状态信息
+ * 注意:新的仪器添加新的类型名称
+ *
+ */
+enum YQType
+{
+    HEAVY_METAL, //重金属
+    SPECTRUM     //光谱仪
+};
+
+namespace Ui {
+class WdtProcessDiagram;
+}
+class WdtHeavyMetalCurve;
+class WdtProcessDiagram : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit WdtProcessDiagram(CMainCtrl* pMC,YQType type, QWidget *parent = 0);
+    ~WdtProcessDiagram();
+    void SetProcessDiagram(YQType ype);
+    
+private slots:
+    void on_btnYQState_clicked();
+
+    void on_btnYQRunState_clicked();
+
+private:
+    Ui::WdtProcessDiagram *ui;
+
+    QWidget *wdtYQState;
+    QWidget *wdtYQRunState;
+    WdtHeavyMetalCurve *wdtCurveShow;
+    CMainCtrl* m_pMC;
+
+    void SetHeavyMetal();
+    void SetSpectrumMetal();
+
+public:
+   void ShowCurve(int iProcessType,QDateTime dt,int iKind);
+   void RemoveCurve();
+};
+
+#endif // WDTPROCESSDIAGRAM_H

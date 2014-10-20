@@ -1,0 +1,51 @@
+#ifndef DLMONITORDATACURVE_H
+#define DLMONITORDATACURVE_H
+
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include "../core/paramdict.h"
+
+namespace Ui {
+class dlmonitordatacurve;
+}
+
+//class twoplot;
+//class QwtPlotZoomer;
+
+class dlmonitordatacurve : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlmonitordatacurve(CMainCtrl* pMC,QString qsStartTime,QString qsEndTime,QString qsYQCodeID,QString qLegName1,QString qLegName2,QWidget *parent = 0);
+    ~dlmonitordatacurve();
+    
+private slots:
+    void on_btnClose_clicked();
+
+    void on_btnExpand_clicked();
+
+    void on_btnNarrow_clicked();
+
+    void on_butQuery_clicked();
+
+private:
+    Ui::dlmonitordatacurve *ui;
+    CMainCtrl* m_pMC;
+//    twoplot *oneplot;
+    double *syX;
+    double *syY;
+    double *myX;
+    double *myY;
+    //paramdict* m_dict;
+
+//    QwtPlotZoomer *zoom;
+
+    void GetParamDictList(QString qsYQCodeID);
+    void SetDataType();
+    void ShowCurve(QString qsStartTime,QString QsEndTime,QString qsYQCodeID);
+    void Display(int syCount,int smCount);
+};
+
+#endif // DLMONITORDATACURVE_H

@@ -1,0 +1,288 @@
+#include "dlgbwtekinfo.h"
+#include "ui_dlgbwtekinfo.h"
+#include "../core/cconfig.h"
+dlgBwtekInfo::dlgBwtekInfo(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgBwtekInfo)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    ReadFromIni();
+}
+
+dlgBwtekInfo::~dlgBwtekInfo()
+{
+    delete ui;
+}
+
+void dlgBwtekInfo::ReadFromIni()
+{
+    ui->tableWidget->clear();
+    ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    ui->tableWidget->setColumnCount(2);
+    ui->tableWidget->setRowCount(35);
+    ui->tableWidget->setColumnWidth(0,120);
+    ui->tableWidget->setColumnWidth(1,175);
+
+
+    int nRow = 0;
+    char sSection[64];
+    char sName[64];
+    char sValue[255];
+    memset(sSection,0,64);
+    memset(sName,0,64);
+    memset(sValue,0,255);
+    strcpy(sSection,"EEPROM");
+    strcpy(sName,"Manufacture date");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+     strcpy(sName,"Hardware Code");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+     strcpy(sName,"BWS Version");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"AD Frequency");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+     memset(sSection,0,64);
+    strcpy(sSection,"COMMON");
+    memset(sName,0,64);
+    strcpy(sName,"title");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+     memset(sName,0,64);
+    strcpy(sName,"model");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+     memset(sName,0,64);
+    strcpy(sName,"pixel_start");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"pixel_end");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"step");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"pixel_num");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"units");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"bkcolor");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"show_mode");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"data_mode");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"data_mode");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"pixel_mode");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"inttime");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"intval");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"avenum");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"yaxis");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"coefs_a0");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"coefs_a1");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"coefs_a2");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"coefs_a3");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"coefs_b0");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"coefs_b1");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"coefs_b2");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"coefs_b3");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"dark_compensate");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"smoothing_enable");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"smoothing_type");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"smoothing_times");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"smoothing_degree");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"external_trig");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+    memset(sName,0,64);
+    strcpy(sName,"irradiance_flag");
+    if(GetAfxConfig(NULL,"sperom.ini")->GetIni(sSection,sName,sValue))
+    {
+        ui->tableWidget->setItem(nRow,0,new QTableWidgetItem(sName));
+        ui->tableWidget->setItem(nRow++,1,new QTableWidgetItem(sValue));
+    }
+}
+
+void dlgBwtekInfo::on_pbtClose_clicked()
+{
+    close();
+}

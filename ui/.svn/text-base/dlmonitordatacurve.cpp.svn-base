@@ -1,0 +1,245 @@
+#include "dlmonitordatacurve.h"
+#include "ui_dlmonitordatacurve.h"
+#include "../core/paramdict.h"
+//#include "../core/twoplot.h"
+#include <QMessageBox>
+#include <QTextCodec>
+//#include <../qwt/qwt_compat.h>
+
+using namespace std;
+
+
+dlmonitordatacurve::dlmonitordatacurve(CMainCtrl* pMC,QString qsStartTime,QString qsEndTime,QString qsYQCodeID,QString qLegName1,QString qLegName2,QWidget *parent) :
+    QDialog(parent),
+    syX(NULL),
+    syY(NULL),
+    ui(new Ui::dlmonitordatacurve)
+{
+    ui->setupUi(this);
+    setWindowFlags(Qt::FramelessWindowHint);
+    m_pMC = pMC;
+    //m_dict = new paramdict();
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+
+//    oneplot = new twoplot(770,480,qLegName1,qLegName2,ui->widget);
+//    zoom = new QwtPlotZoomer( QwtPlot::xBottom, QwtPlot::yLeft, oneplot->canvas() );
+//    zoom->setTrackerMode( QwtPicker::AlwaysOff );
+
+    ui->litStartTime->setText(qsStartTime);
+    ui->litEndTime->setText(qsEndTime);
+    this->GetParamDictList(qsYQCodeID);
+    this->SetDataType();
+    this->ShowCurve(qsStartTime,qsEndTime,qsYQCodeID);
+}
+
+dlmonitordatacurve::~dlmonitordatacurve()
+{
+    //delete m_dict;
+    delete ui;
+//    delete oneplot;
+    delete[] syX;
+    delete[] syY;
+    delete[] myX;
+    delete[] myY;
+}
+
+void dlmonitordatacurve::SetDataType()
+{
+    ui->cbxDataType->clear();
+    ui->cbxDataType->addItem(tr("周期数据").trimmed(),0);
+    ui->cbxDataType->addItem(tr("核查数据").trimmed(),1);
+    ui->cbxDataType->addItem(tr("标样数据").trimmed(),2);
+    ui->cbxDataType->addItem(tr("平行样数据").trimmed(),3);
+    ui->cbxDataType->setCurrentIndex(0);
+}
+
+void dlmonitordatacurve::GetParamDictList(QString qsYQCodeID)
+{
+    paramdict dict;
+    if(dict.paramlist.size() > 0)
+    {
+        ui->cbxParamList->clear();
+        ui->cbxParamList->insertItem(0,"—请选择—");
+        vector<paramitem>::iterator it;
+        for(it = dict.paramlist.begin(); it < dict.paramlist.end(); it++)
+        {
+            ui->cbxParamList->addItem((*it).CodeName,(*it).LHCodeID);
+        }
+
+        QString qsCodeName;
+        vector<paramitem>::iterator its;
+        for(its = dict.paramlist.begin(); its < dict.paramlist.end(); its++)
+        {
+            if(qsYQCodeID == (*its).LHCodeID)
+            {
+                qsCodeName = (*its).CodeName;
+                break;
+            }
+        }
+
+        if(qsCodeName.length() > 0)
+        {
+            for(int i=0;i<ui->cbxParamList->count();i++)
+            {
+                if(qsCodeName == ui->cbxParamList->itemText(i))
+                {
+                    ui->cbxParamList->setCurrentIndex(i);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void dlmonitordatacurve::ShowCurve(QString qsStartTime,QString qsEndTime,QString qsYQCodeID)
+{
+    int iDataTypeIndex = ui->cbxDataType->itemData(ui->cbxDataType->currentIndex()).toInt();
+    QStringList qlCodeList;
+    qlCodeList.clear();
+    qlCodeList.append(qsYQCodeID);
+    bool isResult = false;
+    sqlite_data datalist;
+    CDBBusiness* db = new CDBBusiness("yqdata","yq.db");
+    if(iDataTypeIndex == 0)  //周期数据
+    {
+        isResult = db->Get8051((const char*)qsStartTime.toLatin1().data(),(const char*)qsEndTime.toLatin1().data(),&qlCodeList,datalist);
+    }
+    else if(iDataTypeIndex == 1)  //核查数据
+    {
+        isResult = db->Get3016((const char*)qsStartTime.toLatin1().data(),(const char*)qsEndTime.toLatin1().data(),datalist);
+    }
+    else if(iDataTypeIndex == 2)   //标样数据
+    {
+    }
+    else if(iDataTypeIndex == 3)  //平行样数据
+    {
+        isResult = db->Get3025((const char*)qsStartTime.toLatin1().data(),(const char*)qsEndTime.toLatin1().data(),&qlCodeList,datalist);
+    }
+
+    if(NULL != db)
+    {
+        delete db;
+        db = NULL;
+    }
+
+    //oneplot->curve->setData(QwtArray<QwtDoublePoint>());
+    if(isResult)
+    {
+         if(!datalist.IsEmpty())
+         {
+             int syCount = 0;
+             int smCount = 0;
+             syCount = datalist.RowCount();
+             syX = new double[syCount];
+             syY = new double[syCount];
+             int iIndex = 0;
+             if(iDataTypeIndex == 0)  //周期数据
+             {
+                 for(int i=1;i<=datalist.RowCount();i++)
+                 {
+                     syX[iIndex] = i;
+                     QString qsValue = QString(datalist.GetData(i,2));
+                     if(qsValue.length() > 0)
+                     {
+                         if(qsValue.indexOf(" ") >= 0)
+                         {
+                             QStringList qslit = qsValue.split(" ");
+                             if(qslit.size() > 0)
+                             {
+                                 qsValue = qslit.at(0);
+                             }
+                         }
+                         syY[iIndex] = qsValue.toDouble();
+                     }
+                     iIndex ++;
+                 }
+             }
+             else if(iDataTypeIndex == 1)  //核查数据
+             {
+                 for(int i=1;i<=datalist.RowCount();i++)
+                 {
+                     syX[iIndex] = i;
+                     QString qsValue = QString(datalist.GetData(i,2));
+                     if(qsValue.length() > 0)
+                     {
+                         if(qsValue.indexOf("&") >= 0)
+                         {
+                             QStringList qslit = qsValue.split("&");
+                             if(qslit.size() > 0)
+                             {
+                                 qsValue = qslit.at(0);
+                             }
+                         }
+                         syY[iIndex] = qsValue.toDouble();
+                     }
+                     iIndex ++;
+                 }
+             }
+             else if(iDataTypeIndex == 2)   //标样数据
+             {
+             }
+             else if(iDataTypeIndex == 3)  //平行样数据
+             {
+                 for(int i=1;i<=datalist.RowCount();i++)
+                 {
+                     syX[iIndex] = i;
+                     QString qsValue = QString(datalist.GetData(i,2));
+                     if(qsValue.length() > 0)
+                     {
+                         if(qsValue.indexOf("&") >= 0)
+                         {
+                             QStringList qslit = qsValue.split("&");
+                             if(qslit.size() > 0)
+                             {
+                                 qsValue = qslit.at(0);
+                             }
+                         }
+                         syY[iIndex] = qsValue.toDouble();
+                     }
+                     iIndex ++;
+                 }
+             }
+
+             datalist.Free();
+             Display(syCount,smCount);
+         }
+         else
+         {            
+             QMessageBox::information(NULL, "提示信息","没有查询到相关数据.",QMessageBox::Ok);
+         }
+    }
+}
+
+void dlmonitordatacurve:: Display(int syCount,int smCount)
+{
+//    oneplot->curve1->setSamples( syX, syY, syCount );
+//    oneplot->curve2->setSamples( myX, myY, smCount );
+}
+
+void dlmonitordatacurve::on_btnClose_clicked()
+{
+    this->close();
+}
+//放大
+void dlmonitordatacurve::on_btnExpand_clicked()
+{
+//    zoom->zoom(0);
+}
+
+//缩小
+void dlmonitordatacurve::on_btnNarrow_clicked()
+{
+//    zoom->zoom(-1);
+}
+
+void dlmonitordatacurve::on_butQuery_clicked()
+{
+    QString qsSelYQCodeID = ui->cbxParamList->itemData(ui->cbxParamList->currentIndex()).toString();
+    QString qsStartTime = ui->litStartTime->text().trimmed();
+    QString qsEndTime = ui->litEndTime->text().trimmed();
+    this->ShowCurve(qsStartTime,qsEndTime,qsSelYQCodeID);
+}

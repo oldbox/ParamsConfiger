@@ -1,0 +1,117 @@
+#include "dlgsetting.h"
+#include "ui_dlgsetting.h"
+#include <QDesktopWidget>
+
+dlgsetting::dlgsetting(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgsetting)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    Init();
+}
+
+dlgsetting::~dlgsetting()
+{
+    delete ui;
+}
+void dlgsetting::Init()
+{
+    char cValue[MAX_SIZE];
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("RangeSet","RangeWay",cValue);
+    if(0 == atoi(cValue))
+    {
+        ui->radioRange1->setChecked(true);
+    }
+    else if(1 == atoi(cValue))
+    {
+        ui->radioRange2->setChecked(true);
+    }
+    else if(2 == atoi(cValue))
+    {
+        ui->radioRange3->setChecked(true);
+    }
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("RangeSet","Range1Value",cValue);
+    ui->RangeValue1->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("RangeSet","Range2Value",cValue);
+    ui->RangeValue2->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("RangeSet","xiaojieValue",cValue);
+    ui->RangeValue3->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("MainParaSet","Voltage",cValue);
+    ui->LineVoltage->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("MainParaSet","EndVoltage",cValue);
+    ui->LineEndVoltage->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("MainParaSet","Time",cValue);
+    ui->LineTime->setText(QString::fromUtf8(cValue));
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("RangeSet","RangeSwitch",cValue);
+    if(1 == atoi(cValue))
+    {
+        ui->checkBoxRange->setChecked(true);
+    }
+    else
+    {
+        ui->checkBoxRange->setChecked(false);
+    }
+}
+void dlgsetting::on_btnClose_clicked()
+{
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    this->close();
+    emit EmityParWinClolse();
+}
+
+void dlgsetting::on_btnSave_clicked()
+{
+    char cValue[MAX_SIZE];
+    if(ui->radioRange1->isChecked())
+    {
+        GetAfxConfig()->SetIni("RangeSet","RangeWay","0");
+    }
+    else if(ui->radioRange2->isChecked())
+    {
+        GetAfxConfig()->SetIni("RangeSet","RangeWay","1");
+    }
+    else if(ui->radioRange3->isChecked())
+    {
+        GetAfxConfig()->SetIni("RangeSet","RangeWay","2");
+    }
+
+    memset(cValue,0,MAX_SIZE);
+    strcpy(cValue,ui->RangeValue1->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni("RangeSet","Range1Value",cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    strcpy(cValue,ui->RangeValue2->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni("RangeSet","Range2Value",cValue);
+
+    memset(cValue,0,MAX_SIZE);
+    strcpy(cValue,ui->RangeValue3->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni("RangeSet","xiaojieValue",cValue);
+
+    if(ui->checkBoxRange->isChecked())
+    {
+        GetAfxConfig()->SetIni("RangeSet","RangeSwitch","1");
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("RangeSet","RangeSwitch","0");
+    }
+    GetAfxConfig()->SetIni("MainParaSet","Voltage",ui->LineVoltage->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni("MainParaSet","EndVoltage",ui->LineEndVoltage->text().trimmed().toLatin1().data());
+    GetAfxConfig()->SetIni("MainParaSet","Time",ui->LineTime->text().trimmed().toLatin1().data());
+    QMessageBox::information(NULL, "提示信息", "保存成功!");
+}

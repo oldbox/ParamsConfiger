@@ -1,0 +1,97 @@
+#include "dlgmange.h"
+#include "ui_dlgmange.h"
+#include "dlgremindmessage.h"
+dlgMange::dlgMange(CMainCtrl* pMC,int nType,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgMange)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMC = pMC;
+
+    char tmp[64];memset(tmp,0,64);
+    if(!GetAfxConfig()->GetIni("INFO","YQType",tmp)) GetAfxConfig()->SetIni("INFO","YQType","4");
+    m_iYQType = atoi(tmp);
+    if(m_iYQType == 3)
+    {
+        ui->label_7->setText("基线扫描");
+
+        ui->btnwatercompare->hide();
+        ui->label_4->hide();
+//        ui->btnInit->hide();
+//        ui->label_8->hide();
+    }
+    //测试中,中止测试
+    if(4 == nType)
+    {
+        ui->btnclear->setEnabled(false);
+        ui->btnInit->setEnabled(false);
+        ui->btnsamplecompare->setEnabled(false);
+        ui->btnsampletest->setEnabled(false);
+        ui->btnwatercompare->setEnabled(false);
+        ui->btnWaterTest->setEnabled(false);
+    }
+}
+
+dlgMange::~dlgMange()
+{
+    delete ui;
+}
+void dlgMange::on_btnCancel_clicked()
+{
+    this->close();
+}
+//水样测试
+void dlgMange::on_btnWaterTest_clicked()
+{
+    emit NotifyMangeMenu(CMD_TEST);
+    this->close();
+}
+//初始化
+void dlgMange::on_btnInit_clicked()
+{
+     emit NotifyMangeMenu(CMD_INIT);
+     this->close();
+}
+
+void dlgMange::on_btnclear_clicked()
+{
+    if(m_iYQType == 3)
+        emit NotifyMangeMenu(CMD_LINESCAN);
+    else
+        emit NotifyMangeMenu(CMD_WASH);
+
+    this->close();
+}
+//标样测试
+void dlgMange::on_btnsampletest_clicked()
+{
+    emit NotifyMangeMenu(CMD_SAMPLETEST);
+    this->close();
+}
+
+void dlgMange::on_btnsamplecompare_clicked()
+{
+    emit NotifyMangeMenu(CMD_SAMPLEADJUST);
+    this->close();
+}
+
+void dlgMange::on_btnwatercompare_clicked()
+{
+    emit NotifyMangeMenu(CMD_BANKADJUST);
+    this->close();
+}
+
+void dlgMange::on_btnstoptest_clicked()
+{
+    if(CConfig::GetAfxUserType() < 2)//管理员
+    {
+        dlgRemindMessage pRemind(m_pMC,1);
+        pRemind.exec();
+    }
+    else
+    {
+        emit NotifyMangeMenu(CMD_STOPTEST);
+    }
+    this->close();
+}

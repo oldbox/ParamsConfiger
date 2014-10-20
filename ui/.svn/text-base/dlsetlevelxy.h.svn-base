@@ -1,0 +1,44 @@
+#ifndef DLSETLEVELXY_H
+#define DLSETLEVELXY_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class dlSetLevelXY;
+}
+
+class dlSetLevelXY : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlSetLevelXY(const char* czID,QWidget *parent = 0);
+    ~dlSetLevelXY();
+    
+private slots:
+    void on_butLeft_clicked();
+
+    void on_butRight_clicked();
+
+    void on_butTop_clicked();
+
+    void on_butDown_clicked();
+
+    void on_butClose_clicked();
+
+    void on_butSave_clicked();
+
+private:
+    Ui::dlSetLevelXY *ui;
+    void GetYwpName(const char *czID);
+    void SetTabStyle();
+    void SetYwpGisXY(int iGisType);
+    void SaveInfo(const char *czID);
+    void ParamProcessPicShow(const char *czID);
+
+    int m_iYwpX,m_iYwpY;
+    char m_czID[64];
+};
+
+#endif // DLSETLEVELXY_H

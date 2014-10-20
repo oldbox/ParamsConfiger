@@ -1,0 +1,44 @@
+#ifndef GASADMINIMENU_H
+#define GASADMINIMENU_H
+
+#include <QDialog>
+#include "mainwindowbase.h"
+#include "gasdispscopecurve.h"
+#include "sfkeyboard.h"
+#include "gasstatusquery.h"
+#include "dlconsmanage.h"
+#include "gasmaintainremind.h"
+#include "dlgnetsetting.h"
+
+namespace Ui {
+class gasadminimenu;
+}
+
+class gasadminimenu : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit gasadminimenu(CMainCtrl* pMC,QWidget *parent = 0);
+    ~gasadminimenu();
+    
+private slots:
+    void on_ButtonCurve_clicked();
+
+    void on_BtnStateQuery_clicked();
+
+    void on_btnReagent_clicked();
+
+    void on_btnModule_clicked();
+
+    void on_btnreset_clicked();
+
+    void on_btnSystemSet_clicked();
+
+private:
+    Ui::gasadminimenu *ui;
+    CMainCtrl* m_pMc;
+
+};
+
+#endif // GASADMINIMENU_H

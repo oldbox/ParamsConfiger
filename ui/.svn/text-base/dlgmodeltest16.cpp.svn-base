@@ -1,0 +1,172 @@
+#include "dlgmodeltest16.h"
+#include "ui_dlgmodeltest16.h"
+
+dlgmodeltest16::dlgmodeltest16(CMainCtrl* pMC,QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::dlgmodeltest16)
+{
+    ui->setupUi(this);
+    m_nRow = -1;
+    m_pMC = pMC;
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+}
+
+dlgmodeltest16::~dlgmodeltest16()
+{
+    delete ui;
+}
+
+void dlgmodeltest16::on_btnStatus_clicked()
+{
+    if(false == judgeYQConnect()) return;
+    int16_t nStatus = 0;
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+
+    if(pYQ->m_pProcess->pDriver->ReadModbus(CMD_FLUORESCENCE,40052,1,bBuff))
+    {
+        nStatus = MAKEWORD(bBuff[0],bBuff[1]);	//40052 模块的工作状态
+        if(0 == nStatus)
+        {
+             QMessageBox::information(NULL, "提示信息","空闲状态!");
+        }
+        else if(1 == nStatus)
+        {
+             QMessageBox::information(NULL, "提示信息","工作状态!");
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息","状态信息错误!");
+        }
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息","通讯故障!");
+    }
+}
+
+void dlgmodeltest16::on_btnSend_clicked()
+{
+    if(-1 == m_nRow)
+    {
+        dlgRemindMessage *pRemind= new dlgRemindMessage(m_pMC,7);
+        pRemind->exec();
+        delete pRemind;
+        pRemind = NULL;
+    }
+    else if(0 == m_nRow)
+    {
+        SendCmd(282,4);
+    }
+    else if(1 == m_nRow)
+    {
+        SendCmd(283,2);
+    }
+    else if(2 == m_nRow)
+    {
+        SendCmd(284,1);
+    }
+}
+
+void dlgmodeltest16::on_listWidget_clicked(const QModelIndex &index)
+{
+    m_nRow= index.row();
+    UpdateParamName();
+}
+void dlgmodeltest16::UpdateParamName()
+{
+    ui->labelname2->show();
+    ui->labelname3->show();
+    ui->labelname4->show();
+    ui->lineprm2->show();
+    ui->lineprm3->show();
+    ui->lineprm4->show();
+    if(0 == m_nRow)
+    {
+        ui->labelname1->setText("激发光源频率");
+        ui->labelname2->setText("激发光源脉宽");
+        ui->labelname3->setText("采集点数");
+        ui->labelname4->setText("延时时间");
+    }
+    else if(1 == m_nRow)
+    {
+        ui->labelname1->setText("通道");
+        ui->labelname2->setText("电流大小");
+        ui->labelname3->hide();
+        ui->labelname4->hide();
+        ui->lineprm3->hide();
+        ui->lineprm4->hide();
+
+    }
+    else if(2 == m_nRow)
+    {
+        ui->labelname1->setText("电压值(V)");
+        ui->labelname2->hide();
+        ui->labelname3->hide();
+        ui->labelname4->hide();
+        ui->lineprm2->hide();
+        ui->lineprm3->hide();
+        ui->lineprm4->hide();
+
+    }
+
+}
+bool dlgmodeltest16::SendCmd(int16_t nCmd, int nNum)
+{
+    if(false == judgeYQConnect()) return false;
+    int16_t nParam = 0;
+    QLineEdit *pbs[16] = {ui->lineprm1, ui->lineprm2, ui->lineprm3, ui->lineprm4};
+    unsigned char bBuff[MAX_SIZE];
+    memset(bBuff,0,MAX_SIZE);
+
+    bBuff[0] = HIBYTE(nCmd);
+    bBuff[1] = LOBYTE(nCmd);
+    for(int i=1;i<=nNum;i++)
+    {
+        QLineEdit *pb = pbs[i-1];
+        nParam = pb->text().toInt();
+        bBuff[2*i] = HIBYTE(nParam);
+        bBuff[2*i+1] = LOBYTE(nParam);
+    }
+    if (pYQ->m_pProcess->pDriver->WriteModbus(CMD_FLUORESCENCE,40001,nNum+1,bBuff))
+    {
+         QMessageBox::information(NULL, "提示信息","命令发送成功!");
+         return true;
+    }
+    else
+    {
+         QMessageBox::information(NULL, "提示信息","命令发送失败!");
+         return false;
+    }
+}
+//判断仪器是否正确连接
+bool dlgmodeltest16::judgeYQConnect()
+{
+    //获取仪器
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            pYQ = m_pMC->pYQs->pYQ[i];
+            break;
+        }
+    }
+    if(NULL == pYQ)
+    {
+        QMessageBox::information(NULL, "提示信息", "仪器获取失败!");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+

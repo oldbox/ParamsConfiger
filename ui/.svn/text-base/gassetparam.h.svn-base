@@ -1,0 +1,56 @@
+#ifndef GASSETPARAM_H
+#define GASSETPARAM_H
+
+#include <QDialog>
+#include "dlgnetsetting.h"
+#include "dlgmodifysystime.h"
+#include <QMouseEvent>
+
+namespace Ui {
+class gassetparam;
+}
+
+class gassetparam : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit gassetparam(QWidget *parent = 0);
+    ~gassetparam();
+    
+private slots:
+    void on_butClose_clicked();
+
+    void on_btnSave_clicked();
+
+    void changeUnitppm();
+
+    void changeUnitmg();
+
+    void on_BoxOrderS02_currentIndexChanged(int index);
+
+    void on_BoxOrderN0_currentIndexChanged(int index);
+
+    void on_btnShow_clicked();
+
+    void on_btnNet_clicked();
+
+    void on_btnInput_clicked();
+
+    void on_btn420_clicked();
+
+private:
+    void SaveSetParam();
+    bool CompareParamSaveOrNot();
+    void InitParamSetting();
+    bool AvoidInputIOSame();
+    bool AvoidOutputIOSame();  
+    void mousePressEvent(QMouseEvent * mouseEvent);
+    void Init();
+    void ShowSelWin(int iCMDType);
+    void SetInputEnabled(bool bEnabled);
+    Ui::gassetparam *ui;
+    int m_nClick;
+};
+
+#endif // GASSETPARAM_H

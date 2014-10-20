@@ -1,0 +1,42 @@
+#ifndef DLGSPECTRUM_H
+#define DLGSPECTRUM_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class dlgSpectrum;
+}
+class MyPlot;
+class QwtPlotZoomer;
+class dlgSpectrum : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgSpectrum(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgSpectrum();
+    
+private slots:
+    void on_pbtReadData_clicked();
+
+    void on_pbtReadSpectrum_clicked();
+
+    void on_pbtClose_clicked();
+
+    void on_pbtSave_clicked();
+
+    void on_pbtOpenLight_clicked();
+
+private:
+    Ui::dlgSpectrum *ui;
+
+    CMainCtrl* m_pMC;
+    CYQ* m_pYQ;
+    MyPlot* m_plot;
+    QwtPlotZoomer* m_zoomer;
+    int m_nCurveID;
+    bool m_bOnOff;
+};
+
+#endif // DLGSPECTRUM_H

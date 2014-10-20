@@ -1,0 +1,25 @@
+#include "dlgyqsetting.h"
+#include "ui_dlgyqsetting.h"
+
+
+#include <iostream>
+using namespace std;
+
+DlgYqSetting::DlgYqSetting(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::DlgYqSetting),
+    dps(NULL)
+{
+    ui->setupUi(this);
+}
+
+DlgYqSetting::~DlgYqSetting()
+{
+    delete ui;
+    delete dps;
+}
+
+void DlgYqSetting::on_wdtListSetup_currentItemChanged(QListWidgetItem *current, QListWidgetItem *previous)
+{
+    cout << current->text().toStdString() << endl;
+}

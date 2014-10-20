@@ -1,0 +1,133 @@
+#include "dlgchangepasswd.h"
+#include "ui_dlgchangepasswd.h"
+
+Dlgchangepasswd::Dlgchangepasswd(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::Dlgchangepasswd)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    ui->oldpasswd->setEchoMode(QLineEdit::Password);
+    ui->newpasswd->setEchoMode(QLineEdit::Password);
+    ui->passwdok->setEchoMode(QLineEdit::Password);
+    ui->oldpasswd->installEventFilter(this);
+    ui->newpasswd->installEventFilter(this);
+    ui->passwdok->installEventFilter(this);
+    ui->oldpasswd->setFocus();
+    ui->oldpasswd->setText("");
+    ui->newpasswd->setText("");
+    ui->passwdok->setText("");
+}
+
+Dlgchangepasswd::~Dlgchangepasswd()
+{
+    delete ui;
+}
+//void Dlgchangepasswd::on_btnkeyboard_clicked()
+//{
+
+//    if(NULL != objLit)
+//    {
+//        QRect rect(5, objLit->y() + objLit->height(), sfkey->width(), sfkey->height());
+//        sfkey->setGeometry(rect);
+//        sfkey->Clear();
+//        sfkey->GetEditContent(objLit->text());
+//        sfkey->show();
+//        sfkey->SetCurLineEdit(objLit);
+//    }
+//}
+
+void Dlgchangepasswd::on_btnok_clicked()
+{
+    char cValue[64];
+    if(0 == ui->comboxuser->currentIndex())
+    {
+        memset(cValue,0,64);
+        GetAfxConfig()->GetIni("UserType_1","passwd",cValue);
+        if(!strcmp(ui->oldpasswd->text().trimmed().toLatin1().data(),cValue))
+        {
+            if(!ui->newpasswd->text().isEmpty())
+            {
+                if(!strcmp(ui->newpasswd->text().trimmed().toLatin1().data(),ui->passwdok->text().trimmed().toLatin1().data()))
+                {
+                    GetAfxConfig()->SetIni("UserType_1","passwd",ui->newpasswd->text().trimmed().toLatin1().data());
+                    QMessageBox::information(NULL, "提示信息", "密码修改成功!");
+                    this->close();
+                }
+                else
+                {
+                    QMessageBox::information(NULL, "提示信息", "请重新确认新密码!");
+                }
+            }
+            else
+            {
+                QMessageBox::information(NULL, "提示信息", "新密码不能为空!");
+            }
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息", "原始密码错误!");
+        }
+    }else if(1 == ui->comboxuser->currentIndex())
+    {
+        memset(cValue,0,64);
+        GetAfxConfig()->GetIni("UserType_2","passwd",cValue);
+        if(!strcmp(ui->oldpasswd->text().trimmed().toLatin1().data(),cValue))
+        {
+            if(!ui->newpasswd->text().isEmpty())
+            {
+                if(!strcmp(ui->newpasswd->text().trimmed().toLatin1().data(),ui->passwdok->text().trimmed().toLatin1().data()))
+                {
+                    GetAfxConfig()->SetIni("UserType_2","passwd",ui->newpasswd->text().trimmed().toLatin1().data());
+                    QMessageBox::information(NULL, "提示信息", "密码修改成功!");
+                    this->close();
+                }
+                else
+                {
+                    QMessageBox::information(NULL, "提示信息", "请重新确认新密码!");
+                }
+            }
+            else
+            {
+                QMessageBox::information(NULL, "提示信息", "新密码不能为空!");
+            }
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息", "原始密码错误!");
+        }
+    }else if(2 == ui->comboxuser->currentIndex())
+    {
+        memset(cValue,0,64);
+        GetAfxConfig()->GetIni("UserType_3","passwd",cValue);
+        if(!strcmp(ui->oldpasswd->text().trimmed().toLatin1().data(),cValue))
+        {
+            if(!ui->newpasswd->text().isEmpty())
+            {
+                if(!strcmp(ui->newpasswd->text().trimmed().toLatin1().data(),ui->passwdok->text().trimmed().toLatin1().data()))
+                {
+                    GetAfxConfig()->SetIni("UserType_3","passwd",ui->newpasswd->text().trimmed().toLatin1().data());
+                    QMessageBox::information(NULL, "提示信息", "密码修改成功!");
+                    this->close();
+                }
+                else
+                {
+                    QMessageBox::information(NULL, "提示信息", "请重新确认新密码!");
+                }
+            }
+            else
+            {
+                QMessageBox::information(NULL, "提示信息", "新密码不能为空!");
+            }
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息", "原始密码错误!");
+        }
+    }
+}
+
+void Dlgchangepasswd::on_btncancel_clicked()
+{
+    this->close();
+}

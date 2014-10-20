@@ -1,0 +1,91 @@
+#ifndef DISPDATACURVE_H
+#define DISPDATACURVE_H
+
+#include <QDialog>
+#include <QTableWidgetItem>
+#include "../core/cmainctrl.h"
+#include "../core/cdbbusiness.h"
+#include "../core/myplot.h"
+#include "../core/Arithmetic.h"
+
+namespace Ui {
+class DispDataCurve;
+}
+class CVocArithmetic;
+class MyPlot;
+class DispDataCurve : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit DispDataCurve(CMainCtrl* pMC,QString qsTime,int nIndex,QWidget *parent = 0);
+    explicit DispDataCurve(QWidget *parent = 0);
+    ~DispDataCurve();
+    
+private slots:
+    void on_btnReturn_clicked();
+
+
+    void on_btnNarrow_clicked();
+
+    void on_btnLeftMove_clicked();
+
+    void on_btnRightMove_clicked();
+
+    void on_btnremovebase_clicked();
+
+    void on_btnshowbase_clicked();
+
+    void on_tabDBFile_itemPressed(QTableWidgetItem *item);
+
+
+    void on_checkBox_clicked();
+
+private:
+    Ui::DispDataCurve *ui;
+    CMainCtrl* m_pMC;
+    MyPlot *plot;
+    QVector<double> m_vtbyX,m_vtbyY,m_vtsyX,m_vtsyY,m_vtscanX,m_vtscanY,m_vtallX,m_vtallY;
+    QVector<double> m_basebyX,m_basebyY,m_basesyX,m_basesyY,m_peakbyX,m_peakbyY,m_peaksyX,m_peaksyY;
+
+    QwtPlotZoomer* zoomer;
+    bool m_bflag;
+    float m_fminX;
+    float m_fmaxX;
+    QStringList m_qslDBFileName;
+    int m_nCurveID;
+    CVocArithmetic* m_pCalc;
+    CArithmetic* m_pArithmetic;
+    QStringList m_qsCurveList;
+    int m_nYQType;
+    QString m_qstime;
+    char m_czCurveTime[64];
+    bool m_bViewTempt;
+
+    void ShowCurve(QString qsTime,int nIndex);
+    void Display_1();
+    void Display_3();
+    void Display_5();
+    void CalcMaxMinValue();
+    void Init();
+    void ShowCurve_1(QString qsTime,int nIndex);
+    void ShowCurve_3(QString qsTime);
+    void ShowCurve_5(QString qsTime);
+    void ShowCurve_6(QString qsTime);
+    bool GetAFSProcessData(const char* czPath,QStringList &ProcessData);
+    void ShowPeaks();
+    void InitDBFile();
+    void listDir(char *path,int nType = 3);
+    bool SeachPeak();
+    bool SeachAFSPeak();
+    void ShowBaseCurve_1();
+    void ShowBaseCurve_5();
+    void DrawCurve_1(int nType,int nMiddle,int nMin1,int nMin2);
+    void DrawCurve_5(int nMiddle, int nMin1, int nMin2);
+
+    //对文件读取源始数据
+    bool GetVocProcessData(const char* czPath,QStringList &ProcessData);
+    bool GetScanProcessData(const char* czPath,QStringList &ProcessData);
+};
+
+#endif // DISPDATACURVE_H

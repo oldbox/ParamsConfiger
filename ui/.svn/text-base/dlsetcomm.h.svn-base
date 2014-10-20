@@ -1,0 +1,37 @@
+#ifndef DLSETCOMM_H
+#define DLSETCOMM_H
+
+#include "../mainwindowbase.h"
+
+namespace Ui {
+class dlSetComm;
+}
+
+class dlSetComm : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlSetComm(QWidget *parent = 0);
+    ~dlSetComm();
+
+signals:
+    void EmityParWinClolse();
+
+private slots:
+    void on_btnClose_clicked();
+    void on_btnSave_clicked();
+
+   // void on_cbxModuleCOM_2_currentIndexChanged(int index);
+
+    void on_liWidComList_clicked(const QModelIndex &index);
+
+private:
+    Ui::dlSetComm *ui;
+    int m_iYQType;
+    QListWidgetItem* listItem;
+    QMap<QString,int> mapComList;
+    void Init();
+};
+
+#endif // DLSETCOMM_H

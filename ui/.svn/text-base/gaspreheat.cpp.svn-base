@@ -1,0 +1,253 @@
+#include "gaspreheat.h"
+#include "ui_gaspreheat.h"
+#include <QDesktopWidget>
+#include <QMouseEvent>
+#include "../mainwindowbase.h"
+
+gaspreheat::gaspreheat(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    m_bAirCellFlag(false),
+    m_bSpecFlag(false),
+    m_bLightFlag(false),
+    m_bTimeFlag(false),
+    m_bMaxTimeFlag(false),
+    m_bSpacFlag(false),
+    m_bInitFlag(true),
+    m_fLightInitValue(0.0),
+    m_fSpecInitValue(0.0),
+    m_fAirInitValue(0.0),
+    m_nLightTargetTemp(55),
+    m_nSpecTargetTemp(32),
+    m_nGasTargetTemp(142),
+    m_nLightClick(0),
+    m_nAirCellClick(0),
+    m_nSpecClick(0),
+    m_nRightUpClick(0),
+    m_bStartTag(true),
+    CloseTimer(new QTimer),
+    ui(new Ui::gaspreheat)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMc = pMC;
+    WordMovie =  new QMovie(":/res/gasword.gif");
+    ui->label->setMovie(WordMovie);
+    WordMovie->start();
+    init();
+    connect(pMC->pYQs,SIGNAL(NotifyStatusValue(struGasStatusData*)),this,SLOT(OnStatusValue(struGasStatusData*)));
+    connect(CloseTimer, SIGNAL(timeout()), this, SLOT(Closewindow()));
+}
+
+gaspreheat::~gaspreheat()
+{
+    delete ui;
+    delete WordMovie;
+    delete CloseTimer;
+}
+
+//点击显示当前温度
+void gaspreheat::mousePressEvent(QMouseEvent * mouseEvent)
+{
+    int x = mouseEvent->pos().x();
+    int y = mouseEvent->pos().y();
+
+    qDebug("x:%d,y:%d",x,y);
+
+    if((x > 540)&&(y < 90))
+    {
+        m_nRightUpClick++;
+        if(m_nRightUpClick > 9)
+        {
+            m_nRightUpClick = 0;
+            if(m_bStartTag)
+            {
+                QDateTime m_DateTime = QDateTime::currentDateTime();
+                CYQ* pYQ = m_pMc->pYQs->GetYQ("ZA0");
+                if(pYQ)
+                {
+                    pYQ->m_pProcess->StartGasTestCmd(m_DateTime);
+                    pYQ->m_pProcess->SetbStart(true);//进入主界面标志
+                    m_bStartTag = false;
+                }
+                gasdisptestdata* pGasDispTestData = new gasdisptestdata(m_pMc);
+                pGasDispTestData->move((qApp->desktop()->width() - pGasDispTestData->width())/2,(qApp->desktop()->height() - pGasDispTestData->height())/2);
+                CloseTimer->start(1000);
+                pGasDispTestData->exec();
+                delete pGasDispTestData;
+            }
+        }
+    }
+    if((x >= 90)&&(x <= 320))
+    {
+        if((y >= 150)&&(y <= 190))
+        {
+            m_nLightClick++;
+        }
+        else if((y >= 230)&&(y <= 270))
+        {
+            m_nAirCellClick++;
+        }
+        else if((y >= 310)&&(y <= 350))
+        {
+            m_nSpecClick++;
+        }
+    }
+}
+
+void gaspreheat::refreshTemp(struGasStatusData* data)
+{
+    QString curT;
+    curT.sprintf("Light:%.1f;  Spec:%.1f;  PreTemp:%.1f;  GasIn:%.1f;  GasOut:%.1f",
+                 (data->fLightTemp-m_nLightTargetTemp),(data->fSpecTemp-m_nSpecTargetTemp),(data->fHeatingTemp-160.0),(data->fGasIn-m_nGasTargetTemp),(data->fGasOut-m_nGasTargetTemp));
+    ui->curTemp->setText(curT);
+}
+
+void gaspreheat::init()
+{
+    ui->processLight->setMaximum(m_nLightTargetTemp);
+    ui->processspec->setMaximum(m_nSpecTargetTemp);
+    ui->processAirCell->setMaximum(m_nGasTargetTemp);
+    ui->processAirCell->setValue(0);
+    ui->processLight->setValue(0);
+    ui->processspec->setValue(0);
+}
+void gaspreheat::OnStatusValue(struGasStatusData* data)
+{
+    if ((m_nLightClick >= 3)&&(m_nAirCellClick >= 3)&&(m_nSpecClick >= 3))
+    {
+        refreshTemp(data);
+    }
+    if(m_bStartTag)//标记是还在在预热界面
+    {
+        int nSpacTime = 0;
+        int nTime = 10*60;
+        int nMaxTime = 30*60;
+
+        //第一次进入预热界面，保存的第一次温度
+        if(m_bInitFlag)
+        {
+            m_bInitFlag = false;
+            m_fSpecInitValue = data->fSpecTemp;
+            m_fLightInitValue = data->fLightTemp;
+            m_fAirInitValue = (data->fGasIn+data->fGasOut)/2.0;
+        }
+
+        //预热界面至少要预10分钟，预热超过30分钟自动跳过此界面
+        if(m_bSpacFlag)
+        {
+            nSpacTime = m_QTime.elapsed()/1000;
+            if(nSpacTime >= nTime)
+            {
+                m_bTimeFlag = true;
+            }
+            if(nSpacTime >= nMaxTime)
+            {
+                m_bSpacFlag = false;
+                m_bMaxTimeFlag = true;
+            }
+        }
+        else
+        {
+            m_QTime.start();
+            m_bSpacFlag = true;
+        }
+
+        // 设置制热室温度进度条
+        if(!m_bAirCellFlag)
+        {
+            float fAirTemp = (data->fGasIn+data->fGasOut)/2.0;
+            if(fAirTemp>=m_nGasTargetTemp)
+            {
+                ui->processAirCell->setValue(m_nGasTargetTemp);
+                m_bAirCellFlag = true;
+            }
+            else
+            {
+                ui->processAirCell->setValue(fAirTemp);
+                m_bAirCellFlag = false;
+            }
+        }
+
+        // Set temperature progress of light source
+        if(!m_bLightFlag)
+        {
+             if(m_fLightInitValue>m_nLightTargetTemp)
+             {
+                 ui->processLight->setValue(m_nLightTargetTemp-(data->fLightTemp-m_nLightTargetTemp));
+                 if(data->fLightTemp<=m_nLightTargetTemp)
+                 {
+                     ui->processLight->setValue(m_nLightTargetTemp);
+                     m_bLightFlag = true;
+                 }
+             }
+             else
+             {
+                 ui->processLight->setValue(data->fLightTemp);
+                 if(data->fLightTemp>=m_nLightTargetTemp)
+                 {
+                     ui->processLight->setValue(m_nLightTargetTemp);
+                     m_bLightFlag = true;
+                 }
+             }
+        }
+
+        // Set temperature progress of spectrometer
+        if(!m_bSpecFlag)
+        {
+            if(m_fSpecInitValue>m_nSpecTargetTemp)
+            {
+                ui->processspec->setValue(m_nSpecTargetTemp-(data->fSpecTemp-m_nSpecTargetTemp));
+                if(data->fSpecTemp<=m_nSpecTargetTemp)
+                {
+                    ui->processspec->setValue(m_nSpecTargetTemp);
+                    m_bSpecFlag = true;
+                }
+            }
+            else
+            {
+                ui->processspec->setValue(data->fSpecTemp);
+                if(data->fSpecTemp>=m_nSpecTargetTemp)
+                {
+                    ui->processspec->setValue(m_nSpecTargetTemp);
+                    m_bSpecFlag = true;
+                }
+            }
+        }
+
+        if((m_bSpecFlag&&m_bLightFlag&&m_bAirCellFlag)||(m_bMaxTimeFlag))
+        {
+            // Compare preheat time and minimum execute time to decide whether display countdown or not
+            if (m_bTimeFlag)
+            {
+                QDateTime m_DateTime = QDateTime::currentDateTime();
+                CYQ* pYQ = m_pMc->pYQs->GetYQ("ZA0");
+
+                if(pYQ)
+                {
+                    pYQ->m_pProcess->StartGasTestCmd(m_DateTime);
+                    pYQ->m_pProcess->SetbStart(true);//进入主界面标志
+                    m_bStartTag = false;
+                }
+                gasdisptestdata* pGasDispTestData = new gasdisptestdata(m_pMc);
+                pGasDispTestData->move((qApp->desktop()->width() - pGasDispTestData->width())/2,(qApp->desktop()->height() - pGasDispTestData->height())/2);
+                CloseTimer->start(1000);
+                pGasDispTestData->exec();
+                delete pGasDispTestData;
+            }
+            else
+            {
+                nTime = nTime - nSpacTime;
+                QString labe;
+                labe.sprintf("Remaining time:%02ds",nTime);
+                ui->labeltime->setText(labe);
+            }
+        }
+    }
+}
+
+//Close window after 1 seconds to aviod UI become space
+void gaspreheat::Closewindow()
+{
+    close();
+    CloseTimer->stop();
+}

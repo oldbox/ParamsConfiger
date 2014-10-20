@@ -1,0 +1,277 @@
+#include "dldatainfo.h"
+#include "ui_dldatainfo.h"
+#include <QTextCodec>
+#include <QDesktopWidget>
+
+#include <QPropertyAnimation>
+#include <QPalette>
+
+
+dldatainfo::dldatainfo(QString qsTime,QString qsName,int nIndex,QWidget *parent) :
+    QDialog(parent),
+    timer(new QTimer),
+    m_pDB(NULL),
+    ui(new Ui::dldatainfo)
+{
+    ui->setupUi(this);
+    m_qsTime = qsTime;
+    m_qsName = qsName;
+    m_nIndex = nIndex;
+
+    this->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    m_pDB = new CDBBusiness("yqdata","yq.db");
+    m_iYQType = GetAfxYQType();
+    this->SetDataListStyle();
+    this->GetDataList();
+    this->GetLogInfo();
+    connect(timer, SIGNAL(timeout()), this, SLOT(on_WinClose()));     
+    timer->start(4000);
+}
+
+dldatainfo::~dldatainfo()
+{
+    delete m_pDB;
+    delete timer;
+    delete ui;
+}
+
+void dldatainfo::SetDataListStyle()
+{
+    ui->tabwidData->clear();
+    ui->tabwidData->horizontalHeader()->setVisible(false);
+    ui->tabwidData->verticalHeader()->setVisible(false);
+    ui->tabwidData->setShowGrid(true); //设置显示格子线
+    ui->tabwidData->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一行
+    ui->tabwidData->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tabwidData->setColumnCount(2);
+    ui->tabwidData->setColumnWidth(0,68);
+    ui->tabwidData->setColumnWidth(1,85);
+
+    ui->tabwidData->setFont(QFont("文泉驿正黑",9));
+    QHeaderView *pTableHeaderView = ui->tabwidData->horizontalHeader();
+    if (pTableHeaderView)
+    {
+        pTableHeaderView->setDefaultAlignment (Qt::AlignVCenter); //居中
+        pTableHeaderView->setTextElideMode (Qt::ElideRight); //...效果
+        pTableHeaderView->setStretchLastSection (true); //尾不留空白
+    }
+
+    QStringList slColumnName;
+    if(1 == m_iYQType)
+    {
+        slColumnName << "参数" << "峰高h" << "峰高H" << "计算方式" << "左寻峰点" << "右寻峰点" << "消解温度" << "消解时间" ;
+    }
+    else if(3 == m_iYQType)
+    {
+        slColumnName  << "参数" << "保留时间" << "峰高" << "面积" << "乘数" << "K" << "B" << "R";
+    }
+    else if(4 == m_iYQType || 6 == m_iYQType)
+    {
+        slColumnName << "参数" << "基线值" << "样品值" << "吸光度" << "K" << "B" << "R" << "空白吸光度" << "消解温度" << "消解时间" << "工作曲线";
+    }
+
+    ui->tabwidData->setRowCount(slColumnName.size());
+    for(int i = 0;i < slColumnName.size(); i++ )
+    {
+        ui->tabwidData->setItem(i,0,new QTableWidgetItem(slColumnName.at(i)));
+        ui->tabwidData->setRowHeight(i,20);
+        ui->tabwidData->item(i,0)->setTextAlignment(Qt::AlignVCenter | Qt::AlignRight);
+    }
+}
+
+void dldatainfo::GetDataList()
+{
+    sqlite_data datalist;
+    int nResult = 0;
+    if(m_pDB)
+    {
+        if(1 == m_iYQType)
+        {
+            nResult = m_pDB->GetEchemDataInfo(m_qsTime.toLatin1().data(),datalist);
+        }
+        else if(3 == m_iYQType)
+        {
+             nResult = m_pDB->GetVocDataInfo(m_qsTime.toLatin1().data(),datalist);
+        }
+        else if(4 == m_iYQType || 6 == m_iYQType)
+        {
+            nResult = m_pDB->GetBsDataInfo(m_qsTime.toLatin1().data(),m_qsTime.toLatin1().data(),datalist);
+        }
+        if(nResult > 0)
+        {
+             if(!datalist.IsEmpty())
+             {
+                 QString qsValue;
+                 int nCol = 1;
+                 int nRow = 0;
+                 for(int i=1;i<=datalist.RowCount();i++)
+                 {
+                     nRow = 0;
+                     if(1 == m_iYQType)
+                     {
+//                         qsValue = QString(datalist.GetData(i,1));//时间
+//                         ui->tabwidData->setItem(++nRow,nCol++, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,2));//YQID
+                         qsValue = GetYQName(qsValue);
+                         ui->tabwidData->setItem(nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,3));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,4));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         if(1 == atoi(datalist.GetData(i,5)))
+                         {
+                             ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem("峰高"));
+                         }
+                         else
+                         {
+                             ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem("峰面积"));
+                         }
+                         qsValue = QString(datalist.GetData(i,6));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,7));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,8));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,9));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                     }
+                     else if(3 == m_iYQType)
+                     {
+//                         qsValue = QString(datalist.GetData(i,1));//时间
+//                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,2));//YQID
+                         qsValue = GetYQName(qsValue);
+                         ui->tabwidData->setItem(nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,4));//RemainTime
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,5));//PeakHight
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,6));//Area
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,7));//K
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,8));//B
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,9));//R
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                     }
+                     else if(4 == m_iYQType || 6 == m_iYQType)
+                     {
+                         //QDateTime qTime = QDateTime::fromString(QString(datalist.GetData(i,1)), "yyyy-MM-dd hh:mm:ss");
+                        // qsValue = qTime.toString("MM-dd hh:mm");//时间
+                        // ui->tabwidData->setItem(nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,2));//YQID
+                         qsValue = this->GetYQName(qsValue);
+                         ui->tabwidData->setItem(nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,4));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,5));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,6));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,7));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,8));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,9));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,10));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));//空白吸光度
+                         qsValue = QString(datalist.GetData(i,13));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));//温度
+                         qsValue = QString(datalist.GetData(i,14));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));//消解时间
+                         qsValue = QString(datalist.GetData(i,15));
+                         ui->tabwidData->setItem(++nRow,nCol, new QTableWidgetItem(qsValue));//曲线编号
+                     }
+                 }
+             }
+        }
+    }
+    datalist.Free();
+}
+
+QString dldatainfo::GetYQName(QString sCodeID)
+{
+    QString qsCodeName;
+    paramdict dict;
+    vector<paramitem>::iterator it;
+    for(it = dict.paramlist.begin(); it < dict.paramlist.end(); it++)
+    {
+        if(sCodeID == (*it).LHCodeID)
+        {
+            qsCodeName = (*it).CodeName;
+            break;
+        }
+    }
+    return qsCodeName;
+}
+
+void dldatainfo::GetLogInfo()
+{
+     int nResult = 0;
+     sqlite_data datalist;
+     QString sLog;
+     sLog.append("测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>");
+     sLog.append("测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>");
+     sLog.append("测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>");
+     sLog.append("测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>");
+     sLog.append("测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>");
+     sLog.append("测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>");
+     sLog.append("测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>");
+     sLog.append("测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>");
+     sLog.append("测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>");
+     sLog.append("测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>测试数据<br>");
+     if(m_pDB)
+     {
+         QString sEndTime;
+         QDateTime tEndTime = QDateTime::fromString(m_qsTime,"yyyy-MM-dd hh:mm:ss").addSecs(60*60);
+         sEndTime = tEndTime.toString("yyyy-MM-dd hh:mm:ss");
+         nResult = m_pDB->Get2091(m_qsTime.toLatin1().data(),sEndTime.toLatin1().data(),m_iYQType,"仪器",datalist);
+         if(nResult > 0)
+         {
+              if(!datalist.IsEmpty())
+              {
+                  int iX;
+                  for(int i=1;i<=datalist.RowCount();i++)
+                  {
+                        QString sRemark = datalist.GetData(i,5);
+                        if(sRemark == "流程开始")
+                        {
+                            iX = i;
+                            while(iX <= datalist.RowCount())
+                            {
+                                sRemark = datalist.GetData(iX,5);
+                                sLog.append(sRemark).append("<br>");
+                                if(sRemark == "流程结束" || sRemark == "异常结束")
+                                {
+                                    break;
+                                }
+                                iX++;
+                            }
+                            break;
+                        }
+                  }
+              }
+              else
+              {
+                  sLog.append("没有相关日志记录！<br>");
+              }
+         }
+     }
+     datalist.Free();
+     ui->textBrowser->setFont(QFont("文泉驿正黑",9));
+     ui->textBrowser->setText(sLog);
+}
+
+void dldatainfo::on_WinClose()
+{
+    this->close();
+}
+
+
+

@@ -1,0 +1,788 @@
+#include "dlrunmodelset.h"
+#include "ui_dlrunmodelset.h"
+#include <QTextCodec>
+#include <QMessageBox>
+
+dlrunmodelset::dlrunmodelset(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlrunmodelset)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    m_nClick = 0;
+
+    QRect rect(0,0,this->width(),this->height());
+    this->setGeometry(rect);
+
+    m_iYQType = GetAfxYQType();
+    connect(ui->rdiSkMode,SIGNAL(clicked()),this,SLOT(changeRunMode()));
+    connect(ui->rdiZqMode,SIGNAL(clicked()),this,SLOT(changeRunMode()));
+    connect(ui->rdiDdMode,SIGNAL(clicked()),this,SLOT(changeRunMode()));
+    connect(ui->rdiWhMode,SIGNAL(clicked()),this,SLOT(changeRunMode()));
+
+
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    if(1 == m_iYQType)
+    {
+        ui->widYQ1->show();
+        ui->widYQ4->hide();
+    }
+    else
+    {
+        ui->widYQ1->hide();
+        ui->widYQ4->show();
+    }
+
+    QString qsDateTime = QDateTime::currentDateTime().addSecs(3600).toString("yyyy-MM-dd HH:00:00");
+    ui->litNextStdAbsorbTime->setText(qsDateTime);
+    ui->litNextBlankAbsorbTime->setText(qsDateTime);
+    ui->litNextHcAbsorbTime->setText(qsDateTime);
+
+    this->Init();
+
+
+}
+dlrunmodelset::~dlrunmodelset()
+{
+    delete ui;
+}
+
+void dlrunmodelset::Init()
+{
+    char cValue[MAX_SIZE];memset(cValue,0,MAX_SIZE);
+    char cProcessType[MAX_SIZE];memset(cProcessType,0,MAX_SIZE);
+    sprintf(cProcessType,"ProcessType_%d",m_iYQType);
+
+    ui->stackedWidgetCYC->setEnabled(false);
+    ui->stackedWidgetDD->setEnabled(false);
+    //自动电极维护
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("SYSSET","Maintain",cValue);
+    if(1 == atoi(cValue))
+    {
+        ui->BoxAutoMaintain->setChecked(true);
+        ui->litMaintain->setEnabled(true);
+        ui->btnMaintainTime->setEnabled(true);
+        ui->labelMaintainCYC->setEnabled(true);
+        ui->labelMaintaintime->setEnabled(true);
+    }
+    else
+    {
+        ui->BoxAutoMaintain->setChecked(false);
+        ui->litMaintain->setEnabled(false);
+        ui->btnMaintainTime->setEnabled(false);
+        ui->labelMaintainCYC->setEnabled(false);
+        ui->labelMaintaintime->setEnabled(false);
+    }
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("SYSSET","MaintainTime",cValue))
+    {
+        QString qsTime = QString(cValue);
+        ui->litNextMaintainTime->setText(qsTime);
+    }
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("SYSSET","MaintainCYC",cValue);
+    ui->litMaintain->setText((QString)cValue);
+
+    //自动标样校准
+    bool bStdAbsorb = false;
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("AutoAdjust_SET","IsAutoStdAbsorb",cValue))
+    {
+        if(strlen(cValue) > 0)
+        {
+            if(atoi(cValue) == 1)
+                bStdAbsorb = true;
+        }
+    }
+
+    ui->labStdAbsorbCyc->setEnabled(bStdAbsorb);
+    ui->chkStdAbsorb->setChecked(bStdAbsorb);
+    ui->litStdAbsorbCyc->setEnabled(bStdAbsorb);
+    ui->litNextStdAbsorbTime->setEnabled(bStdAbsorb);
+    ui->btnStdAbsorbTime->setEnabled(bStdAbsorb);
+    ui->labNextStdAbsorbTime->setEnabled(bStdAbsorb);
+
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("AutoAdjust_SET","StdAbsorbCyc",cValue))
+    {
+        ui->litStdAbsorbCyc->setText(QString(cValue));
+    }
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("AutoAdjust_SET","AutoStdAbsorbTime",cValue))
+    {
+        ui->litNextStdAbsorbTime->setText(QString(cValue));
+    }
+
+    //自动空白校准
+    bool bBlankAbsorb = false;
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("AutoAdjust_SET","IsAutoBlankAbsorb",cValue))
+    {
+        if(strlen(cValue) > 0)
+        {
+            if(atoi(cValue) == 1)
+                bBlankAbsorb = true;
+        }
+    }
+    ui->labBlankAbsorbCyc->setEnabled(bBlankAbsorb);
+    ui->chkBlankAbsorb->setChecked(bBlankAbsorb);
+    ui->litBlankAbsorbCyc->setEnabled(bBlankAbsorb);
+    ui->litNextBlankAbsorbTime->setEnabled(bBlankAbsorb);
+    ui->btnBlankAbsorbTime->setEnabled(bBlankAbsorb);
+    ui->labNextBlankAbsorbTime->setEnabled(bBlankAbsorb);
+
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("AutoAdjust_SET","BlankAbsorbCyc",cValue))
+    {
+        ui->litBlankAbsorbCyc->setText(QString(cValue));
+    }
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("AutoAdjust_SET","AutoBlankAbsorbTime",cValue))
+    {
+        ui->litNextBlankAbsorbTime->setText(QString(cValue));
+    }
+
+    //自动核查校准
+    bool bHcAbsorb = false;
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("AutoAdjust_SET","IsAutoSampLetest",cValue))
+    {
+        if(strlen(cValue) > 0)
+        {
+            if(atoi(cValue) == 1)
+                bHcAbsorb = true;
+        }
+    }
+    ui->labHcCyc->setEnabled(bHcAbsorb);
+    ui->chkHcAbsorb->setChecked(bHcAbsorb);
+    ui->litHcCyc->setEnabled(bHcAbsorb);
+    ui->litNextHcAbsorbTime->setEnabled(bHcAbsorb);
+    ui->btnHcAbsorbTime->setEnabled(bHcAbsorb);
+    ui->labNextHcAbsorbTime->setEnabled(bHcAbsorb);
+
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("AutoAdjust_SET","AutoHcCyc",cValue))
+    {
+        ui->litHcCyc->setText(QString(cValue));
+    }
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("AutoAdjust_SET","AutoSampLetestTime",cValue))
+    {
+        ui->litNextHcAbsorbTime->setText(QString(cValue));
+    }
+
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("SYSSET","8051NextTime",cValue))
+    {
+        qDebug("cValue:%s",cValue);
+        QString qsTime = QString(cValue);
+        ui->litNextTestTime->setText(qsTime);
+    }
+    memset(cValue,0,MAX_SIZE);
+    if(GetAfxConfig()->GetIni("SYSSET","8051CYC",cValue))
+    {
+        QString qsCYC = QString(cValue);
+        ui->litTestCyc->setText(qsCYC);
+    }
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("SYSSET","MOD",cValue);
+    if(1 == atoi(cValue))
+    {
+        ui->rdiZqMode->setChecked(true);
+        ui->stackedWidgetCYC->setEnabled(true);
+    }else if(2 == atoi(cValue))
+    {
+        ui->rdiDdMode->setChecked(true);
+        ui->stackedWidgetDD->setEnabled(true);
+    }else if(3 == atoi(cValue))
+    {
+        ui->rdiSkMode->setChecked(true);
+    }
+    else if((4 == atoi(cValue)))
+    {
+        ui->rdiWhMode->setChecked(true);
+    }
+     m_nCount = 0;
+    for(int i=0;i<24;i++)
+    {
+        m_nListTime[i] = -1;
+        char cTime[MAX_SIZE];memset(cTime,0,MAX_SIZE);
+        memset(cValue,0,MAX_SIZE);
+        sprintf(cTime,"%d",i);
+        GetAfxConfig()->GetIni("SYSSET",cTime,cValue);
+        memset(cTime,0,MAX_SIZE);
+        if(i>=10)
+        {
+            sprintf(cTime,"%d:00",i);
+        }
+        else
+        {
+            sprintf(cTime,"0%d:00",i);
+        }
+        if(0 != atoi(cValue))
+        {
+            m_nListTime[i] = m_nCount;
+            m_nCount++;
+            QString qsContent;
+            qsContent += (QString)cTime;
+
+            if(!strcmp(cValue,"8051"))//水样测试 8051
+            {
+                qsContent += ":水样测试";
+                ui->listWidget->addItem(new QListWidgetItem(QIcon(QObject::tr(":/res/watertest.png")), qsContent));
+            }else if(!strcmp(cValue,"3016"))//标样测试 3016
+            {
+                qsContent += ":标样测试";
+                ui->listWidget->addItem(new QListWidgetItem(QIcon(QObject::tr(":/res/sampletest.png")), qsContent));
+            }
+            else if(!strcmp(cValue,"3011"))//空白校准 3011
+            {
+                qsContent += ":空白校准";
+                ui->listWidget->addItem(new QListWidgetItem(QIcon(QObject::tr(":/res/SampleAdjust.png")), qsContent));
+            }
+            else if(!strcmp(cValue,"3021"))//标样校准 3021
+            {
+                qsContent += ":标样校准";
+                ui->listWidget->addItem(new QListWidgetItem(QIcon(QObject::tr(":/res/blanktest.png")), qsContent));
+            }
+            else
+            {
+                //do nothing
+            }
+
+        }
+    }
+
+}
+
+void dlrunmodelset::changeRunMode()
+{
+    if(ui->rdiDdMode->isChecked())
+    {
+        ui->stackedWidgetDD->setEnabled(true);
+        ui->stackedWidgetCYC->setEnabled(false);
+    }
+    else if(ui->rdiZqMode->isChecked())
+    {
+        ui->stackedWidgetDD->setEnabled(false);
+        ui->stackedWidgetCYC->setEnabled(true);
+        //设置下次测试时间为下个时间的整点
+        QString qsDateTime = QDateTime::currentDateTime().addSecs(3600).toString("yyyy-MM-dd HH:00:00");
+        ui->litNextTestTime->setText(qsDateTime);
+    }
+    else
+    {
+        ui->stackedWidgetDD->setEnabled(false);
+        ui->stackedWidgetCYC->setEnabled(false);
+    }
+}
+
+void dlrunmodelset::on_butSave_clicked()
+{ 
+    char cValue[MAX_SIZE];
+
+    if(ui->rdiZqMode->isChecked())//周期模式　１
+    {
+        GetAfxConfig()->SetIni("SYSSET","MOD","1");
+        m_pMC->m_stMainCtrl.RunMod = 1;
+
+        memset(cValue,0,MAX_SIZE);
+        strcpy(cValue,ui->litTestCyc->text().trimmed().toLatin1().data());
+        m_pMC->m_stMainCtrl.TestCYC = atoi(cValue);
+        GetAfxConfig()->SetIni("SYSSET","8051CYC",cValue);
+
+        GetAfxConfig()->SetIni("SYSSET","8051NextTime",ui->litNextTestTime->text().trimmed().toLatin1().data());
+        m_pMC->m_stMainCtrl.NextTestTime = QDateTime::fromString(ui->litNextTestTime->text(), "yyyy-MM-dd HH:mm:ss");
+    }
+    else if(ui->rdiDdMode->isChecked())  //定点模式　２
+    {
+        GetAfxConfig()->SetIni("SYSSET","MOD","2");
+        m_pMC->m_stMainCtrl.RunMod = 2;
+    }
+    else if(ui->rdiSkMode->isChecked())//受控模式　３
+    {
+        GetAfxConfig()->SetIni("SYSSET","MOD","3");
+        m_pMC->m_stMainCtrl.RunMod = 3;
+    }
+    else if(ui->rdiWhMode->isChecked())//维护模式 4
+    {
+        GetAfxConfig()->SetIni("SYSSET","MOD","4");
+        m_pMC->m_stMainCtrl.RunMod = 4;
+    }
+
+    //自动标样校准
+    if(ui->chkStdAbsorb->isChecked())
+    {
+        if(ui->litStdAbsorbCyc->text().trimmed().length() != 0 && ui->litNextStdAbsorbTime->text().trimmed().length() != 0)
+        {
+            GetAfxConfig()->SetIni("AutoAdjust_SET","IsAutoStdAbsorb","1");
+            m_pMC->m_stMainCtrl.AutoStdAbsorb = 1;
+
+            memset(cValue,0,MAX_SIZE);
+            strcpy(cValue,ui->litStdAbsorbCyc->text().trimmed().toLatin1().data());
+            GetAfxConfig()->SetIni("AutoAdjust_SET","StdAbsorbCyc",cValue);
+            m_pMC->m_stMainCtrl.StdAbsorbCyc = atoi(cValue);
+
+            memset(cValue,0,MAX_SIZE);
+            strcpy(cValue,ui->litNextStdAbsorbTime->text().trimmed().toLatin1().data());
+            m_pMC->m_stMainCtrl.AutoStdAbsorbTime = QDateTime::fromString(ui->litNextStdAbsorbTime->text(), "yyyy-MM-dd HH:mm:ss");
+            GetAfxConfig()->SetIni("AutoAdjust_SET","AutoStdAbsorbTime",cValue);
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息","自动标样校准中周期和下次测试时间必须填写!",QMessageBox::Ok);
+            return;
+        }
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("AutoAdjust_SET","IsAutoStdAbsorb","0");
+        m_pMC->m_stMainCtrl.AutoStdAbsorb = 0;
+    }
+
+    //自动空白校准
+    if(ui->chkBlankAbsorb->isChecked())
+    {
+        if(ui->litBlankAbsorbCyc->text().trimmed().length() != 0 && ui->litNextBlankAbsorbTime->text().trimmed().length() != 0)
+        {
+            GetAfxConfig()->SetIni("AutoAdjust_SET","IsAutoBlankAbsorb","1");
+            m_pMC->m_stMainCtrl.AutoBlankAbsorb = 1;
+
+            memset(cValue,0,MAX_SIZE);
+            strcpy(cValue,ui->litBlankAbsorbCyc->text().trimmed().toLatin1().data());
+            m_pMC->m_stMainCtrl.BlankAbsorbCyc = atoi(cValue);
+            GetAfxConfig()->SetIni("AutoAdjust_SET","BlankAbsorbCyc",cValue);
+
+
+            memset(cValue,0,MAX_SIZE);
+            strcpy(cValue,ui->litNextBlankAbsorbTime->text().trimmed().toLatin1().data());
+            m_pMC->m_stMainCtrl.AutoBlankAbsorbTime = QDateTime::fromString(ui->litNextBlankAbsorbTime->text(), "yyyy-MM-dd HH:mm:ss");
+            GetAfxConfig()->SetIni("AutoAdjust_SET","AutoBlankAbsorbTime",cValue);
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息","自动空白校准中周期和下次测试时间必须填写!",QMessageBox::Ok);
+            return;
+        }
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("AutoAdjust_SET","IsAutoBlankAbsorb","0");
+        m_pMC->m_stMainCtrl.AutoBlankAbsorb = 0;
+    }
+
+    //自动核查校准
+    if(ui->chkHcAbsorb->isChecked())
+    {
+        if(ui->litHcCyc->text().trimmed().length() != 0 && ui->litNextHcAbsorbTime->text().trimmed().length() != 0)
+        {
+            GetAfxConfig()->SetIni("AutoAdjust_SET","IsAutoSampLetest","1");
+            m_pMC->m_stMainCtrl.AutoSampLetest = 1;
+
+            memset(cValue,0,MAX_SIZE);
+            strcpy(cValue,ui->litHcCyc->text().trimmed().toLatin1().data());
+            m_pMC->m_stMainCtrl.SampLetestCyc = atoi(cValue);
+            GetAfxConfig()->SetIni("AutoAdjust_SET","AutoHcCyc",cValue);
+
+            memset(cValue,0,MAX_SIZE);
+            strcpy(cValue,ui->litNextHcAbsorbTime->text().trimmed().toLatin1().data());
+            m_pMC->m_stMainCtrl.AutoSampLetestTime = QDateTime::fromString(ui->litNextHcAbsorbTime->text(), "yyyy-MM-dd HH:mm:ss");
+            GetAfxConfig()->SetIni("AutoAdjust_SET","AutoSampLetestTime",cValue);
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息","自动核查校准中周期和下次测试时间必须填写!",QMessageBox::Ok);
+            return;
+        }
+    }
+    else
+    {
+        GetAfxConfig()->SetIni("AutoAdjust_SET","IsAutoSampLetest","0");
+        m_pMC->m_stMainCtrl.AutoSampLetest = 0;
+    }
+
+    if(1 == m_iYQType)
+    {
+        memset(cValue,0,MAX_SIZE);
+        strcpy(cValue,ui->litMaintain->text().trimmed().toLatin1().data());
+        GetAfxConfig()->SetIni("SYSSET","MaintainCYC",cValue);
+        m_pMC->m_stMainCtrl.MaintainCYC = atoi(cValue);
+
+        memset(cValue,0,MAX_SIZE);
+        strcpy(cValue,ui->litNextMaintainTime->text().trimmed().toLatin1().data());
+        m_pMC->m_stMainCtrl.MaintainTime = QDateTime::fromString(ui->litNextMaintainTime->text(), "yyyy-MM-dd HH:mm:ss");
+        GetAfxConfig()->SetIni("SYSSET","MaintainTime",cValue);
+    }
+
+    //将运行模式保存寄存器
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("SYSSET","MOD",cValue);
+    for(int i = 0;i < YQMAXCOUNT;i++)
+    {
+        if(m_pMC->pYQs->pYQ[i])
+        {
+            m_pMC->pYQs->pYQ[i]->SetWorkMode(atoi(cValue));
+        }
+    }
+    QMessageBox::information(NULL, "提示信息","保存成功!",QMessageBox::Ok);
+}
+
+void dlrunmodelset::on_Btndelete_clicked()
+{
+    int nCurrentRow = ui->listWidget->currentRow();
+    QListWidgetItem * item = ui->listWidget->takeItem (nCurrentRow);
+
+    ui->listWidget->removeItemWidget(item);
+    int nCount = -1;
+    char cTime[MAX_SIZE];memset(cTime,0,MAX_SIZE);
+
+    for(int i=0;i<24;i++)
+    {  
+        if(m_nListTime[i]>=0)
+        {
+            nCount++;
+            if(nCount == nCurrentRow)
+            {
+                sprintf(cTime,"%d",i);
+                GetAfxConfig()->SetIni("SYSSET",cTime,"0");
+                m_nListTime[i] = -1;
+                for(i+1;i<23;i++)
+                {
+                    if(m_nListTime[i+1]>=0)
+                    {
+                        m_nListTime[i+1]--;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void dlrunmodelset::on_Btnadd_clicked()
+{
+    QString qsContent;
+    qsContent += ui->Boxtime->currentText();
+    qsContent += ":";
+    qsContent += ui->Boxtype->currentText();
+
+    QList<QListWidgetItem*> items = ui->listWidget->findItems(qsContent,Qt::MatchExactly);
+    int num = items.count();
+    if(0 == num)
+    {
+
+        char cTime[MAX_SIZE];memset(cTime,0,MAX_SIZE);
+        char cType[MAX_SIZE];memset(cType,0,MAX_SIZE);
+        int nCount = 0;
+        int nTimeIndex = ui->Boxtime->currentIndex();
+        int nTypeIndex = ui->Boxtype->currentIndex();
+        sprintf(cTime,"%d",nTimeIndex);
+        if(m_nListTime[nTimeIndex]>=0)
+        {
+            QListWidgetItem * item = ui->listWidget->takeItem (m_nListTime[nTimeIndex]);
+            ui->listWidget->removeItemWidget(item);
+            if(0 == nTypeIndex)
+            {
+                ui->listWidget->insertItem(m_nListTime[nTimeIndex],new QListWidgetItem(QIcon(QObject::tr(":/res/watertest.png")), qsContent));
+            }else if(1 == nTypeIndex)
+            {
+                ui->listWidget->insertItem(m_nListTime[nTimeIndex],new QListWidgetItem(QIcon(QObject::tr(":/res/sampletest.png")), qsContent));
+            }else if(2 == nTypeIndex)
+            {
+                ui->listWidget->insertItem(m_nListTime[nTimeIndex],new QListWidgetItem(QIcon(QObject::tr(":/res/SampleAdjust.png")), qsContent));
+            }else if(3 == nTypeIndex)
+            {
+                ui->listWidget->insertItem(m_nListTime[nTimeIndex],new QListWidgetItem(QIcon(QObject::tr(":/res/blanktest.png")), qsContent));
+            }
+            else
+            {
+                //do nothing
+            }
+        }
+        else
+        {
+            for(int i=0;i<nTimeIndex;i++)
+            {
+                if(m_nListTime[i]>=0)
+                {
+                    nCount++;
+                }
+            }
+            if(0 == nTypeIndex)
+            {
+                ui->listWidget->insertItem(nCount,new QListWidgetItem(QIcon(QObject::tr(":/res/watertest.png")), qsContent));
+            }else if(1 == nTypeIndex)
+            {
+                ui->listWidget->insertItem(nCount,new QListWidgetItem(QIcon(QObject::tr(":/res/sampletest.png")), qsContent));
+            }else if(2 == nTypeIndex)
+            {
+                ui->listWidget->insertItem(nCount,new QListWidgetItem(QIcon(QObject::tr(":/res/SampleAdjust.png")), qsContent));
+            }else if(3 == nTypeIndex)
+            {
+                ui->listWidget->insertItem(nCount,new QListWidgetItem(QIcon(QObject::tr(":/res/blanktest.png")), qsContent));
+            }
+            else
+            {
+                //do nothing
+            }
+            m_nListTime[nTimeIndex] = nCount;
+            for(nTimeIndex+1;nTimeIndex<24;nTimeIndex++)
+            {
+                if(m_nListTime[nTimeIndex+1]>=0)
+                {
+                    m_nListTime[nTimeIndex+1]++;
+                }
+            }
+
+        }
+        if(0 == nTypeIndex)//水样测试 8051
+        {
+            memcpy(cType,"8051",strlen("8051"));
+        }else if(1 == nTypeIndex)//标样测试 3016
+        {
+            memcpy(cType,"3016",strlen("3016"));
+        }else if(2 == nTypeIndex)//标样校准 3021
+        {
+            memcpy(cType,"3021",strlen("3021"));
+        }else if(3 == nTypeIndex)//空白校准 3011
+        {
+            memcpy(cType,"3011",strlen("3011"));
+        }
+        else
+        {
+            //do nothing
+        }
+        char cGroup[MAX_SIZE];
+        memset(cGroup,0,MAX_SIZE);
+        strcpy(cGroup,"SYSSET");
+
+        char cItem[MAX_SIZE];
+        memset(cItem,0,MAX_SIZE);
+        strcpy(cItem,cTime);
+
+        char cValue[MAX_SIZE];
+        memset(cValue,0,MAX_SIZE);
+        strcpy(cValue,cType);
+        GetAfxConfig()->SetIni(cGroup,cItem,cValue);
+    }
+    else
+    {
+        QMessageBox::information(NULL, "提示信息", "已添加!");
+    }
+
+
+}
+
+//void dlrunmodelset::on_btnHelp_clicked()
+//{
+//    dlghelpinfo *pHelpInfo = new dlghelpinfo(3);
+//    pHelpInfo->exec();
+//    delete pHelpInfo;
+//    pHelpInfo = NULL;
+//}
+
+void dlrunmodelset::mousePressEvent(QMouseEvent * mouseEvent)
+{
+    int x = mouseEvent->pos().x();
+    int y = mouseEvent->pos().y();
+
+    if ((x < 50)&&(y > 440))
+    {
+        m_nClick++;
+        if(m_nClick >4)
+        {
+            m_nClick = 0;
+            DlgNetSetting pDlgNet;
+            pDlgNet.move((qApp->desktop()->width() - pDlgNet.width())/2,(qApp->desktop()->height() - pDlgNet.height())/2);
+            pDlgNet.exec();
+        }
+    }
+
+}
+
+void dlrunmodelset::on_btnSelectTime_clicked()
+{
+    dlgmodifysystime *pSystime = new dlgmodifysystime(2);
+    pSystime->exec();
+    if(!pSystime->m_bFlag)
+    {
+        ui->litNextTestTime->setText(pSystime->m_qsTime);
+    }
+    delete pSystime;
+    pSystime = NULL;
+}
+bool dlrunmodelset::CompareSaveOrNot()
+{
+    char cValue[MAX_SIZE];
+
+    memset(cValue,0,MAX_SIZE);
+    GetAfxConfig()->GetIni("SYSSET","MOD",cValue);
+
+    if(ui->rdiZqMode->isChecked())//周期模式　１
+    {
+        if(atoi(cValue) != 1)
+        {
+            return false;
+        }
+        memset(cValue,0,MAX_SIZE);
+        GetAfxConfig()->GetIni("SYSSET","8051CYC",cValue);
+        if(ui->litTestCyc->text() != QString(cValue))
+        {
+            return false;
+        }
+        memset(cValue,0,MAX_SIZE);
+        GetAfxConfig()->GetIni("SYSSET","8051NextTime",cValue);
+        if(ui->litNextTestTime->text() != QString(cValue))
+        {
+            return false;
+        }
+    }
+    else if(ui->rdiDdMode->isChecked())  //定点模式　２
+    {
+        if(atoi(cValue) != 2)
+        {
+            return false;
+        }
+    }
+    else if(ui->rdiSkMode->isChecked())//受控模式　３
+    {
+        if(atoi(cValue) != 3)
+        {
+            return false;
+        }
+    }
+    else if(ui->rdiWhMode->isChecked())//维护模式 4
+    {
+        if(atoi(cValue) != 4)
+        {
+            return false;
+        }
+    }
+}
+void dlrunmodelset::on_btnClose_clicked()
+{
+//    if(!CompareSaveOrNot())
+//    {
+//        int ret = QMessageBox::information(NULL, "提示信息","有设置项内容未保存.\n"
+//                                                  "请确认是否保存?",
+//                                                 QMessageBox::Yes | QMessageBox::No);
+//        switch (ret)
+//        {
+//          case QMessageBox::Yes:
+//                on_butSave_clicked();
+//              break;
+//          case QMessageBox::No:
+//              break;
+//          default:
+//              break;
+//        }
+//    }
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    this->close();
+    emit EmityParWinClolse();
+}
+void dlrunmodelset::on_btnStdAbsorbTime_clicked()
+{
+    dlgmodifysystime *pSystime = new dlgmodifysystime(2);
+    pSystime->exec();
+    if(!pSystime->m_bFlag)
+    {
+        ui->litNextStdAbsorbTime->setText(pSystime->m_qsTime);
+    }
+    delete pSystime;
+    pSystime = NULL;
+}
+
+void dlrunmodelset::on_btnBlankAbsorbTime_clicked()
+{
+    dlgmodifysystime *pSystime = new dlgmodifysystime(2);
+    pSystime->exec();
+    if(!pSystime->m_bFlag)
+    {
+        ui->litNextBlankAbsorbTime->setText(pSystime->m_qsTime);
+    }
+    delete pSystime;
+    pSystime = NULL;
+}
+
+void dlrunmodelset::on_btnHcAbsorbTime_clicked()
+{
+    dlgmodifysystime *pSystime = new dlgmodifysystime(2);
+    pSystime->exec();
+    if(!pSystime->m_bFlag)
+    {
+        ui->litNextHcAbsorbTime->setText(pSystime->m_qsTime);
+    }
+    delete pSystime;
+    pSystime = NULL;
+}
+
+void dlrunmodelset::on_BoxAutoMaintain_clicked(bool checked)
+{
+    if(!checked)
+    {
+        ui->litMaintain->setEnabled(false);
+        ui->btnMaintainTime->setEnabled(false);
+        ui->labelMaintainCYC->setEnabled(false);
+        ui->labelMaintaintime->setEnabled(false);
+        GetAfxConfig()->SetIni("SYSSET","Maintain","0");
+        m_pMC->m_stMainCtrl.MaintainMod = 0;
+    }
+    else
+    {
+        ui->litMaintain->setEnabled(true);
+        ui->btnMaintainTime->setEnabled(true);
+        ui->labelMaintainCYC->setEnabled(true);
+        ui->labelMaintaintime->setEnabled(true);
+        ui->litNextMaintainTime->setText(QDateTime::currentDateTime().addDays(2).toString("yyyy-MM-dd HH:00:00"));
+        GetAfxConfig()->SetIni("SYSSET","Maintain","1");
+        m_pMC->m_stMainCtrl.MaintainMod = 1;
+    }
+}
+
+void dlrunmodelset::on_btnMaintainTime_clicked()
+{
+    dlgmodifysystime *pSystime = new dlgmodifysystime(2);
+    pSystime->exec();
+    if(!pSystime->m_bFlag)
+    {
+        ui->litNextMaintainTime->setText(pSystime->m_qsTime);
+    }
+    delete pSystime;
+    pSystime = NULL;
+}
+//标样校准
+void dlrunmodelset::on_chkStdAbsorb_clicked(bool checked)
+{
+    ui->labStdAbsorbCyc->setEnabled(checked);
+    ui->chkStdAbsorb->setChecked(checked);
+    ui->litStdAbsorbCyc->setEnabled(checked);
+    ui->litNextStdAbsorbTime->setEnabled(checked);
+    ui->btnStdAbsorbTime->setEnabled(checked);
+    ui->labNextStdAbsorbTime->setEnabled(checked);
+}
+//空白校准
+void dlrunmodelset::on_chkBlankAbsorb_clicked(bool checked)
+{
+    ui->labBlankAbsorbCyc->setEnabled(checked);
+    ui->chkBlankAbsorb->setChecked(checked);
+    ui->litBlankAbsorbCyc->setEnabled(checked);
+    ui->litNextBlankAbsorbTime->setEnabled(checked);
+    ui->btnBlankAbsorbTime->setEnabled(checked);
+    ui->labNextBlankAbsorbTime->setEnabled(checked);
+}
+//核查校准
+void dlrunmodelset::on_chkHcAbsorb_clicked(bool checked)
+{
+    ui->labHcCyc->setEnabled(checked);
+    ui->chkHcAbsorb->setChecked(checked);
+    ui->litHcCyc->setEnabled(checked);
+    ui->litNextHcAbsorbTime->setEnabled(checked);
+    ui->btnHcAbsorbTime->setEnabled(checked);
+    ui->labNextHcAbsorbTime->setEnabled(checked);
+}

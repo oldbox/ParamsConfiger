@@ -1,0 +1,54 @@
+#ifndef DLGMODELTEST6_H
+#define DLGMODELTEST6_H
+
+#include <QWidget>
+#include "../mainwindowbase.h"
+#include <QMessageBox>
+
+namespace Ui {
+class dlgmodeltest6;
+}
+
+class dlgmodeltest6 : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmodeltest6(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmodeltest6();
+signals:
+    void NofityHgSignReadData();
+
+protected:
+    void RunSubThread();
+    void ExitSubThread();
+    static void* AutoRunThread(void* pParam);
+    
+private slots:
+    void on_butADTest_clicked();
+    void onGetReadData();
+    void on_butIllumAdjust_clicked();    
+
+private:
+    bool judgeYQConnect();
+    void SettabWidADListStyle();
+    void GetReadData();
+
+    Ui::dlgmodeltest6 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    pthread_t id_autorun;
+    bool m_bRunThread;
+    //vector<int> m_vLightVal;
+    unsigned int m_uiReadCyc;
+
+    int GetReadCyc();
+    void StopReadLight();
+    int m_iLightVal;
+    int m_iRow,m_iCol;
+    int m_iRedCou;
+
+
+};
+
+#endif // DLGMODELTEST6_H

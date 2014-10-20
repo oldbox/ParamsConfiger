@@ -1,0 +1,73 @@
+#include "dlglogquery.h"
+#include "ui_dlglogquery.h"
+#include "../core/cconfig.h"
+#include <stdio.h>
+#include <QMessageBox>
+
+dlglogquery::dlglogquery(QString qsTime,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlglogquery)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    ShowLogInfo(qsTime);
+}
+
+dlglogquery::~dlglogquery()
+{
+    delete ui;
+}
+void dlglogquery::ShowLogInfo(QString qsTime)
+{
+    QDateTime qTime = QDateTime::fromString(qsTime, "yyyy-MM-dd hh:mm");
+    char czDBName[256];memset(czDBName,0,256);
+    sprintf(czDBName,"%04d%02d%02d-%02d%02d.db",qTime.date().year(),qTime.date().month(),qTime.date().day(),qTime.time().hour(),qTime.time().minute());
+
+    CDBBusiness* db;
+    int nYQType = GetAfxYQType();
+    char czType[16];
+    memset(czType,0,16);
+    sprintf(czType,"%d",nYQType);
+
+    db  = new CDBBusiness(czType,czDBName);
+    sqlite_data datalist;
+    QStringList qslColHead;
+    qslColHead.clear();
+    ui->tableWidget->clearContents();//清空表格内容
+    ui->tableWidget->setColumnCount(3);
+    ui->tableWidget->setRowCount(0);
+    qslColHead.insert(0,"时间");
+    qslColHead.insert(1,"类型");
+    qslColHead.insert(2,"内容");
+    ui->tableWidget->setHorizontalHeaderLabels(qslColHead);
+    ui->tableWidget->verticalHeader()->setStyleSheet
+            ("QHeaderView::section {background-color: rgb(82,137,199);}");
+    ui->tableWidget->horizontalHeader()->setStyleSheet
+            ("QHeaderView::section {background-color: rgb(82,137,199);}");
+    ui->tableWidget->horizontalHeader()->setResizeMode(QHeaderView::Stretch);//设置尺寸模式
+    if(db->GetLog(datalist))
+    {
+        if(!datalist.IsEmpty())
+        {
+            ui->tableWidget->setColumnCount(datalist.ColCount());
+            ui->tableWidget->setRowCount(datalist.RowCount());
+            ui->tableWidget->setHorizontalHeaderLabels(qslColHead);
+            ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+            for(int i=1;i<=datalist.RowCount();i++)
+            {
+                ui->tableWidget->setItem(i-1,0, new QTableWidgetItem(QString(datalist.GetData(i,1))));
+                ui->tableWidget->setItem(i-1,1, new QTableWidgetItem(QString(datalist.GetData(i,2))));
+                ui->tableWidget->setItem(i-1,2, new QTableWidgetItem(QString(datalist.GetData(i,3))));
+            }
+            datalist.Free();
+        }
+        else
+        {
+            QMessageBox::information(NULL, "提示信息","没有查询到数据！");
+            qDebug("Source data empty \n");
+        }
+
+    }
+    delete db;
+    db = NULL;
+}

@@ -1,0 +1,356 @@
+#include "dlgviewdatainfo.h"
+#include "ui_dlgviewdatainfo.h"
+#include "../core/paramdict.h"
+#include <QDesktopWidget>
+
+dlgviewdatainfo::dlgviewdatainfo(CMainCtrl* pMC,QString qsTime,QString qsName,int nIndex,CDBBusiness* pDB,QWidget *parent) :
+    QDialog(parent),
+    m_pDB(NULL),
+    ui(new Ui::dlgviewdatainfo)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMC = pMC;
+    m_dict = new paramdict();
+    m_qsTime = qsTime;
+    m_qsName = qsName;
+    m_nIndex = nIndex;
+    m_pDB = pDB;
+    ui->tabInfo->clear();
+
+    ui->tabInfo->setSelectionBehavior(QAbstractItemView::SelectRows);//整行选中的方式
+    ui->tabInfo->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    ui->tabInfo->horizontalHeader()->setResizeMode(QHeaderView::Fixed);
+    int nYQType = GetAfxYQType();
+    if((2==m_nIndex)||(3==m_nIndex))
+    {
+        ui->tabInfo->hide();
+        ui->label->hide();
+        this->setGeometry(QRect(0,0,345,110));
+        ui->BtnClose->setGeometry(QRect(130,40,80,27));
+        ui->BtnCurve->setGeometry(QRect(30,40,80,27));
+    }
+    else
+    {
+        if(nYQType == 3)//数据关联的详细数据
+        {
+             ShowInfo_voc();
+        }
+        else if(nYQType == 1)
+        {
+             ShowInfo_echem();
+        }
+        else if(nYQType == 4)
+        {
+            ui->BtnCurve->hide();
+            ShowInfo_bsList();
+        }
+        else if(nYQType == 6)
+        {
+            ShowInfo_bsList();
+        }
+    }
+}
+
+dlgviewdatainfo::~dlgviewdatainfo()
+{
+    delete m_dict;
+    delete ui;
+}
+
+void dlgviewdatainfo::on_BtnCurve_clicked()
+{
+    this->hide();
+    DispDataCurve* pdatacurve = new DispDataCurve(m_pMC,m_qsTime,m_nIndex);
+    pdatacurve->move((qApp->desktop()->width() - pdatacurve->width())/2,(qApp->desktop()->height() - pdatacurve->height())/2);
+    pdatacurve->exec();
+    delete pdatacurve;
+    pdatacurve = NULL;
+}
+
+void dlgviewdatainfo::ShowInfo_bsList()
+{
+    QStringList qslColHea;
+    qslColHea.clear();
+    qslColHea.insert(0,"测试时间");
+    qslColHea.insert(1,"参数");
+    qslColHea.insert(2,"基线值");
+    qslColHea.insert(3,"样品值");
+    qslColHea.insert(4,"吸光度");
+    qslColHea.insert(5,"K");
+    qslColHea.insert(6,"B");
+    qslColHea.insert(7,"R");
+    qslColHea.insert(8,"空白吸光度");
+    qslColHea.insert(9,"标样浓度");
+    qslColHea.insert(10,"标样吸光度");
+    qslColHea.insert(11,"消解温度");
+    qslColHea.insert(12,"消解时间");
+    qslColHea.insert(13,"工作曲线");
+
+    ui->tabInfo->setColumnCount(14);
+    ui->tabInfo->setRowCount(1);
+    ui->tabInfo->setHorizontalHeaderLabels(qslColHea);
+    ui->tabInfo->setColumnWidth(0,150);
+    ui->tabInfo->setColumnWidth(1,80);
+    ui->tabInfo->setColumnWidth(1,60);
+    int nResult = 0;
+    sqlite_data datalist;
+    if(m_pDB)
+    {
+        nResult = m_pDB->GetBsDataInfo(m_qsTime.toLatin1().data(),m_qsTime.toLatin1().data(),datalist);
+    }
+    if( nResult > 0)
+    {
+        if(!datalist.IsEmpty())
+        {
+            QString qsValue;
+            int nCol = 0;
+             ui->tabInfo->setRowCount(datalist.RowCount());
+             for(int i=1;i<=datalist.RowCount();i++)
+             {
+                 nCol = 0;
+                 qsValue = QString(datalist.GetData(i,1));//时间
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,2));//YQID
+                 qsValue = GetYQNameVoc(qsValue);
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,4));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,5));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,6));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,7));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,8));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,9));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,10));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,11));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,12));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,13));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,14));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,15));
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+             }
+        }
+    }
+    datalist.Free();
+}
+
+void dlgviewdatainfo::ShowInfo_voc()
+{
+    QStringList qslColHea;
+    qslColHea.clear();
+    qslColHea.insert(0,"测试时间");
+    qslColHea.insert(1,"参数");
+    qslColHea.insert(2,"保留时间");
+    qslColHea.insert(3,"峰高");
+    qslColHea.insert(4,"面积");
+
+    qslColHea.insert(5,"乘数");
+    qslColHea.insert(6,"K");
+    qslColHea.insert(7,"B");
+    qslColHea.insert(8,"R");
+
+    ui->tabInfo->setColumnCount(9);
+    ui->tabInfo->setRowCount(0);
+    ui->tabInfo->setHorizontalHeaderLabels(qslColHea);
+    ui->tabInfo->setColumnWidth(0,150);
+    ui->tabInfo->setColumnWidth(1,80);
+    ui->tabInfo->setColumnWidth(1,60);
+
+    int nResult = 0;
+    sqlite_data datalist;
+    if(m_pDB)
+    {
+        nResult = m_pDB->GetVocDataInfo(m_qsTime.toLatin1().data(),datalist);
+    }
+    if( nResult > 0)
+    {
+        if(!datalist.IsEmpty())
+        {
+            QString qsValue;
+            int nCol = 0;
+             ui->tabInfo->setRowCount(datalist.RowCount());
+             for(int i=1;i<=datalist.RowCount();i++)
+             {
+                 nCol = 0;
+                 qsValue = QString(datalist.GetData(i,1));//时间
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,2));//YQID
+                 qsValue = GetYQNameVoc(qsValue);
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,4));//RemainTime
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,5));//PeakHight
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,6));//Area
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+//                 qsValue = QString(datalist.GetData(i,7));//Multiplier
+//                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,7));//K
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,8));//B
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 qsValue = QString(datalist.GetData(i,9));//R
+                 ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+             }
+        }
+    }
+
+}
+void dlgviewdatainfo::ShowInfo_echem()
+{
+    QStringList qslColHea;
+    qslColHea.clear();
+    qslColHea.insert(0,"测试时间");
+    qslColHea.insert(1,"参数");
+    qslColHea.insert(2,"峰高h");
+    qslColHea.insert(3,"峰高H");
+    qslColHea.insert(4,"计算方式");
+
+    qslColHea.insert(5,"左寻峰点");
+    qslColHea.insert(6,"右寻峰点");
+    qslColHea.insert(7,"消解温度");
+    qslColHea.insert(8,"消解时间");
+
+    ui->tabInfo->setColumnCount(9);
+    ui->tabInfo->setRowCount(0);
+    ui->tabInfo->setHorizontalHeaderLabels(qslColHea);
+    ui->tabInfo->setColumnWidth(0,150);
+    ui->tabInfo->setColumnWidth(1,80);
+    ui->tabInfo->setColumnWidth(1,60);
+
+    int nResult = 0;
+    sqlite_data datalist;
+    if(m_pDB)
+    {
+        nResult = m_pDB->GetEchemDataInfo(m_qsTime.toLatin1().data(),datalist);
+    }
+    if( nResult > 0)
+    {
+        if(!datalist.IsEmpty())
+        {
+            QString qsValue;
+            int nCol = 0;
+             if(0 == m_nIndex)
+             {
+                 ui->tabInfo->setRowCount(datalist.RowCount());
+                 for(int i=1;i<=datalist.RowCount();i++)
+                 {
+                     nCol = 0;
+                     qsValue = QString(datalist.GetData(i,1));//时间
+                     ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                     qsValue = QString(datalist.GetData(i,2));//YQID
+                     qsValue = GetYQNameEchem(qsValue);
+                     ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                     qsValue = QString(datalist.GetData(i,3));
+                     ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                     qsValue = QString(datalist.GetData(i,4));
+                     ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                     if(1 == atoi(datalist.GetData(i,5)))
+                     {
+                         ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem("峰高"));
+                     }
+                     else
+                     {
+                         ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem("峰面积"));
+                     }
+                     qsValue = QString(datalist.GetData(i,6));
+                     ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                     qsValue = QString(datalist.GetData(i,7));
+                     ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                     qsValue = QString(datalist.GetData(i,8));
+                     ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                     qsValue = QString(datalist.GetData(i,9));
+                     ui->tabInfo->setItem(i-1,nCol++, new QTableWidgetItem(qsValue));
+                 }
+             }
+             else if(1 == m_nIndex)
+             {
+                 ui->tabInfo->setRowCount(1);
+                 for(int i=1;i<=datalist.RowCount();i++)
+                 {
+                     qsValue = QString(datalist.GetData(i,2));//YQID
+                     qsValue = GetYQNameEchem(qsValue);
+                     if(qsValue == m_qsName)
+                     {
+                         nCol = 0;
+                         qsValue = QString(datalist.GetData(i,1));//时间
+                         ui->tabInfo->setItem(0,nCol++, new QTableWidgetItem(qsValue));
+                         ui->tabInfo->setItem(0,nCol++, new QTableWidgetItem(m_qsName));
+                         qsValue = QString(datalist.GetData(i,3));
+                         ui->tabInfo->setItem(0,nCol++, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,4));
+                         ui->tabInfo->setItem(0,nCol++, new QTableWidgetItem(qsValue));
+                         if(1 == atoi(datalist.GetData(i,5)))
+                         {
+                             ui->tabInfo->setItem(0,nCol++, new QTableWidgetItem("峰高"));
+                         }
+                         else
+                         {
+                             ui->tabInfo->setItem(0,nCol++, new QTableWidgetItem("峰面积"));
+                         }
+                         qsValue = QString(datalist.GetData(i,6));
+                         ui->tabInfo->setItem(0,nCol++, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,7));
+                         ui->tabInfo->setItem(0,nCol++, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,8));
+                         ui->tabInfo->setItem(0,nCol++, new QTableWidgetItem(qsValue));
+                         qsValue = QString(datalist.GetData(i,9));
+                         ui->tabInfo->setItem(0,nCol++, new QTableWidgetItem(qsValue));
+                     }
+                 }
+             }
+        }
+    }
+
+}
+QString dlgviewdatainfo::GetYQNameVoc(QString sCodeID)
+{
+    QString qsCodeName;
+    paramdict dict;
+    vector<paramitem>::iterator it;
+    for(it = dict.paramlist.begin(); it < dict.paramlist.end(); it++)
+    {
+        if(sCodeID == (*it).LHCodeID)
+        {
+            qsCodeName = (*it).CodeName;
+            break;
+        }
+    }
+//    paramdict dict;
+//    vector<paramitem3>::iterator it;
+//    for(it=dict.paramlist3.begin();it<dict.paramlist3.end();it++)
+//    {
+//       if(sCodeID == ((*it).LHCodeID))
+//       {
+//           qsCodeName = (*it).CodeName;
+//           break;
+//       }
+//    }
+    return qsCodeName;
+}
+QString dlgviewdatainfo::GetYQNameEchem(QString sCodeID)
+{
+    QString qsCodeName;
+    paramdict dict;
+    vector<paramitem>::iterator it;
+    for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+    {
+       if(sCodeID == ((*it).LHCodeID))
+       {
+           qsCodeName = (*it).CodeName;
+           break;
+       }
+    }
+    return qsCodeName;
+}

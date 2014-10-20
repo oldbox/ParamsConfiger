@@ -1,0 +1,82 @@
+#include "dlguserlogin.h"
+#include "ui_dlguserlogin.h"
+
+dlguserlogin::dlguserlogin(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    m_nLoginTime(0),
+    ui(new Ui::dlguserlogin)
+{
+    ui->setupUi(this);
+    m_pMC = pMC;
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    sfkey = new SfKeyboard(this);
+    sfkey->hide();
+    pMessage = new dlgRemindMessage(m_pMC,2);
+    passwd = new Dlgchangepasswd();
+    ui->linepasswd->setEchoMode(QLineEdit::Password);
+    ui->linepasswd->installEventFilter(this);
+    ui->linepasswd->setText("");
+}
+
+dlguserlogin::~dlguserlogin()
+{
+    delete ui;
+    delete sfkey;
+    delete pMessage;
+    delete passwd;
+}
+bool dlguserlogin::eventFilter(QObject *object, QEvent *event)
+{
+    if (event->type() == QEvent::FocusIn)
+    {
+         objLit = (QLineEdit*)object;
+    }
+    return false;
+}
+
+void dlguserlogin::on_btnok_clicked()
+{
+    char cValue[64];
+    int nLoginTime;
+    nLoginTime = 0;
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("UserType_3","passwd",cValue);
+    nLoginTime = (ui->comboxtime->currentIndex()+1)*5*60;
+    if(!strcmp(ui->linepasswd->text().trimmed().toLatin1().data(),cValue))
+    {
+      CConfig::setAfxUserType(3);
+      m_nLoginTime = nLoginTime;
+      this->hide();
+      return;
+    }
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("UserType_2","passwd",cValue);
+    if(!strcmp(ui->linepasswd->text().trimmed().toLatin1().data(),cValue))
+    {
+      CConfig::setAfxUserType(2);
+      m_nLoginTime = nLoginTime;
+      this->hide();
+      return;
+    }
+    memset(cValue,0,64);
+    GetAfxConfig()->GetIni("UserType_1","passwd",cValue);
+    if(!strcmp(ui->linepasswd->text().trimmed().toLatin1().data(),cValue))
+    {
+      CConfig::setAfxUserType(1);
+      m_nLoginTime = nLoginTime;
+      this->hide();
+      return;
+    }
+    pMessage->exec();
+
+}
+void dlguserlogin::on_btnpasswd_clicked()
+{
+    this->accept();
+    passwd->exec();
+}
+
+void dlguserlogin::on_btncancel_clicked()
+{
+    this->close();
+}

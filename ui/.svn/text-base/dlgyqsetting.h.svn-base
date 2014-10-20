@@ -1,0 +1,30 @@
+#ifndef DLGYQSETTING_H
+#define DLGYQSETTING_H
+
+#include <QDialog>
+
+#include <QListWidgetItem>
+#include "dlgprocesssetup.h"
+
+namespace Ui {
+class DlgYqSetting;
+}
+
+class DlgYqSetting : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit DlgYqSetting(QWidget *parent = 0);
+    ~DlgYqSetting();
+
+private slots:
+    void on_wdtListSetup_currentItemChanged(QListWidgetItem *current, QListWidgetItem *previous);
+
+private:
+    Ui::DlgYqSetting *ui;
+
+    DlgProcessSetup *dps;
+};
+
+#endif // DLGYQSETTING_H

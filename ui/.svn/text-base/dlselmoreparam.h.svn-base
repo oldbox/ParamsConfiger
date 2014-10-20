@@ -1,0 +1,30 @@
+#ifndef DLSELMOREPARAM_H
+#define DLSELMOREPARAM_H
+
+#include <QDialog>
+
+namespace Ui {
+class dlselmoreparam;
+}
+
+class dlselmoreparam : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlselmoreparam(QWidget *parent = 0);
+    ~dlselmoreparam();
+
+signals:
+    void NotifySelParam(QString sCode);
+    
+private slots:
+    void on_butClose_clicked();
+
+    void on_butSave_clicked();
+
+private:
+    Ui::dlselmoreparam *ui;
+};
+
+#endif // DLSELMOREPARAM_H

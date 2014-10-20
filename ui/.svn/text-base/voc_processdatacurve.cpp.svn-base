@@ -1,0 +1,35 @@
+#include "voc_processdatacurve.h"
+#include "ui_voc_processdatacurve.h"
+
+Voc_processDataCurve::Voc_processDataCurve(QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::Voc_processDataCurve)
+{
+    ui->setupUi(this);
+
+    plot = new MyPlot(4, ui->widget);
+    plot->setGeometry(QRect(0,0, 580,340));
+}
+
+Voc_processDataCurve::~Voc_processDataCurve()
+{
+    delete ui;
+    delete plot;
+}
+
+void Voc_processDataCurve::ShowCurve(QVector<double> m_vtRT,QVector<double> m_vtVol, QVector<double> m_vtTp)
+{
+    //电压信号値
+    plot->AddCurve("signal",m_vtRT, m_vtVol,Qt::red);
+    //温度值
+    plot->AddCurve("Tempt", m_vtRT, m_vtTp, Qt::green);
+}
+void Voc_processDataCurve::ShowCurve(QVector<double> m_vtRT, QVector<double> m_vtData)
+{
+     plot->AddCurve("",m_vtRT, m_vtData,Qt::green);
+}
+
+void Voc_processDataCurve::RemoveCurve()
+{
+    plot->RemoveCurve();
+}

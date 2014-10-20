@@ -1,0 +1,50 @@
+#ifndef BSADTEST_H
+#define BSADTEST_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class bsADTest;
+}
+
+class bsADTest : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit bsADTest(CMainCtrl* pMC,QWidget *parent = 0);
+    ~bsADTest();
+
+protected:
+    void RunThread();
+    void ExitRunThread();
+    static void* AutoRunThread(void* pParam);
+    
+private slots:
+    void on_butTest_clicked();
+    void onGetReadData();
+
+    void on_butReadStop_clicked();
+
+    void on_butClose_clicked();
+
+signals:
+    void NofityHgSignReadData();
+
+private:
+    Ui::bsADTest *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    void SettabWidADListStyle();
+    void GetReadData();
+    bool bExitThread;
+    pthread_t id_autorun;
+    bool m_bRunThread;
+
+    vector<int> m_vLightVal;
+
+    void StopReadLight();
+};
+
+#endif // BSADTEST_H

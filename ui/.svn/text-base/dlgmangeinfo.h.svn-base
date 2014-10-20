@@ -1,0 +1,46 @@
+#ifndef DLGMANGEINFO_H
+#define DLGMANGEINFO_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include "dlgmaintainremind.h"
+#include "dlgmaintainmap.h"
+#include "bsallmodeltest.h"
+#include "bssetcurve.h"
+#include "dlgreagentmanage.h"
+
+namespace Ui {
+class dlgmangeinfo;
+}
+
+class dlgmangeinfo : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmangeinfo(CMainCtrl* pMC,int nType,QWidget *parent = 0);
+    ~dlgmangeinfo();
+    
+private slots:
+    void on_btnDJ_clicked();
+    void on_btnModule_clicked();
+    void on_btnscan_clicked();
+    void on_btnreset_clicked();
+    void on_btnReagent_clicked();
+    void OnMangeCurve(emCmdWord em_CmdWord);
+
+    void on_btnProcessfile_clicked();
+
+    void on_btnSystemSet_clicked();
+
+signals:
+    void NotifyMangeMenu(emCmdWord);
+
+private:
+    Ui::dlgmangeinfo *ui;
+    CMainCtrl* m_pMC;
+    int m_nYQType;
+    CDBBusiness* m_pDb;
+};
+
+#endif // DLGMANGEINFO_H

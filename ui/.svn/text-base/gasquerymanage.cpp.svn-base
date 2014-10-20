@@ -1,0 +1,49 @@
+#include "gasquerymanage.h"
+#include "ui_gasquerymanage.h"
+
+gasQueryManage::gasQueryManage(CMainCtrl* pMC,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::gasQueryManage)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMC = pMC;
+    if(CConfig::GetAfxUserType()<=1)
+    {
+       ui->BtnLogQuery->setEnabled(false);
+    }
+}
+
+gasQueryManage::~gasQueryManage()
+{
+    delete ui;
+}
+
+void gasQueryManage::on_BtnChromaQuery_clicked()
+{
+    this->close();
+    gasdataquery* pGasquery = new gasdataquery(m_pMC);
+    pGasquery->move((qApp->desktop()->width() - pGasquery->width())/2,(qApp->desktop()->height() - pGasquery->height())/2);
+    pGasquery->exec();
+    delete pGasquery;
+}
+
+void gasQueryManage::on_BtnLogQuery_clicked()
+{
+    this->close();
+    gasstatusquery *pStatusQuery = new gasstatusquery(2,m_pMC);
+    pStatusQuery->move((qApp->desktop()->width() - pStatusQuery->width())/2,(qApp->desktop()->height() - pStatusQuery->height())/2);
+    pStatusQuery->exec();
+    delete pStatusQuery;
+    pStatusQuery = NULL;
+}
+
+void gasQueryManage::on_BtnSetIOQuery_clicked()
+{
+    this->close();
+    gasConfigureQuery *pConfigureQuery = new gasConfigureQuery();
+    pConfigureQuery->move((qApp->desktop()->width() - pConfigureQuery->width())/2,(qApp->desktop()->height() - pConfigureQuery->height())/2);
+    pConfigureQuery->exec();
+    delete pConfigureQuery;
+    pConfigureQuery = NULL;
+}

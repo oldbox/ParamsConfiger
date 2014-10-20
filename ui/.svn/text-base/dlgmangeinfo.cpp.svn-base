@@ -1,0 +1,222 @@
+#include "dlgmangeinfo.h"
+#include "ui_dlgmangeinfo.h"
+#include "voc_dlgcurvemange.h"
+#include <QDesktopWidget>
+#include "dlconsmanage.h"
+#include "dlgspectrum.h"
+#include "dlgprocessfilemodify.h"
+#include "dlgnetsetting.h"
+
+dlgmangeinfo::dlgmangeinfo(CMainCtrl* pMC,int nType,QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlgmangeinfo)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    m_pMC = pMC;
+    m_pDb  = NULL;
+    if(1 == nType)
+    {
+    }
+    m_nYQType = GetAfxYQType();
+    if(5 == m_nYQType || 4 == m_nYQType)
+    {
+        ui->labelEleMaintain->setText("曲线标定");       
+        ui->btnscan->setVisible(false);
+        ui->label_3->setVisible(false);
+    }
+    else if(3 == m_nYQType)
+    {
+        ui->labelEleMaintain->setText("曲线管理");
+        ui->btnscan->setVisible(false);
+        ui->label_3->setVisible(false);
+    }
+    else if(6 == m_nYQType)
+    {
+        ui->labelEleMaintain->setText("曲线标定");
+        ui->label_3->setText("光谱仪");
+    }
+    m_pDb = new CDBBusiness("yqdata","yq.db");
+}
+
+dlgmangeinfo::~dlgmangeinfo()
+{
+    delete ui;
+    delete m_pDb;
+    m_pDb = NULL;
+}
+
+void dlgmangeinfo::on_btnDJ_clicked()
+{
+    this->close();
+    if(3 == m_nYQType)
+    {
+        voc_dlgCurveMange* dlg = new voc_dlgCurveMange();
+        dlg->move((qApp->desktop()->width() - dlg->width())/2,(qApp->desktop()->height() - dlg->height())/2);
+        dlg->exec();
+        delete dlg;
+        dlg = NULL;
+
+        m_pMC->pYQs->UpdateYQInfo();
+    }else if(5 == m_nYQType || 4 == m_nYQType || 6 == m_nYQType)
+    {
+        for(int i = 0; i < m_pMC->pYQs->GetYQCount(); i++)
+        {
+            SYQPARAM sYQ;
+            m_pMC->pYQs->pYQ[i]->GetYQParam(sYQ);
+            if(!m_pMC->pYQs->GetYQbIdle(sYQ.czID))//空闲或忙判断
+            {
+                 QMessageBox::information(NULL, "提示信息", "仪器测试时不能进行相关操作，请测试完成后再试!");
+                return;
+            }
+        }
+
+        bssetcurve *pdlgCurve = new bssetcurve(m_pMC);
+        connect(pdlgCurve, SIGNAL(NotifyMangeCurve(emCmdWord)), this, SLOT(OnMangeCurve(emCmdWord)),Qt::QueuedConnection);
+        pdlgCurve->move((qApp->desktop()->width() - pdlgCurve->width())/2,(qApp->desktop()->height() - pdlgCurve->height())/2);
+        pdlgCurve->exec();
+        delete pdlgCurve;
+        pdlgCurve = NULL;
+    }
+    else
+    {
+        dlgmaintainremind *pdlgremind = new dlgmaintainremind(m_pMC,1);
+        pdlgremind->exec();
+        delete pdlgremind;
+        pdlgremind = NULL;
+    }
+}
+
+void dlgmangeinfo::OnMangeCurve(emCmdWord emWord)
+{
+    emit NotifyMangeMenu(emWord);
+}
+//模块维护
+void dlgmangeinfo::on_btnModule_clicked()
+{
+    this->close();
+    if( CConfig::GetAfxUserType() >= 2)
+    {
+        if(3 != m_nYQType)
+        {
+            for(int i = 0; i < m_pMC->pYQs->GetYQCount(); i++)
+            {
+                SYQPARAM sYQ;
+                m_pMC->pYQs->pYQ[i]->GetYQParam(sYQ);
+                if(!m_pMC->pYQs->GetYQbIdle(sYQ.czID))//空闲或忙判断
+                {
+                    QMessageBox::information(NULL, "提示信息", "仪器测试时不能进行相关操作，请测试完成后再试!");
+                    return;
+                }
+            }
+        }
+
+        bsAllModelTest *dlgmap = new bsAllModelTest(m_pMC);
+        dlgmap->move((qApp->desktop()->width() - dlgmap->width())/2,(qApp->desktop()->height() - dlgmap->height())/2);
+        dlgmap->exec();
+        delete dlgmap;
+        dlgmap = NULL;
+    }
+    else
+    {
+        dlgRemindMessage pRemind(m_pMC,1);
+        pRemind.exec();
+    }
+}
+
+void dlgmangeinfo::on_btnscan_clicked()
+{
+    this->close();
+    if(6 == m_nYQType)
+    {
+        dlgSpectrum *pspec = new dlgSpectrum(m_pMC);
+        pspec->move((qApp->desktop()->width() - pspec->width())/2,(qApp->desktop()->height() - pspec->height())/2);
+        pspec->exec();
+        delete pspec;
+        pspec = NULL;
+    }
+    else
+    {
+        dlgmaintainremind *pdlgremind = new dlgmaintainremind(m_pMC,2);
+        pdlgremind->exec();
+        delete pdlgremind;
+        pdlgremind = NULL;
+    }
+}
+
+void dlgmangeinfo::on_btnreset_clicked()
+{
+    if( CConfig::GetAfxUserType() >= 2)
+    {
+        emit NotifyMangeMenu(CMD_EXIT);
+    }
+    else
+    {
+        dlgRemindMessage pRemind(m_pMC,1);
+        pRemind.exec();
+    }
+    this->close();
+}
+
+void dlgmangeinfo::on_btnReagent_clicked()
+{
+    this->close();
+    dlConsManage *pdConsMan = new dlConsManage(m_pMC);
+    pdConsMan->move((qApp->desktop()->width() - pdConsMan->width())/2,(qApp->desktop()->height() - pdConsMan->height())/2);
+    pdConsMan->exec();
+    delete pdConsMan;
+    pdConsMan = NULL;
+
+    //更新流程中的耗材状态表
+    for(int iP=0;iP<YQMAXCOUNT;iP++)
+    {
+        if(m_pMC->pYQs->pProcess[iP])
+        {
+            m_pMC->pYQs->pProcess[iP]->InitConsumemap();
+        }
+    }
+//    dlgReagentManage *pdlgReagent = new dlgReagentManage();
+//    pdlgReagent->move((qApp->desktop()->width() - pdlgReagent->width())/2,(qApp->desktop()->height() - pdlgReagent->height())/2);
+//    pdlgReagent->exec();
+//    delete pdlgReagent;
+//    pdlgReagent = NULL;
+}
+
+void dlgmangeinfo::on_btnProcessfile_clicked()
+{
+    if((1 == CConfig::GetAfxUserType())||(2 == CConfig::GetAfxUserType()))
+    {
+        dlgRemindMessage *pRemind= new dlgRemindMessage(m_pMC,1);
+        pRemind->exec();
+        delete pRemind;
+        pRemind = NULL;
+    }
+    else
+    {
+        dlgprocessfilemodify *pProcessFile = new dlgprocessfilemodify(m_pMC);
+        pProcessFile->move((qApp->desktop()->width() - pProcessFile->width())/2,(qApp->desktop()->height() - pProcessFile->height())/2);
+        pProcessFile->exec();
+        this->hide();
+        delete pProcessFile;
+        pProcessFile = NULL;
+    }
+}
+//系统配置
+void dlgmangeinfo::on_btnSystemSet_clicked()
+{
+    if(CConfig::GetAfxUserType() == 3)
+    {
+        DlgNetSetting *pNetSetting = new DlgNetSetting();
+        pNetSetting->move((qApp->desktop()->width() - pNetSetting->width())/2,(qApp->desktop()->height() - pNetSetting->height())/2);
+        pNetSetting->exec();
+        this->hide();
+        delete pNetSetting;
+        pNetSetting = NULL;
+    }
+    else
+    {
+        dlgRemindMessage pRemind(m_pMC,1);
+        pRemind.exec();
+    }
+
+}

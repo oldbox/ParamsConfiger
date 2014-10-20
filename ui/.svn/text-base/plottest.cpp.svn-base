@@ -1,0 +1,64 @@
+//#include "plottest.h"
+////#include "ui_plottest.h"
+////#include "myplot.h"
+//#include <iostream>
+
+//using namespace std;
+//PlotTest::PlotTest(char **value, char **sample, int count, QWidget *parent) :
+//    QDialog(parent),
+//    ui(new Ui::PlotTest)
+//{
+//    ui->setupUi(this);
+////    setWindowFlags(Qt::FramelessWindowHint);
+////    x = new double[count];
+////    y = new double[count];
+////    sampleX = new double[count];
+////    sampleY = new double[count];
+
+////    if(count > 1)
+////    {
+////        for(int i=0; i < count; i++)
+////        {
+////            QString  str(value[i]);
+////            QStringList list = str.split(":");
+////            y[i] = list.at(0).toDouble();
+////            x[i] = list.at(1).toDouble();
+////        }
+
+////        for(int i=0; i < count; i++)
+////        {
+////            QString  str(sample[i]);
+////            QStringList list = str.split(":");
+////            sampleY[i] = list.at(0).toDouble();
+////            sampleX[i] = list.at(1).toDouble();
+////        }
+////        plot->curve1->setSamples( x, y, count );
+////        plot->curve2->setSamples( sampleX, sampleY, count );
+////        zoom = new QwtPlotZoomer( QwtPlot::xBottom, QwtPlot::yLeft, plot->canvas() );
+////        zoom->setTrackerMode( QwtPicker::AlwaysOff );
+////    }
+//}
+
+//PlotTest::~PlotTest()
+//{
+//    delete ui;
+//    delete x;
+//    delete y;
+//    delete sampleX;
+//    delete sampleY;
+//}
+
+//void PlotTest::on_pushButton_clicked()
+//{
+//    close();
+//}
+
+//void PlotTest::on_pushButton_5_clicked()
+//{
+////    zoom->zoom(-1);
+//}
+
+//void PlotTest::on_pushButton_7_clicked()
+//{
+////    zoom->zoom(0);
+//}

@@ -1,0 +1,22 @@
+#ifndef WDTHEAVYMETALPROCCESSDIAGRAM_H
+#define WDTHEAVYMETALPROCCESSDIAGRAM_H
+
+#include <QWidget>
+
+namespace Ui {
+class WdtHeavyMetalProccessDiagram;
+}
+
+class WdtHeavyMetalProccessDiagram : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit WdtHeavyMetalProccessDiagram(QWidget *parent = 0);
+    ~WdtHeavyMetalProccessDiagram();
+    
+private:
+    Ui::WdtHeavyMetalProccessDiagram *ui;
+};
+
+#endif // WDTHEAVYMETALPROCCESSDIAGRAM_H

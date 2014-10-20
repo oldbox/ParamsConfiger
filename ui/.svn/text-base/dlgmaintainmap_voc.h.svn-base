@@ -1,0 +1,93 @@
+#ifndef DLGMAINTAINMAPVOC_H
+#define DLGMAINTAINMAPVOC_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include "dlgremindmessage.h"
+#include <QMessageBox>
+#include <stdexcept>
+#include "dlgremindmessage.h"
+#include "dlghelpinfo.h"
+
+#define NUM_MODULE 7
+
+namespace Ui {
+class dlgmaintainmap_voc;
+}
+
+class dlgmaintainmap_voc : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgmaintainmap_voc(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dlgmaintainmap_voc();
+protected:
+    bool dealSendCtrlCmd(int nDCF);
+    bool judgeYQConnect();
+    void PlsSelectMdl(QString context);
+    bool dealLevelCmd(int16_t wPrm1,int16_t wPrm2);
+    void DealWithBroadcast();
+    int GetCurMdlAddr();
+    void GetModuleVersion(int moduleAddr);
+    void Init();
+    
+private slots:
+    void on_btnDCF3_clicked();
+
+    void on_btnDCF4_clicked();
+
+    void on_btnDCF8_clicked();
+
+    void on_btnDCF1_clicked();
+
+    void on_btnDCF7_clicked();
+
+    void on_btnDCF6_clicked();
+
+    void on_btnDCF13_clicked();
+
+    void on_btnDCF12_clicked();
+
+    void on_btnDCF11_clicked();
+
+    void on_btnDCF10_clicked();
+
+    void on_btnDCF9_clicked();
+
+    void on_btnDCF2_clicked();
+
+    void on_btnlevel1_clicked();
+
+    void on_btnwaste_clicked();
+
+    void on_btnlevel2_clicked();
+
+    void on_btnlevel3_clicked();
+
+    void on_btnpushempty_clicked();
+
+    void on_btnStir_clicked();
+
+    void on_btnLight_clicked();
+
+    void on_btnpumps_clicked();
+
+    void on_btnfan_clicked();
+
+    void on_btnDCF5_clicked();
+
+private:   
+    Ui::dlgmaintainmap_voc *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+
+    bool m_bOnOff[17];
+    bool m_bStir;
+    bool m_bLight;
+    bool m_bAirPumps;
+    QString m_moduleNames[NUM_MODULE];
+    int m_moduleAddrs[NUM_MODULE];
+};
+
+#endif // DLGMAINTAINMAPVOC_H

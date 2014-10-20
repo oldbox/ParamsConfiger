@@ -1,0 +1,15 @@
+#include "wdtheavymetalworkstate.h"
+#include "ui_wdtheavymetalworkstate.h"
+
+WdtHeavyMetalWorkState::WdtHeavyMetalWorkState(QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::WdtHeavyMetalWorkState)
+{
+    ui->setupUi(this);
+    ui->frame->setWindowFlags(Qt::FramelessWindowHint);
+}
+
+WdtHeavyMetalWorkState::~WdtHeavyMetalWorkState()
+{
+    delete ui;
+}

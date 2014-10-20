@@ -1,0 +1,22 @@
+#ifndef DLGHELPINFO_H
+#define DLGHELPINFO_H
+
+#include <QDialog>
+
+namespace Ui {
+class dlghelpinfo;
+}
+
+class dlghelpinfo : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlghelpinfo(int nType,QDialog *parent = 0);
+    ~dlghelpinfo();
+    
+private:
+    Ui::dlghelpinfo *ui;
+};
+
+#endif // DLGHELPINFO_H

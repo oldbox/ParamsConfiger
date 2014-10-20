@@ -1,0 +1,127 @@
+#ifndef BSALLMODELTEST_H
+#define BSALLMODELTEST_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+#include <QMessageBox>
+#include <QListWidgetItem>
+#include "dlgmaintainmap.h"
+#include "dlgmaintainmap_voc.h"
+#include "dlgmodeltest1.h"
+#include "dlgmodeltest2.h"
+#include "dlgmodeltest3.h"
+#include "dlgmodeltest4.h"
+#include "dlgmodeltest5.h"
+#include "dlgmodeltest6.h"
+#include "dlgmodeltest7.h"
+#include "dlgmodeltest8.h"
+#include "dlgmodeltest9.h"
+#include "dlgmodeltest10.h"
+#include "dlgmodeltest11.h"
+#include "dlgmodeltest12.h"
+#include "dlgmodeltest13.h"
+#include "dlgmodeltest14.h"
+#include "dlgmodeltest15.h"
+#include "dlgmodeltest16.h"
+#include "dlgfluorescencemaintain.h"
+#include "core/cprocess2.h"
+#include "dlgmodeltest0.h"
+
+#define NUM_MODULE 20
+
+namespace Ui {
+class bsAllModelTest;
+}
+
+class bsAllModelTest : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit bsAllModelTest(CMainCtrl* pMC,QWidget *parent = 0);
+    ~bsAllModelTest();
+
+//signals:
+//    void tabCloseRequested(int index);    
+private slots:
+    void on_btnDCF1_clicked();
+    void on_btnDCF2_clicked();
+    void on_btnDCF15_clicked();
+    void on_btnDCF13_clicked();
+    void on_btnDCF4_clicked();
+    void on_btnDCF5_clicked();
+    void on_btnDCF6_clicked();
+    void on_btnDCF7_clicked();
+    void on_btnDCF3_clicked();
+    void on_btnYW1_clicked();
+    void on_btnYW2_clicked();
+    void on_btnYW3_clicked();
+    //void on_btnManualScan_clicked();
+    void on_btnResetMdlBroad_clicked();
+    void on_btnResetMdlSingle_clicked();
+    void on_btnClose_clicked();
+    void on_listWidget_clicked(const QModelIndex &index);
+    void on_btnModAdd_clicked();
+    void on_btnModDel_clicked();
+    void on_btnGetVerWorkInfo_clicked();
+
+    void on_cbxAddName_currentIndexChanged(int index);
+
+    void on_btnSetModAdd_clicked();
+
+signals:
+
+private:
+    Ui::bsAllModelTest *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    bool m_bOnOff[17];
+    bool judgeYQConnect();
+    bool dealSendCtrlCmd(int nDCF);
+    void PlsSelectMdl(QString context);
+    void DealWithBroadcast();
+    int m_moduleAddrs[NUM_MODULE];
+    QListWidgetItem* listItem;
+    bool m_bQbFlag;
+    bool m_bJbFlag;
+    QString m_sModName;
+
+    dlgmodeltest1 *obj1;
+    dlgmodeltest2 *obj2;
+    dlgmodeltest3 *obj3;
+    dlgmodeltest4 *obj4;
+    dlgmodeltest5 *obj5;
+    dlgmodeltest6 *obj6;
+    dlgmodeltest7 *obj7;
+    dlgmodeltest8 *obj8;
+    dlgmodeltest9 *obj9;
+    dlgmodeltest10 *obj10;
+    dlgmodeltest11 *obj11;
+    dlgmodeltest12 *obj12;
+    dlgmodeltest13 *obj13;
+    dlgmodeltest14 *obj14;
+    dlgmodeltest15 *obj15;
+    dlgmodeltest16 *obj16;
+    dlgmaintainmap *dlgmaintain;
+    dlgmaintainmap_voc *dlgmaintain_voc;
+    dlgfluorescencemaintain *dlgscencemaintain;
+
+    void bsYWSendCmd(short int iYwType);
+    bool dealLevelCmd(int16_t wPrm1,int16_t wPrm2);
+    static int singleCtrlAddrs[4];
+
+    void ModAddInit();
+    void ModAddNameInit();
+
+    int m_nYQType;
+    void InsIniModelInfo();
+    QMap<QString,int> ModelIniSet;
+    QString GetModelName(int iAddress);
+    int GetModelIde(QString sModName);
+    bool GetModelVersionWorkInfo();
+    void mousePressEvent(QMouseEvent * mouseEvent);
+    int m_nClick;
+protected:
+};
+
+#endif // BSALLMODELTEST_H

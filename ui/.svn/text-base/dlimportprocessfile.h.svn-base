@@ -1,0 +1,43 @@
+#ifndef DLIMPORTPROCESSFILE_H
+#define DLIMPORTPROCESSFILE_H
+
+#include <QDialog>
+#include <QFileSystemModel>
+#include <QItemSelectionModel>
+
+
+namespace Ui {
+class dlImportProcessFile;
+}
+
+class dlImportProcessFile : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlImportProcessFile(QWidget *parent = 0);
+    ~dlImportProcessFile();
+    
+private slots:
+    void on_butImport_clicked();
+    void selectedDateChanged(const QItemSelection &, const QItemSelection &);
+
+
+    void on_butClose_clicked();
+
+    void on_butExprot_clicked();
+
+private:
+    Ui::dlImportProcessFile *ui;
+    void Init();
+
+    QStringList m_filenames;
+    QFileSystemModel *m_pModel_file;
+    QItemSelectionModel *selections;
+    bool m_bDisplay;
+    char czDBFile[256];
+    int FileTransfer(QString sourceDir ,QString toDir);
+
+};
+
+#endif // DLIMPORTPROCESSFILE_H

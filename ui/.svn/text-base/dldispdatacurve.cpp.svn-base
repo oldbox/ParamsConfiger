@@ -1,0 +1,106 @@
+#include "dldispdatacurve.h"
+#include "ui_dldispdatacurve.h"
+#include "../core/myplot.h"
+#include <QMessageBox>
+#include <QTextCodec>
+#include <algorithm>
+dldispdatacurve::dldispdatacurve(CMainCtrl* pMC,int nType,QString qLegName,const QVector<double> &xData,const QVector<double> &yData,QWidget *parent) :
+    QDialog(parent),
+    zoomer(NULL),
+    ui(new Ui::dldispdatacurve)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+    m_pMC = pMC;
+    m_qsHeaderName = qLegName;
+
+    if(1 == nType)
+    {
+        m_plot = new MyPlot(7,ui->widget);
+    }
+    else
+    {
+        m_plot = new MyPlot(8,ui->widget);
+    }
+    //使画布具有放大功能
+    zoomer = new QwtPlotZoomer( m_plot->canvas() );
+    zoomer->setZoomBase(true);
+    zoomer->setRubberBandPen( QColor( Qt::black ) );
+    zoomer->setTrackerPen( QColor( Qt::black ) );
+    zoomer->setMousePattern( QwtEventPattern::MouseSelect2,
+        Qt::RightButton, Qt::ControlModifier );
+    zoomer->setMousePattern( QwtEventPattern::MouseSelect3,
+        Qt::RightButton );
+
+    m_plot->RemoveCurve();
+    //烟气根据不同气体，曲线颜色不一样
+    if(qLegName == "二氧化硫(mg/m3)"||qLegName == "二氧化硫(ppm)")
+    {
+        m_plot->AddCurve(m_qsHeaderName,xData,yData,Qt::blue);
+    }
+    else if(qLegName == "氧含量(%)")
+    {
+        m_plot->AddCurve(m_qsHeaderName,xData,yData,Qt::red);
+    }
+    else
+    {
+        m_plot->AddCurve(m_qsHeaderName,xData,yData,Qt::green);
+    }
+    m_vtX = xData;
+    m_vtY = yData;
+
+    CaclMaxMinValue(xData,yData);
+
+}
+dldispdatacurve::~dldispdatacurve()
+{
+    m_vtX.clear();
+    m_vtY.clear();
+    delete m_plot;
+    delete ui;
+    //delete zoomer;
+}
+//计算最大最小以及平均值
+void dldispdatacurve::CaclMaxMinValue(const QVector<double> &xData, const QVector<double> &yData)
+{
+    if(yData.size() > 0)
+    {
+        float fMinValue,fMaxValue,fAvgValue;
+        fMinValue = *min_element(yData.begin(),yData.end());
+        fMaxValue = *max_element(yData.begin(),yData.end());
+        for(int i = 0;i<yData.size();i++)
+        {
+            fAvgValue += yData[i];
+        }
+        fAvgValue = fAvgValue / yData.size();
+        QString sValue;
+        sValue.sprintf("最小值:%.4f",fMinValue);
+        ui->lblMinValue->setText(sValue);
+        sValue.clear();
+        sValue.sprintf("最大值:%.4f",fMaxValue);
+        ui->lblMaxValue->setText(sValue);
+        sValue.clear();
+        sValue.sprintf("平均值:%.4f",fAvgValue);
+        ui->lblAvgValue->setText(sValue);
+    }
+}
+void dldispdatacurve:: GasDisplayCurve(QString qsName,const QVector<double> &xData,const QVector<double> &yData)
+{
+    m_plot->RemoveCurve();
+    m_plot->AddCurve(qsName,xData, yData,Qt::red);
+}
+
+void dldispdatacurve::on_butClose_clicked()
+{
+    this->close();
+}
+
+void dldispdatacurve::on_btnReturn_clicked()
+{
+     zoomer->zoom(0);
+     m_plot->RefreshAxis(m_vtX,m_vtY);
+}

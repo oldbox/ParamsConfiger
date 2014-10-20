@@ -1,0 +1,56 @@
+#ifndef DLGREAGENTMANAGE_H
+#define DLGREAGENTMANAGE_H
+
+#include <QDialog>
+#include "../core/cconfig.h"
+#include "../core/cmainctrl.h"
+#include <QRadioButton>
+#include <QProgressBar>
+
+
+#define NUM_Reagent 5
+
+namespace Ui {
+class dlgReagentManage;
+}
+
+class dlgReagentManage : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dlgReagentManage(QWidget *parent = 0);
+    ~dlgReagentManage();
+    
+private slots:
+
+    void on_btnAdd5_clicked();
+
+    void on_btnAdd20_clicked();
+
+    void on_btnAdd100_clicked();
+
+    void on_btnReduce5_clicked();
+
+    void on_btnReduce20_clicked();
+
+    void on_btnReduce100_clicked();
+
+    void on_btnAdd500_clicked();
+
+    void on_btnReduce500_clicked();
+
+    void on_btnAddAll_clicked();
+
+    void on_btnSave_clicked();
+
+private:
+    void Init();
+    void DealReagentValue(int nValue);
+    void SetProgressBarStatus();
+    Ui::dlgReagentManage *ui;
+    int m_nReagentValue[NUM_Reagent];
+    int m_nReagentMax[NUM_Reagent];
+};
+
+#endif // DLGREAGENTMANAGE_H

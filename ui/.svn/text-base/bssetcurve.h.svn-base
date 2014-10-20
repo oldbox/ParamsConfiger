@@ -1,0 +1,129 @@
+#ifndef BSSETCURVE_H
+#define BSSETCURVE_H
+
+#include <QDialog>
+#include <QLineEdit>
+#include "../core/cmainctrl.h"
+#include "dlgcomtest.h"
+#include <QTimer>
+#include <QMovie>
+#include "../core/paramdict.h"
+
+namespace Ui {
+class bssetcurve;
+}
+
+class bssetcurve : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit bssetcurve(CMainCtrl* pMC,QWidget *parent = 0);
+    ~bssetcurve();
+    bool CurveCouvade(double* Y,double* X,int nNumber,double* K,double* B,double* R);
+    void SetCurveCalibration();
+signals:
+    void NotifyMangeCurve(emCmdWord);
+private slots:
+    void OnWorkStatus(int iProcessType,int iWorkNum, const char *czName);
+    void OnTotalNumber(int iProcessType,int iTotalNum);
+    void OnShowCurve(int iDataType,double dBaseSampleValue,QDateTime qTestTime);
+    void OnYQBusy(int iProcessType, bool bBusy);
+
+    void on_butSaveStandard1_clicked();
+    void on_butSaveStandard2_clicked();
+    void on_butSaveStandard3_clicked();
+    void on_butSaveStandard4_clicked();
+    void on_butSaveStandard5_clicked();
+
+
+    void on_butCalibration1_clicked();
+    void on_butCalibration2_clicked();
+    void on_butCalibration3_clicked();
+    void on_butCalibration4_clicked();
+    void on_butCalibration5_clicked();
+
+    void on_butSetWorkCurve_clicked();
+    void on_butClose_clicked();
+
+    void on_cbxCurveName_currentIndexChanged(int index);
+
+    void on_butStopTest_clicked();
+    void on_butStdAbsorb_clicked();
+    void on_butBlankAbsorb_clicked();
+    void on_butSaveStdAbsorb_clicked();
+    void on_butSaveBlankAbsorb_clicked();
+    void on_cbxCodeName_currentIndexChanged(const QString &arg1);
+    void OnTempValue(float fTempValue);
+    void OnProcFileStatus(int iProcessType,bool bProcFile);
+
+    void OnDebugInfo(int iProcessType, const char *info);
+    void on_cbxCalcWay_currentIndexChanged(int index);
+    void on_butSetErrorRange_clicked();
+    void on_butMinMaxSave_clicked();
+    void on_chkRangeAutoChange_clicked(bool checked);
+
+private:
+    Ui::bssetcurve *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;   
+    CDBBusiness* m_pDB;
+
+    QString s_Chroma[5];
+    QString s_XGD[5];
+
+    QString s_Chroma1;
+    QString s_Chroma2;
+    QString s_Chroma3;
+    QString s_Chroma4;
+    QString s_Chroma5;
+
+    QString s_XGD1;
+    QString s_XGD2;
+    QString s_XGD3;
+    QString s_XGD4;
+    QString s_XGD5;
+
+    float	m_fK;
+    float   m_fR;
+    float	m_fB;
+
+    double dBaseSignalVal,dSampleSignalVal;//基线值、样品值
+    int m_iCurveID;//当前工作曲线
+    int m_iPointID;//当前曲线点位
+    bool m_bIsTesting; //测试状态
+    int m_iPointCount;//曲线点位总数
+    emCmdWord m_CmdWord;
+
+    void Init();
+    void GetCodeDataList(int iType);
+    void GetCurveName();
+    bool Couvade(const char* czID,int iCurveID);
+    bool SaveStandardData();
+
+
+    void GetCurveDataList(const char* czID,int iCurveID,int iCalcMode);
+    void CurveInit();
+    void FillDot(const char* czID,int iCurveID,int iCalcMode);
+    void SaveBlankStdAbsorbValue(emCmdWord eCmdType);
+    void SetColtrolEnable(int iAfxUserType);
+
+    vector<BsCurveDotInfo4> vecCurveInfo;
+
+    double m_dBYXZBaseSignal;
+    double m_dBYXZSampleSignal;
+
+    void SetWorkCurve(int iType);
+    void GetCodeUnit(QString sYQID);
+    bool ShowMessageBox(int iType);
+    void SetCalibration(int iPointID);
+    void SetControlBgColor(QPushButton* qBut, bool isFlag);
+    void OnDebugInfo(int iProcessType, const char *info,bool isFlag);
+    void ShowFormulae(struCurveInfo model);
+    void mousePressEvent(QMouseEvent *);
+    int m_nClick;
+    int m_nType;
+    bool m_bCalcWay;
+};
+
+#endif // BSSETCURVE_H

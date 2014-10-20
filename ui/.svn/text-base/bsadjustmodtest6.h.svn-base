@@ -1,0 +1,59 @@
+#ifndef BSADJUSTMODTEST6_H
+#define BSADJUSTMODTEST6_H
+
+#include <QDialog>
+#include "../mainwindowbase.h"
+#include <QDesktopWidget>
+
+namespace Ui {
+class bsAdjustModTest6;
+}
+
+
+struct LightWorkValue
+{
+    LightWorkValue()
+    {iWorkState = 0;iDAVal =  0;iFactVal = 0;}
+    int iWorkState;
+    int iDAVal;
+    int iFactVal;
+};
+
+
+class bsAdjustModTest6 : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit bsAdjustModTest6(CMainCtrl* pMC,QWidget *parent = 0);
+    ~bsAdjustModTest6();
+
+protected:
+    void RunSubThread();
+    void ExitSubThread();
+    static void* AutoRunThread(void* pParam);
+signals:
+    void NofityGYXZReadData();
+    
+private slots:
+    void on_butGYAdjust_clicked();
+    void on_btnClose_clicked();
+    void on_butStop_clicked();
+    void onGetReadData();
+
+private:
+    Ui::bsAdjustModTest6 *ui;
+    CMainCtrl* m_pMC;
+    CYQ* pYQ;
+    pthread_t id_autorun;
+    bool m_bRunThread;
+    void GetReadData();   
+    //int m_iFactVal;
+    //int m_iDAVal;
+    bool judgeYQConnect();
+    bool m_bIsPthreadRun;
+
+    LightWorkValue m_LightWorkValue;
+};
+
+#endif // BSADJUSTMODTEST6_H

@@ -1,0 +1,99 @@
+#ifndef DLDATAQUERYS_H
+#define DLDATAQUERYS_H
+
+#include <QDialog>
+#include "../core/cmainctrl.h"
+
+namespace Ui {
+class dldataquerys;
+}
+
+class dldataquerys : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit dldataquerys(CMainCtrl* pMC,QWidget *parent = 0);
+    ~dldataquerys();
+    
+private slots:
+    void on_butQuery_clicked();
+    void on_btnClose_clicked();
+    void on_btnStartDown_clicked();
+    void on_btnEndDown_clicked();
+    void on_calendarStartTim_clicked(const QDate &date);
+    void on_calendarEndTim_clicked(const QDate &date);
+    void on_cbxDataType_currentIndexChanged(const QString &arg1);
+    void on_tabwidData_cellPressed(int row, int column);
+    void on_radioMg_clicked(bool checked);
+    void on_radioUg_clicked(bool checked);
+    void on_up_clicked();
+    void on_down_clicked();
+    void on_chkMarking_clicked(bool checked);
+    void on_butExport_clicked();
+    void on_butLock_clicked();
+    void on_BtnCurve_clicked();
+    void on_butHidInfoData_clicked();
+    //自定义
+    void onHeaderClicked(int iCurreintIndex);
+    void OnHideWordMovie();
+    void OnQueryData();
+    void onWGClose();    
+    void OnDataFlagShow();
+   //void mouseMoveEvent(QMouseEvent * event);
+
+private:
+    Ui::dldataquerys *ui;
+    CMainCtrl* m_pMC;
+    int m_iYQType;
+    CDBBusiness* m_pDB;
+    QTimer *QueryTimer;
+    QTimer *HideWordTimer;
+    QTimer *DetailedTime;
+    QTimer *DataFlagTime;
+    bool startState;
+    bool endState;
+    char StartTimes[64];
+    char EndTimes[64];
+    QMovie *WordMovie;
+    bool m_bLocDetailData;
+    QStringList m_qlCodeList;
+    QVector<QString> m_vtTime;
+    QMap<QString,int> map_CodeDigit;
+    int m_iMgOrUg;
+    int m_bMarkingData;
+    int m_iDataType;
+
+    void Init();
+    QString GetParamOrID(int iGetType,QString sCodeID);
+    QString GetIdeName(QString sFlag);
+    QString DefineIdeFlag(QString sFlag);
+    void SetTestDataTabStyle();    
+    void SetDetailedDataStyle();
+    void SetLogDataStyle();
+
+    void GetTestDataList();
+    void GetDetailedDataList(QString sTime,QString sCodeID);
+    void GetLogDataList(QString sDataTime);
+
+    void WaterSampleData(sqlite_data *datalist);//水样数据
+    void DetailedData(sqlite_data *datalist);//详细数据
+    void StandardData(sqlite_data *datalist);//核查数据
+    void SlopeData(sqlite_data *datalist);//斜率数据
+    void InteriorLabData(sqlite_data *datalist);//内标数据
+    void LOGData(sqlite_data *datalist);//日志数据
+    int FileTransfer(QString sourceDir ,QString toDir);
+    //将yq.db导出
+    int FileYQDataCopy(const char* czPath);
+    //将原始数据txt文件导出
+    int DataFileCopy(QString Path,QString CopyPath);
+    //将流水日志文件导出
+    int LogFileCopy(QString Path,QString CopyPath);
+    //将查询出来的数据导出
+    void ResultDataExport(const char* czPath);
+    //设置控件是否隐藏
+    void SetControlIsHidden(int iDataType);
+    void showToolTip(QString sValue);
+};
+
+#endif // DLDATAQUERYS_H

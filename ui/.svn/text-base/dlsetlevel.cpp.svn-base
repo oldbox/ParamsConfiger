@@ -1,0 +1,511 @@
+#include "dlsetlevel.h"
+#include "ui_dlsetlevel.h"
+#include "../core/paramdict.h"
+#include "dlsetlevelxy.h"
+#include <QTextCodec>
+
+dlSetLevel::dlSetLevel(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::dlSetLevel)
+{
+    ui->setupUi(this);
+    this->setWindowFlags(Qt::FramelessWindowHint);
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+    QTextCodec::setCodecForLocale(codec);
+    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForTr(codec);
+
+    m_pDB = new CDBBusiness("yqdata","yq.db");
+    this->GetParamDictList();
+    this->Init();
+}
+
+dlSetLevel::~dlSetLevel()
+{
+    delete m_pDB;
+    delete ui;
+}
+
+//初使化
+void dlSetLevel::Init()
+{
+    this->InitYwp();
+    //液位
+    char czGroup[64];
+    char czItem[64];
+    char czValue[64];
+    for(int i = 1;i <= 6;i++)
+    {
+        memset(czGroup,0,64);
+        strcpy(czGroup,"YQLevel_SET");
+
+        memset(czItem,0,64);
+        sprintf(czItem,"YQLevel%d",i);
+
+        memset(czValue,0,64);
+        GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+        if(strlen(czValue) > 0)
+        {
+            if(i == 1)
+            {
+                ui->litLevel1->setText(QString(czValue));
+            }
+            else if(i == 2)
+            {
+                ui->litLevel2->setText(QString(czValue));
+            }
+            else if(i == 3)
+            {
+               ui->litLevel3->setText(QString(czValue));
+            }
+            else if(i == 4)
+            {
+               ui->litLevel4->setText(QString(czValue));
+            }
+            else if(i == 5)
+            {
+                ui->litLevel5->setText(QString(czValue));
+            }
+            else if(i == 6)
+            {
+                ui->litLevel6->setText(QString(czValue));
+            }
+        }
+    }
+    this->GetYQYwp();
+}
+
+//初使化液位瓶
+void dlSetLevel::InitYwp()
+{
+    // 初使化液位瓶
+    ui->cbxP1->clear();
+    ui->cbxP2->clear();
+    ui->cbxP3->clear();
+    ui->cbxP4->clear();
+    ui->cbxP5->clear();
+    ui->cbxP6->clear();
+
+    int iYQType = GetAfxYQType();
+    sqlite_data datalist;
+    bool isResult = m_pDB->GetConsumeInfo(iYQType,datalist);
+    if(isResult)
+    {
+        if(!datalist.IsEmpty())
+        {
+            QString sText,sValue;
+            sText = "—未设置—";
+            ui->cbxP1->addItem(sText,sValue);
+            ui->cbxP2->addItem(sText,sValue);
+            ui->cbxP3->addItem(sText,sValue);
+            ui->cbxP4->addItem(sText,sValue);
+            ui->cbxP5->addItem(sText,sValue);
+            ui->cbxP6->addItem(sText,sValue);
+            ui->cbxP7->addItem(sText,sValue);
+            ui->cbxP8->addItem(sText,sValue);
+            ui->cbxP9->addItem(sText,sValue);
+
+            for(int i = 1;i <= datalist.RowCount();i++)
+            {
+                sText = datalist.GetData(i,2);
+                sValue = datalist.GetData(i,1);
+                ui->cbxP1->addItem(sText,sValue);
+                ui->cbxP2->addItem(sText,sValue);
+                ui->cbxP3->addItem(sText,sValue);
+                ui->cbxP4->addItem(sText,sValue);
+                ui->cbxP5->addItem(sText,sValue);
+                ui->cbxP6->addItem(sText,sValue);
+                ui->cbxP7->addItem(sText,sValue);
+                ui->cbxP8->addItem(sText,sValue);
+                ui->cbxP9->addItem(sText,sValue);
+            }
+        }
+    }
+    datalist.Free();
+}
+
+void dlSetLevel::GetYQYwp()
+{
+    //获取仪器参数液位瓶
+    char czCodeID[16];memset(czCodeID,0,16);
+    if(ui->tabWidParam->currentItem() != NULL)
+    {
+        QString sCodeName = ui->tabWidParam->currentItem()->text().trimmed();
+        vector<paramitem>::iterator it;
+        paramdict dict;
+        for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+        {
+            if(sCodeName == (*it).CodeName)
+            {
+                strcpy(czCodeID,(*it).LHCodeID);
+                break;
+            }
+        }
+
+        char czGroup[64];
+        char czItem[64];
+        char czValue[64];
+        memset(czGroup,0,64);
+        sprintf(czGroup,"%s_YWPSET",czCodeID);
+        QComboBox* qCbx[9] = {ui->cbxP1,ui->cbxP2,ui->cbxP3,ui->cbxP4,ui->cbxP5,ui->cbxP6,ui->cbxP7,ui->cbxP8,ui->cbxP9};
+
+        for(int i = 1;i <= 9;i++)
+        {
+            memset(czItem,0,64);
+            sprintf(czItem,"YQYTJar_%d",i);
+            memset(czValue,0,64);
+            GetAfxConfig()->GetIni(czGroup,czItem,czValue);
+            QString sValue = QString(czValue);
+            if(sValue.indexOf("_") >= 0)
+                sValue.remove(sValue.indexOf("_"),sValue.length());
+
+            if(strlen(czValue) > 0)
+            {
+                qCbx[i-1]->setCurrentIndex(qCbx[i]->findData(sValue));
+            }
+            else
+            {
+                qCbx[i-1]->setCurrentIndex(0);
+            }
+        }
+    }
+}
+
+void dlSetLevel::GetParamDictList()
+{
+    paramdict dict;
+    int iParamCout = 0;
+    iParamCout = dict.paramlist.size();
+
+    if(iParamCout > 0)
+    {
+        //隐藏表头
+        ui->tabWidParam->horizontalHeader()->setVisible(false);
+        ui->tabWidParam->verticalHeader()->setVisible(false);
+        ui->tabWidParam->setShowGrid(false); //设置不显示格子线
+        ui->tabWidParam->setSelectionBehavior(QAbstractItemView::SelectRows);  //设置选择行为时每次选择一行
+        ui->tabWidParam->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        ui->tabWidParam->setColumnCount(1);
+
+        QHeaderView *pTableHeaderView = ui->tabWidParam->horizontalHeader();
+        if (pTableHeaderView)
+        {
+            pTableHeaderView->setDefaultAlignment (Qt::AlignVCenter); //居中
+            pTableHeaderView->setTextElideMode (Qt::ElideRight); //...效果
+            pTableHeaderView->setStretchLastSection (true); //尾不留空白
+        }
+
+        sqlite_data datalist;
+        bool isResult = m_pDB->GetYQCode(datalist);
+        if(isResult)
+        {
+            if(!datalist.IsEmpty())
+            {
+                ui->tabWidParam->setRowCount(datalist.RowCount());
+                vector<paramitem>::iterator it;
+                for(int i = 1;i <= datalist.RowCount();i++)
+                {
+                    for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+                    {
+                         if(0 == strcmp((*it).LHCodeID,datalist.GetData(i,1)))
+                         {
+                             ui->tabWidParam->setItem(i-1,0, new QTableWidgetItem((*it).CodeName));
+                         }
+                    }
+                }
+            }
+        }
+        datalist.Free();
+        if(ui->tabWidParam->rowCount() > 0)
+            ui->tabWidParam->setCurrentCell(0,0);
+    }
+}
+
+void dlSetLevel::on_butClose_clicked()
+{
+    ((MyInputPanelContext*)(qApp->inputContext()))->close();
+    this->close();
+}
+
+void dlSetLevel::on_butAdd_clicked()
+{
+    struYQLevel model;
+    if(ui->litLevel1->text().trimmed().length() > 0)
+        model.fLevel1 = ui->litLevel1->text().trimmed().toFloat();
+    if(ui->litLevel2->text().trimmed().length() > 0)
+        model.fLevel2 = ui->litLevel2->text().trimmed().toFloat();
+    if(ui->litLevel3->text().trimmed().length() > 0)
+        model.fLevel3 = ui->litLevel3->text().trimmed().toFloat();
+    if(ui->litLevel4->text().trimmed().length() > 0)
+        model.fLevel4 = ui->litLevel4->text().trimmed().toFloat();
+    if(ui->litLevel5->text().trimmed().length() > 0)
+        model.fLevel5 = ui->litLevel5->text().trimmed().toFloat();
+    if(ui->litLevel6->text().trimmed().length() > 0)
+        model.fLevel6 = ui->litLevel6->text().trimmed().toFloat();
+
+    char czGroup[64];
+    char czItem[64];
+    char czValue[64];
+
+    //液位设置
+    memset(czGroup,0,64);
+    strcpy(czGroup,"YQLevel_SET");
+
+    GetAfxConfig()->DelIni("YQLevel_SET");
+    if(model.fLevel1 != 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQLevel1");
+        memset(czValue,0,64);
+        sprintf(czValue,"%0.1f",model.fLevel1);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(model.fLevel2 != 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQLevel2");
+        memset(czValue,0,64);
+        sprintf(czValue,"%0.1f",model.fLevel2);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(model.fLevel3 != 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQLevel3");
+        memset(czValue,0,64);
+        sprintf(czValue,"%0.1f",model.fLevel3);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(model.fLevel4 != 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQLevel4");
+        memset(czValue,0,64);
+        sprintf(czValue,"%0.1f",model.fLevel4);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(model.fLevel5 != 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQLevel5");
+        memset(czValue,0,64);
+        sprintf(czValue,"%0.1f",model.fLevel5);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(model.fLevel6 != 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQLevel6");
+        memset(czValue,0,64);
+        sprintf(czValue,"%0.1f",model.fLevel6);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+
+    //液位瓶设置
+    struYQJar model2;
+    QString sValue,sText;
+    if(ui->cbxP1->currentIndex() > 0)
+    {
+        sText = ui->cbxP1->currentText().trimmed();
+        sValue = ui->cbxP1->itemData(ui->cbxP1->currentIndex()).toString().trimmed();
+        strcpy(model2.cYQjar1,sValue.toLatin1().data());
+        strcat(model2.cYQjar1,"_");
+        strcat(model2.cYQjar1,sText.toUtf8().data());
+    }
+    if(ui->cbxP2->currentIndex() > 0)
+    {
+        sText = ui->cbxP2->currentText().trimmed();
+        sValue = ui->cbxP2->itemData(ui->cbxP2->currentIndex()).toString().trimmed();
+        strcpy(model2.cYQjar2,sValue.toLatin1().data());
+        strcat(model2.cYQjar2,"_");
+        strcat(model2.cYQjar2,sText.toUtf8().data());
+    }
+    if(ui->cbxP3->currentIndex() > 0)
+    {
+        sText = ui->cbxP3->currentText().trimmed();
+        sValue = ui->cbxP3->itemData(ui->cbxP3->currentIndex()).toString().trimmed();
+        strcpy(model2.cYQjar3,sValue.toLatin1().data());
+        strcat(model2.cYQjar3,"_");
+        strcat(model2.cYQjar3,sText.toUtf8().data());
+    }
+    if(ui->cbxP4->currentIndex() > 0)
+    {
+        sText = ui->cbxP4->currentText().trimmed();
+        sValue = ui->cbxP4->itemData(ui->cbxP4->currentIndex()).toString().trimmed();
+        strcpy(model2.cYQjar4,sValue.toLatin1().data());
+        strcat(model2.cYQjar4,"_");
+        strcat(model2.cYQjar4,sText.toUtf8().data());
+    }
+    if(ui->cbxP5->currentIndex() > 0)
+    {
+        sText = ui->cbxP5->currentText().trimmed();
+        sValue = ui->cbxP5->itemData(ui->cbxP5->currentIndex()).toString().trimmed();
+        strcpy(model2.cYQjar5,sValue.toLatin1().data());
+        strcat(model2.cYQjar5,"_");
+        strcat(model2.cYQjar5,sText.toUtf8().data());
+    }
+    if(ui->cbxP6->currentIndex() > 0)
+    {
+        sText = ui->cbxP6->currentText().trimmed();
+        sValue = ui->cbxP6->itemData(ui->cbxP6->currentIndex()).toString().trimmed();
+        strcpy(model2.cYQjar6,sValue.toLatin1().data());
+        strcat(model2.cYQjar6,"_");
+        strcat(model2.cYQjar6,sText.toUtf8().data());
+    }
+    if(ui->cbxP7->currentIndex() > 0)
+    {
+        sText = ui->cbxP7->currentText().trimmed();
+        sValue = ui->cbxP7->itemData(ui->cbxP7->currentIndex()).toString().trimmed();
+        strcpy(model2.cYQjar7,sValue.toLatin1().data());
+        strcat(model2.cYQjar7,"_");
+        strcat(model2.cYQjar7,sText.toUtf8().data());
+    }
+    if(ui->cbxP8->currentIndex() > 0)
+    {
+        sText = ui->cbxP8->currentText().trimmed();
+        sValue = ui->cbxP8->itemData(ui->cbxP8->currentIndex()).toString().trimmed();
+        strcpy(model2.cYQjar8,sValue.toLatin1().data());
+        strcat(model2.cYQjar8,"_");
+        strcat(model2.cYQjar8,sText.toUtf8().data());
+    }
+    if(ui->cbxP9->currentIndex() > 0)
+    {
+        sText = ui->cbxP9->currentText().trimmed();
+        sValue = ui->cbxP9->itemData(ui->cbxP9->currentIndex()).toString().trimmed();
+        strcpy(model2.cYQjar9,sValue.toLatin1().data());
+        strcat(model2.cYQjar9,"_");
+        strcat(model2.cYQjar9,sText.toUtf8().data());
+    }
+
+    char czCodeID[16];memset(czCodeID,0,16);
+    QString sCodeName = ui->tabWidParam->currentItem()->text().trimmed();
+    vector<paramitem>::iterator it;
+    paramdict dict;
+    for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+    {
+        if(sCodeName == (*it).CodeName)
+        {
+            strcpy(czCodeID,(*it).LHCodeID);
+            break;
+        }
+    }
+
+    memset(czGroup,0,64);
+    sprintf(czGroup,"%s_YWPSET",czCodeID);
+    GetAfxConfig()->DelIni(czGroup);
+    if(strlen(model2.cYQjar1) > 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQYTJar_1");
+        memset(czValue,0,64);
+        sprintf(czValue,"%s",model2.cYQjar1);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(strlen(model2.cYQjar2) > 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQYTJar_2");
+        memset(czValue,0,64);
+        sprintf(czValue,"%s",model2.cYQjar2);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(strlen(model2.cYQjar3) > 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQYTJar_3");
+        memset(czValue,0,64);
+        sprintf(czValue,"%s",model2.cYQjar3);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(strlen(model2.cYQjar4) > 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQYTJar_4");
+        memset(czValue,0,64);
+        sprintf(czValue,"%s",model2.cYQjar4);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(strlen(model2.cYQjar5) > 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQYTJar_5");
+        memset(czValue,0,64);
+        sprintf(czValue,"%s",model2.cYQjar5);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(strlen(model2.cYQjar6) > 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQYTJar_6");
+        memset(czValue,0,64);
+        sprintf(czValue,"%s",model2.cYQjar6);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(strlen(model2.cYQjar7) > 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQYTJar_7");
+        memset(czValue,0,64);
+        sprintf(czValue,"%s",model2.cYQjar7);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(strlen(model2.cYQjar8) > 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQYTJar_8");
+        memset(czValue,0,64);
+        sprintf(czValue,"%s",model2.cYQjar8);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+    if(strlen(model2.cYQjar9) > 0)
+    {
+        memset(czItem,0,64);
+        strcpy(czItem,"YQYTJar_9");
+        memset(czValue,0,64);
+        sprintf(czValue,"%s",model2.cYQjar9);
+        GetAfxConfig()->SetIni(czGroup,czItem,czValue);
+    }
+
+
+    QMessageBox::information(NULL, "提示信息", "保存成功!");
+}
+
+void dlSetLevel::on_tabWidParam_clicked(const QModelIndex &index)
+{
+    this->GetYQYwp();
+}
+
+void dlSetLevel::on_butSetYwpXY_clicked()
+{
+    QString sCodeName;
+    if(ui->tabWidParam->currentItem() != NULL)
+    {
+        sCodeName = ui->tabWidParam->currentItem()->text().trimmed();
+        if(sCodeName.length() == 0)
+        {
+            QMessageBox::information(NULL, "提示信息", "请选择参数!");
+            return;
+        }
+    }
+
+    char czCodeID[64];memset(czCodeID,0,64);
+    vector<paramitem>::iterator it;
+    paramdict dict;
+    for(it=dict.paramlist.begin();it<dict.paramlist.end();it++)
+    {
+        if(sCodeName == (*it).CodeName)
+        {
+            strcpy(czCodeID,(*it).LHCodeID);
+            break;
+        }
+    }
+    if(strlen(czCodeID) > 0)
+    {
+        dlSetLevelXY*  dlgLevelXY = new dlSetLevelXY(czCodeID);
+        dlgLevelXY->move((qApp->desktop()->width() - dlgLevelXY->width())/2,(qApp->desktop()->height() - dlgLevelXY->height())/2);
+        dlgLevelXY->exec();
+        delete dlgLevelXY;
+        dlgLevelXY = NULL;
+    }
+}

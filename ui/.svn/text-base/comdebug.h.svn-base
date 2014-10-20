@@ -1,0 +1,22 @@
+#ifndef COMDEBUG_H
+#define COMDEBUG_H
+
+#include <QDialog>
+
+namespace Ui {
+class COMDebug;
+}
+
+class COMDebug : public QDialog
+{
+    Q_OBJECT
+    
+public:
+    explicit COMDebug(QWidget *parent = 0);
+    ~COMDebug();
+    
+private:
+    Ui::COMDebug *ui;
+};
+
+#endif // COMDEBUG_H
