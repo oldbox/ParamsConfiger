@@ -124,6 +124,31 @@ void dlgSetParams2::initLayout()
     propertyListStackedWidgetGlobal = propertyListStackedWidget;
 
     QVBoxLayout* propertyVboxlayout = new QVBoxLayout(ui->paramsPropetiesGroupBox);
+
+    // -- 测试方法
+    QHash<QString, QString>* testMethodsHash = new QHash<QString, QString>();
+    testMethodsHash->insert(L("电化学"), QString::number(ElectroChemistry));
+    testMethodsHash->insert(L("比色法"), QString::number(Colorimetric));
+    testMethodsHash->insert(L("原子荧光"), QString::number(AtomicFluorescence));
+    testMethodsHash->insert(L("多参数"), QString::number(MultipleParameter));
+    testMethodsHash->insert(L("二氧化硅"), QString::number(SiliconOxide));
+    testMethodsHash->insert(L("有机物"), QString::number(Organic));
+    MyComboBox* methodSelectCombobox = new MyComboBox(testMethodsHash ,ui->paramsPropetiesGroupBox);
+    methodSelectCombobox->setMinimumWidth(140);
+    methodSelectComboboxGlobal = methodSelectCombobox;
+
+    QLabel* propertyName = new QLabel(L("测试方法"));
+    propertyName->setAlignment(Qt::AlignRight);
+    QLabel* forSpace = new QLabel(L(""));
+
+    QGridLayout* methodSelectLayout = new QGridLayout(ui->paramsPropetiesGroupBox);
+    methodSelectLayout->setSizeConstraint(QGridLayout::SetMinAndMaxSize);
+
+    methodSelectLayout->addWidget(propertyName, 0, 0);
+    methodSelectLayout->addWidget(methodSelectCombobox, 0, 1);
+    methodSelectLayout->addWidget(forSpace, 0, 2);
+    propertyVboxlayout->addLayout(methodSelectLayout);
+
     propertyVboxlayout->addWidget(propertyListStackedWidget);
 
     ui->paramsPropetiesGroupBox->setLayout(propertyVboxlayout);
@@ -173,20 +198,20 @@ void dlgSetParams2::addProperties()
     // -- 测试优先级
     QStringList testPriorityList;
     testPriorityList << "1" << "2" << "3" << "4" << "5";
-    // -- 测试方法
-    QHash<QString, QString>* testMethodsHash = new QHash<QString, QString>();
-    testMethodsHash->insert(L("电化学"), QString::number(ElectroChemistry));
-    testMethodsHash->insert(L("比色法"), QString::number(Colorimetric));
-    testMethodsHash->insert(L("原子荧光"), QString::number(AtomicFluorescence));
-    testMethodsHash->insert(L("多参数"), QString::number(MultipleParameter));
-    testMethodsHash->insert(L("二氧化硅"), QString::number(SiliconOxide));
-    testMethodsHash->insert(L("有机物"), QString::number(Organic));
+//    // -- 测试方法
+//    QHash<QString, QString>* testMethodsHash = new QHash<QString, QString>();
+//    testMethodsHash->insert(L("电化学"), QString::number(ElectroChemistry));
+//    testMethodsHash->insert(L("比色法"), QString::number(Colorimetric));
+//    testMethodsHash->insert(L("原子荧光"), QString::number(AtomicFluorescence));
+//    testMethodsHash->insert(L("多参数"), QString::number(MultipleParameter));
+//    testMethodsHash->insert(L("二氧化硅"), QString::number(SiliconOxide));
+//    testMethodsHash->insert(L("有机物"), QString::number(Organic));
 
     //  公共属性
     for(int i=1; i <= methodsCounts; i++)
     {
         generateEditor(L("参数代码"), L("ID"), i); //参数代码需固定为第一位
-        generateEditor(L("测试方法"), L("ProcessType"), testMethodsHash ,i); // 参数代码需固定为第二位
+//        generateEditor(L("测试方法"), L("ProcessType"), testMethodsHash ,i); // 参数代码需固定为第二位
         generateEditor(L("参数名称"), L("Name"), i);
         generateEditor(L("Modbus地址"), L("SlaveID"), i);
         generateEditor(L("小数位数"), L("DataDigits"), i);
@@ -291,22 +316,18 @@ void dlgSetParams2::addOneRowToModel(char *czGroup, int processType)
 
 void dlgSetParams2::initConnect()
 {
+    QDataWidgetMapper* mapperForMethodSelectComboBox = new QDataWidgetMapper(this);
+    mapperForMethodSelectComboBox->setModel(modelForNameList);
+    mapperForMethodSelectComboBox->addMapping(methodSelectComboboxGlobal, 1);
+
     QListView* paramsNameList = ui->paramNameGroupBox->findChild<QListView *>("paramsNameList");
     connect(paramsNameList, SIGNAL(clicked(QModelIndex)),
             this, SLOT(mapperToProperModelAndRow(QModelIndex)));
+    connect(paramsNameList, SIGNAL(clicked(QModelIndex)),
+            mapperForMethodSelectComboBox, SLOT(setCurrentModelIndex(QModelIndex)));
 
-    for (int i = 1; i <= methodsCounts; i++)
-    {
-        QString widgetName = QString("widgetForMethod%1").arg(i);
-        QWidget* widget = this->findChild<QWidget*>(widgetName);
-
-        QString editorName = QString("ProcessType");
-        MyComboBox* eidtor = widget->findChild<MyComboBox*>(editorName);
-
-        connect(eidtor, SIGNAL(currentValueChanged(QString)),
-                this, SLOT(mapperToProperModelAndRow(QString)));
-    }
-
+    connect(methodSelectComboboxGlobal, SIGNAL(currentValueChanged(QString)),
+            this, SLOT(mapperToProperModelAndRow(QString)));
 }
 
 void dlgSetParams2::mapperToProperModelAndRow(QString processTypeStr)
@@ -320,7 +341,6 @@ void dlgSetParams2::mapperToProperModelAndRow(QString processTypeStr)
     // 获取czID
     QModelIndex index = paramsNameListGlobal->currentIndex();
     QModelIndex czIDIndex = modelForNameList->index(index.row(), 2);
-    QModelIndex processTypeIndex = modelForNameList->index(index.row(), 1);
     QString czID = modelForNameList->data(czIDIndex).toString();
 
     QList<QStandardItem*> resultList;
@@ -331,11 +351,8 @@ void dlgSetParams2::mapperToProperModelAndRow(QString processTypeStr)
         QString czGroup = QString("%1_SET").arg(czID);
         addOneRowToModel(czGroup.toLocal8Bit().data(), processType);
 
-        // 改变modelForNameList中相应位置的processType列
-        QStandardItem* item = new QStandardItem(processTypeStr);
-        modelForNameList->setItem(index.row(), 1, item);
-
         // 改变对应model中的processType列
+        QStandardItem* item = new QStandardItem(processTypeStr);
         int row = model->rowCount();
         model->setItem(row-1, 1, item->clone());
 

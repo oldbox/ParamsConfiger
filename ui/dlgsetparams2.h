@@ -53,7 +53,7 @@ private:
     QStandardItemModel* modelForNameList;
     QStackedWidget* propertyListStackedWidgetGlobal;
     QListView* paramsNameListGlobal;
-
+    MyComboBox* methodSelectComboboxGlobal;
     void initSomeInstance();
     void initLayout();
     void initConnect();
