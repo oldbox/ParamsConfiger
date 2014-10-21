@@ -52,6 +52,7 @@ private:
     QList<QString>* yqIDList;
     QStandardItemModel* modelForNameList;
     QStackedWidget* propertyListStackedWidgetGlobal;
+    QListView* paramsNameListGlobal;
 
     void initSomeInstance();
     void initLayout();

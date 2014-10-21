@@ -3,7 +3,7 @@
 MyComboBox::MyComboBox(QHash<QString, QString> *dropDownListHash,QWidget *parent)
     : QComboBox(parent), dropDownHashIn(dropDownListHash)
 {
-  connect(this, SIGNAL(currentIndexChanged(int)), this, SIGNAL(currentTextChanged()));
+    connect(this, SIGNAL(currentIndexChanged(int)), this, SLOT(emmitTheCurrentValueChangeSignal()));
 
   // 初始化下拉列表
   QList<QString> dropDownList = dropDownHashIn->keys();
@@ -11,7 +11,11 @@ MyComboBox::MyComboBox(QHash<QString, QString> *dropDownListHash,QWidget *parent
       addItem(dropDownList.at(i));
   }
 
-  emit currentValueChanged(currentValue());
+}
+
+void MyComboBox::emmitTheCurrentValueChangeSignal()
+{
+    emit currentValueChanged(currentValue());
 }
 
 MyComboBox::MyComboBox(QStringList *dropDownList, QWidget *parent)

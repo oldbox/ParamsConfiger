@@ -20,6 +20,8 @@ signals:
     void currentTextChanged();
     void currentValueChanged();
     void currentValueChanged(QString currentVal);
+private slots:
+    void emmitTheCurrentValueChangeSignal();
 private:
     QHash<QString, QString>* dropDownHashIn;
 };

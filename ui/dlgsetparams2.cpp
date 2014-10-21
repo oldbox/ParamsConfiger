@@ -11,8 +11,11 @@ dlgSetParams2::dlgSetParams2(QWidget *parent) :
     initLayout();
     addProperties();
     generateModels();
-
     initConnect();
+
+    QModelIndex initialIndex = modelForNameList->index(0,0);
+    paramsNameListGlobal->setCurrentIndex(initialIndex);
+    mapperToProperModelAndRow(initialIndex);
 }
 
 dlgSetParams2::~dlgSetParams2()
@@ -104,6 +107,7 @@ void dlgSetParams2::initLayout()
     QListView* paramsNameList = new QListView(ui->paramNameGroupBox);
     paramsNameList->setGeometry(ui->paramNameGroupBox->geometry());
     paramsNameList->setObjectName("paramsNameList");
+    paramsNameListGlobal = paramsNameList;
 
     QVBoxLayout* nameVboxlayout = new QVBoxLayout(ui->paramNameGroupBox);
     nameVboxlayout->addWidget(paramsNameList);
@@ -151,12 +155,17 @@ void dlgSetParams2::initLayout()
 void dlgSetParams2::addProperties()
 {
     // 用下拉列表选择的属性
-    // -- 计算模式  及 对应的数字
+    // -- 曲线分析 计算模式  及 对应的数字
     QHash<QString, QString>* dropDownListHash = new QHash<QString, QString>();
     dropDownListHash->insert(L("波长"), L("0"));
     dropDownListHash->insert(L("峰高"), L("1"));
     dropDownListHash->insert(L("峰面积"), L("2"));
     dropDownListHash->insert(L("双波长"), L("3"));
+    // -- AD 计算模式 适用于 比色法、二氧化硅
+    QHash<QString, QString>* ADDropDownListHash = new QHash<QString, QString>();
+    ADDropDownListHash->insert(L("汞信号读取"), L("1"));
+    ADDropDownListHash->insert(L("比色法检测"), L("2"));
+
     // -- 单位 及 对应的数字
     QHash<QString, QString>* UnitHash = new QHash<QString, QString>();
     UnitHash->insert(L("μg/L"), L("0"));
@@ -171,13 +180,14 @@ void dlgSetParams2::addProperties()
     testMethodsHash->insert(L("原子荧光"), QString::number(AtomicFluorescence));
     testMethodsHash->insert(L("多参数"), QString::number(MultipleParameter));
     testMethodsHash->insert(L("二氧化硅"), QString::number(SiliconOxide));
+    testMethodsHash->insert(L("有机物"), QString::number(Organic));
 
     //  公共属性
     for(int i=1; i <= methodsCounts; i++)
     {
-        generateEditor(L("参数代码"), L("ID"), i); //参数代码需固定为第一位，其他的可以随意
+        generateEditor(L("参数代码"), L("ID"), i); //参数代码需固定为第一位
+        generateEditor(L("测试方法"), L("ProcessType"), testMethodsHash ,i); // 参数代码需固定为第二位
         generateEditor(L("参数名称"), L("Name"), i);
-        generateEditor(L("测试方法"), L("ProcessType"), testMethodsHash ,i);
         generateEditor(L("Modbus地址"), L("SlaveID"), i);
         generateEditor(L("小数位数"), L("DataDigits"), i);
         generateEditor(L("检出上限"), L("TopLimit"), i, L("mg/L"));
@@ -207,7 +217,7 @@ void dlgSetParams2::addProperties()
     generateEditor(L("量程上限"), L("Min"), i);
     generateEditor(L("量程下限"), L("Max"), i);
     generateEditor(L("单位"), L("UnitType"), UnitHash, i);
-    generateEditor(L("计算模式"), L("CalcWay"), dropDownListHash, i);
+    generateEditor(L("计算模式"), L("CalcWay"), ADDropDownListHash, i);
 
     // 原子荧光
     i = AtomicFluorescence;
@@ -239,7 +249,7 @@ void dlgSetParams2::addProperties()
     i = SiliconOxide;
     generateEditor(L("测试优先级"), L("priority"), &testPriorityList, i);
     generateEditor(L("单位"), L("UnitType"), UnitHash, i);
-    generateEditor(L("计算模式"), L("CalcWay"), dropDownListHash, i);
+    generateEditor(L("计算模式"), L("CalcWay"), ADDropDownListHash, i);
 }
 
 void dlgSetParams2::generateModels()
@@ -294,7 +304,7 @@ void dlgSetParams2::initConnect()
         MyComboBox* eidtor = widget->findChild<MyComboBox*>(editorName);
 
         connect(eidtor, SIGNAL(currentValueChanged(QString)),
-                this, mapperToProperModelAndRow(QString);)
+                this, SLOT(mapperToProperModelAndRow(QString)));
     }
 
 }
@@ -308,12 +318,29 @@ void dlgSetParams2::mapperToProperModelAndRow(QString processTypeStr)
     QStandardItemModel* model = modelList->at(processType);
 
     // 获取czID
+    QModelIndex index = paramsNameListGlobal->currentIndex();
+    QModelIndex czIDIndex = modelForNameList->index(index.row(), 2);
+    QModelIndex processTypeIndex = modelForNameList->index(index.row(), 1);
+    QString czID = modelForNameList->data(czIDIndex).toString();
 
-    propertyListStackedWidgetGlobal->setCurrentWidget(widget);
     QList<QStandardItem*> resultList;
     resultList = model->findItems(czID, Qt::MatchExactly, 0);
     if(resultList.isEmpty())
     {
+        // 在对应的Model中添一行
+        QString czGroup = QString("%1_SET").arg(czID);
+        addOneRowToModel(czGroup.toLocal8Bit().data(), processType);
+
+        // 改变modelForNameList中相应位置的processType列
+        QStandardItem* item = new QStandardItem(processTypeStr);
+        modelForNameList->setItem(index.row(), 1, item);
+
+        // 改变对应model中的processType列
+        int row = model->rowCount();
+        model->setItem(row-1, 1, item->clone());
+
+        // 把对应的mapper指向新添加的那一行
+        mapper->toLast();
 
     }
     else
@@ -322,6 +349,9 @@ void dlgSetParams2::mapperToProperModelAndRow(QString processTypeStr)
         QModelIndex resultIndex = model->indexFromItem(item);
         mapper->setCurrentModelIndex(resultIndex);
     }
+
+    // 切换到对应的widget
+    propertyListStackedWidgetGlobal->setCurrentWidget(widget);
 }
 
 void dlgSetParams2::mapperToProperModelAndRow(QModelIndex index)
@@ -344,6 +374,7 @@ void dlgSetParams2::mapperToProperModelAndRow(QModelIndex index)
     {
         QString czGroup = QString("%1_SET").arg(czID);
         addOneRowToModel(czGroup.toLocal8Bit().data(), processType);
+        mapper->toLast();
     }
     else
     {
